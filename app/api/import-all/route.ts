@@ -17,8 +17,8 @@ export async function POST(request: Request) {
   try {
     const supabase = await createClient()
     
-    // Read the JSON file
-    const jsonPath = path.join(process.cwd(), "user_read_only_context/text_attachments/foodnet_all_menus-km2Al.json")
+    // Read the JSON file from the data directory
+    const jsonPath = path.join(process.cwd(), "data/foodnet_all_menus.json")
     
     let jsonData: any[]
     try {
@@ -146,8 +146,8 @@ export async function POST(request: Request) {
             const itemId = itemData.id
             results.items++
 
-            // Process option groups
-            const optionGroups = item.option_groups || []
+            // Process options (item.options in the JSON)
+            const optionGroups = item.options || item.option_groups || []
             for (let optIndex = 0; optIndex < optionGroups.length; optIndex++) {
               const option = optionGroups[optIndex]
 
@@ -230,8 +230,7 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET() {
-  return NextResponse.json({
-    message: "POST to this endpoint to import all restaurant data from the JSON file"
-  })
+export async function GET(request: Request) {
+  // Allow triggering import via GET for convenience
+  return POST(request)
 }
