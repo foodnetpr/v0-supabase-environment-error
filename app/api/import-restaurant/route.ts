@@ -21,7 +21,7 @@ export async function GET(request: Request) {
     const supabase = await createClient()
     
     // Read the JSON file
-    const jsonPath = path.join(process.cwd(), "data/foodnet_all_menus.json")
+    const jsonPath = path.join(process.cwd(), "data/foodnet_import_complete.json")
     const fileContent = fs.readFileSync(jsonPath, "utf-8")
     const jsonData = JSON.parse(fileContent)
     
@@ -36,7 +36,6 @@ export async function GET(request: Request) {
     
     const entry = jsonData[index]
     const restaurant = entry.restaurant
-    const info = entry.info || {} // Info object with logo_url, featured_url, phone, address, cuisine, delivery_fee, min_order, delivery_time_minutes, hours
     const categories = entry.categories || []
     
     const results = {
@@ -51,26 +50,26 @@ export async function GET(request: Request) {
     const slug = createSlug(restaurant.name)
     const externalId = String(restaurant.id)
     
-    // Build restaurant data from info object
+    // Build restaurant data - all fields are directly on restaurant object
     const restaurantInsertData = {
       name: restaurant.name,
       slug: slug,
       external_id: externalId,
-      phone: info.phone || restaurant.phone || null,
-      address: info.address || restaurant.address || null,
-      restaurant_address: info.address || restaurant.address || null,
-      logo_url: info.logo_url || restaurant.logo_url || null,
-      hero_image_url: info.featured_url || restaurant.featured_url || null,
-      marketplace_image_url: info.featured_url || info.logo_url || restaurant.featured_url || restaurant.logo_url || null,
-      cuisine_type: info.cuisine || restaurant.cuisine || null,
-      delivery_fee: info.delivery_fee != null ? Number(info.delivery_fee) : null,
-      min_delivery_order: info.min_order != null ? Number(info.min_order) : null,
-      delivery_lead_time: info.delivery_time_minutes != null ? Number(info.delivery_time_minutes) : null,
+      phone: restaurant.phone || null,
+      address: restaurant.address || null,
+      restaurant_address: restaurant.address || null,
+      logo_url: restaurant.logo_url || null,
+      hero_image_url: restaurant.featured_url || null,
+      marketplace_image_url: restaurant.featured_url || restaurant.logo_url || null,
+      cuisine_type: restaurant.cuisine || null,
+      delivery_fee: restaurant.delivery_fee != null ? Number(restaurant.delivery_fee) : null,
+      min_delivery_order: restaurant.min_order != null ? Number(restaurant.min_order) : null,
+      delivery_lead_time: restaurant.delivery_time_minutes != null ? Number(restaurant.delivery_time_minutes) : null,
+      tax_rate: restaurant.tax_rate != null ? Number(restaurant.tax_rate) / 100 : 0.115,
       primary_color: "#ef4444",
       is_active: true,
       pickup_enabled: true,
       delivery_enabled: true,
-      tax_rate: 0.115,
       show_in_marketplace: true,
     }
     
