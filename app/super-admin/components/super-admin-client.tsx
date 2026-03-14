@@ -51,13 +51,16 @@ interface Restaurant {
   primary_color: string | null
   design_template: string | null
   show_in_marketplace: boolean
-  cuisine_type: string
+  cuisine_type: string | null
   restaurant_discount_percent: number | null
   delivery_discount_percent: number | null
   pickup_discount_percent: number | null
   white_label: boolean
   show_powered_by: boolean
-  }
+  menu_items_count?: number
+  orders_count?: number
+  area?: string | null
+}
 
 interface CuisineType {
   id: string
@@ -188,7 +191,7 @@ export function SuperAdminClient({
       r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       r.slug.toLowerCase().includes(searchQuery.toLowerCase()) ||
       r.city?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.cuisine_type.toLowerCase().includes(searchQuery.toLowerCase()),
+      r.cuisine_type?.toLowerCase().includes(searchQuery.toLowerCase()),
   )
 
   // Rename stats variables to match changes in updates
