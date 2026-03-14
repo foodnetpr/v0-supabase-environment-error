@@ -1772,8 +1772,8 @@ export default function CustomerPortal({
                 {!restaurant.white_label && (
                   <>
                     <Image
-                      src="/junte-ready-logo.png"
-                      alt="JunteReady"
+                      src="/foodnet-delivery-logo.jpg"
+                      alt="FoodNetDelivery"
                       width={140}
                       height={48}
                       className="h-10 md:h-8 w-auto flex-shrink-0"
@@ -4682,7 +4682,7 @@ export default function CustomerPortal({
                   rel="noopener noreferrer"
                   className="text-white/80 hover:text-white underline transition-colors"
                 >
-                  JunteReady
+                  FoodNetDelivery
                 </a>
               </p>
             )}

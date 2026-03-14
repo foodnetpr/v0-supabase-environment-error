@@ -19,7 +19,7 @@ import {
 import { PartnerContactForm } from "@/components/partner-contact-form"
 
 export const metadata: Metadata = {
-  title: "Para Restaurantes | JunteReady",
+  title: "Para Restaurantes | FoodNetDelivery",
   description:
     "Digitaliza tu negocio de catering con portales personalizados, gestion de menu, ordenes online, pagos integrados y mucho mas.",
 }
@@ -120,8 +120,8 @@ export default function PartnersPage() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
           <Link href="/" className="flex items-center">
             <Image
-              src="/junte-ready-logo.png"
-              alt="JunteReady"
+              src="/foodnet-delivery-logo.jpg"
+              alt="FoodNetDelivery"
               width={160}
               height={48}
               className="h-9 w-auto"
@@ -469,7 +469,7 @@ export default function PartnersPage() {
         <div className="relative z-10 mx-auto max-w-2xl px-6 py-20 lg:py-28">
           <div className="mb-10 text-center">
             <h2 className="text-balance text-3xl font-bold tracking-tight text-white md:text-4xl">
-              Comienza con JunteReady
+              Comienza con FoodNetDelivery
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-pretty text-lg leading-relaxed text-slate-300">
               Completa el formulario y nos pondremos en contacto contigo para una demo personalizada.
@@ -483,8 +483,8 @@ export default function PartnersPage() {
       <footer className="border-t border-slate-200 bg-white py-8">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 sm:flex-row">
           <Image
-            src="/junte-ready-logo.png"
-            alt="JunteReady"
+            src="/foodnet-delivery-logo.jpg"
+            alt="FoodNetDelivery"
             width={120}
             height={36}
             className="h-7 w-auto"
@@ -500,7 +500,7 @@ export default function PartnersPage() {
             </div>
             <span className="text-slate-300">|</span>
             <p className="text-xs text-slate-500" suppressHydrationWarning>
-              &copy; {new Date().getFullYear()} JunteReady
+              &copy; {new Date().getFullYear()} FoodNetDelivery
             </p>
           </div>
         </div>

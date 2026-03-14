@@ -1195,15 +1195,15 @@ export function SuperAdminClient({
               </select>
             </div>
 
-            {/* JunteReady Internal: Financial Settings */}
+            {/* FoodNetDelivery Internal: Financial Settings */}
             <div className="pt-4 border-t">
               <div className="flex items-center gap-2 mb-3">
-                <h4 className="text-sm font-semibold text-slate-700 uppercase tracking-wider">Financiero (Interno JunteReady)</h4>
+                <h4 className="text-sm font-semibold text-slate-700 uppercase tracking-wider">Financiero (Interno FoodNetDelivery)</h4>
               </div>
               <div>
                 <Label className="text-base font-semibold">Descuentos del Restaurante (%)</Label>
                 <p className="text-xs text-slate-500 mt-1 mb-3">
-                  Porcentaje de descuento que el restaurante otorga a JunteReady. Se puede configurar un descuento diferente para Delivery y Pick-Up.
+                  Porcentaje de descuento que el restaurante otorga a FoodNetDelivery. Se puede configurar un descuento diferente para Delivery y Pick-Up.
                 </p>
                 <div className="grid grid-cols-3 gap-4">
                   <div>
@@ -1333,7 +1333,7 @@ export function SuperAdminClient({
                 <div className="flex-1">
                   <Label htmlFor="white-label">Modo White Label</Label>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Oculta el logo y branding de JunteReady del header del portal del restaurante
+                    Oculta el logo y branding de FoodNetDelivery del header del portal del restaurante
                   </p>
                 </div>
                 <Select
@@ -1352,7 +1352,7 @@ export function SuperAdminClient({
 
               <div className="flex items-center justify-between p-3 rounded-lg border bg-slate-50">
                 <div className="flex-1">
-                  <Label htmlFor="show-powered-by">{"Mostrar \"Powered by JunteReady\""}</Label>
+                  <Label htmlFor="show-powered-by">{"Mostrar \"Powered by FoodNetDelivery\""}</Label>
                   <p className="text-xs text-slate-500 mt-0.5">
                     Muestra una linea sutil en el footer del portal. Puede estar activo incluso en modo white label.
                   </p>

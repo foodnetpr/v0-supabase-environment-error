@@ -66,8 +66,8 @@ export function MarketplaceHome({
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
           <Link href="/" className="flex items-center">
             <Image
-              src="/junte-ready-logo.png"
-              alt="JunteReady"
+              src="/foodnet-delivery-logo.jpg"
+              alt="FoodNetDelivery"
               width={160}
               height={48}
               className="h-9 w-auto"
@@ -333,8 +333,8 @@ function MarketplaceFooter() {
     <footer className="border-t border-slate-200 bg-white py-8 mt-auto">
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 sm:flex-row">
         <Image
-          src="/junte-ready-logo.png"
-          alt="JunteReady"
+          src="/foodnet-delivery-logo.jpg"
+          alt="FoodNetDelivery"
           width={120}
           height={36}
           className="h-7 w-auto"
@@ -345,7 +345,7 @@ function MarketplaceFooter() {
           </Link>
           <span className="text-slate-300">|</span>
           <span suppressHydrationWarning>
-            &copy; {new Date().getFullYear()} JunteReady. Todos los derechos reservados.
+            &copy; {new Date().getFullYear()} FoodNetDelivery. Todos los derechos reservados.
           </span>
         </div>
       </div>
