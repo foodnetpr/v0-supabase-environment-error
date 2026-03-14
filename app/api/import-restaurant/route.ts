@@ -49,35 +49,93 @@ export async function GET(request: Request) {
     
     const slug = createSlug(restaurant.name)
     
-    // Insert restaurant
-    const { data: restaurantData, error: restaurantError } = await supabase
+    // Check if restaurant exists by external_id first
+    const externalId = String(restaurant.id)
+    const { data: existingRestaurant } = await supabase
       .from("restaurants")
-      .upsert({
-        name: restaurant.name,
-        slug: slug,
-        external_id: String(restaurant.id),
-        phone: restaurant.phone || null,
-        restaurant_address: restaurant.address || null,
-        logo_url: restaurant.logo_url || null,
-        hero_image_url: restaurant.featured_url || null,
-        marketplace_image_url: restaurant.featured_url || restaurant.logo_url || null,
-        primary_color: "#ef4444",
-        is_active: true,
-        pickup_enabled: true,
-        delivery_enabled: true,
-        tax_rate: 0.115,
-        show_in_marketplace: true,
-      }, {
-        onConflict: "slug",
-      })
-      .select()
+      .select("id")
+      .eq("external_id", externalId)
       .single()
 
-    if (restaurantError) {
-      return NextResponse.json({ error: restaurantError.message }, { status: 500 })
-    }
+    let restaurantId: string
 
-    const restaurantId = restaurantData.id
+    if (existingRestaurant) {
+      // Update existing restaurant
+      const { data: updatedRestaurant, error: updateError } = await supabase
+        .from("restaurants")
+        .update({
+          name: restaurant.name,
+          slug: slug,
+          phone: restaurant.phone || null,
+          restaurant_address: restaurant.address || null,
+          logo_url: restaurant.logo_url || null,
+          hero_image_url: restaurant.featured_url || null,
+          marketplace_image_url: restaurant.featured_url || restaurant.logo_url || null,
+        })
+        .eq("id", existingRestaurant.id)
+        .select()
+        .single()
+
+      if (updateError) {
+        return NextResponse.json({ error: updateError.message }, { status: 500 })
+      }
+      restaurantId = existingRestaurant.id
+    } else {
+      // Check if slug exists (different external_id)
+      const { data: slugExists } = await supabase
+        .from("restaurants")
+        .select("id")
+        .eq("slug", slug)
+        .single()
+
+      if (slugExists) {
+        // Update by slug if no external_id match
+        const { error: updateError } = await supabase
+          .from("restaurants")
+          .update({
+            name: restaurant.name,
+            external_id: externalId,
+            phone: restaurant.phone || null,
+            restaurant_address: restaurant.address || null,
+            logo_url: restaurant.logo_url || null,
+            hero_image_url: restaurant.featured_url || null,
+            marketplace_image_url: restaurant.featured_url || restaurant.logo_url || null,
+          })
+          .eq("id", slugExists.id)
+
+        if (updateError) {
+          return NextResponse.json({ error: updateError.message }, { status: 500 })
+        }
+        restaurantId = slugExists.id
+      } else {
+        // Insert new restaurant
+        const { data: newRestaurant, error: insertError } = await supabase
+          .from("restaurants")
+          .insert({
+            name: restaurant.name,
+            slug: slug,
+            external_id: externalId,
+            phone: restaurant.phone || null,
+            restaurant_address: restaurant.address || null,
+            logo_url: restaurant.logo_url || null,
+            hero_image_url: restaurant.featured_url || null,
+            marketplace_image_url: restaurant.featured_url || restaurant.logo_url || null,
+            primary_color: "#ef4444",
+            is_active: true,
+            pickup_enabled: true,
+            delivery_enabled: true,
+            tax_rate: 0.115,
+            show_in_marketplace: true,
+          })
+          .select()
+          .single()
+
+        if (insertError) {
+          return NextResponse.json({ error: insertError.message }, { status: 500 })
+        }
+        restaurantId = newRestaurant.id
+      }
+    }
 
     // Process categories and items
     for (let catIndex = 0; catIndex < categories.length; catIndex++) {
