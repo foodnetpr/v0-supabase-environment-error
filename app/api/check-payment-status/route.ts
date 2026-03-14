@@ -35,6 +35,7 @@ export async function GET(request: NextRequest) {
       const orderData = {
         restaurantId: metadata.restaurantId,
         branchId: metadata.branchId,
+        customerId: metadata.customerId || null,
         orderType: metadata.orderType,
         customerEmail: metadata.customerEmail,
         customerPhone: metadata.customerPhone,
@@ -211,6 +212,7 @@ async function insertOrderWithFinancials(orderData: any, sessionId: string) {
     restaurant_id: restaurantId,
     branch_id: branchId,
     original_branch_id: branchId,
+    customer_id: orderData.customerId || null,
     order_number: orderNumber,
     stripe_account_id: orderData.stripeAccountId || null,
     stripe_payment_intent_id: sessionId,

@@ -1,4 +1,4 @@
-import { createServerClient } from "@/lib/supabase/server"
+import { createClient } from "@/lib/supabase/server"
 import { notFound, redirect } from "next/navigation"
 import CustomerPortal from "@/components/customer-portal"
 
@@ -16,7 +16,36 @@ export default async function TenantPortalPage({
     redirect(`/${slug}`)
   }
 
-  const supabase = await createServerClient()
+  const supabase = await createClient()
+  
+  // Get logged-in user and their customer data
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  let customer = null
+  let customerAddresses: any[] = []
+  
+  if (user) {
+    // Get customer record
+    const { data: customerData } = await supabase
+      .from("customers")
+      .select("*")
+      .eq("auth_user_id", user.id)
+      .single()
+    
+    customer = customerData
+    
+    if (customer) {
+      // Get customer addresses
+      const { data: addresses } = await supabase
+        .from("customer_addresses")
+        .select("*")
+        .eq("customer_id", customer.id)
+        .order("is_default", { ascending: false })
+        .order("created_at", { ascending: false })
+      
+      customerAddresses = addresses || []
+    }
+  }
 
   try {
     const { data: restaurant, error: restaurantError } = await supabase
@@ -229,6 +258,8 @@ export default async function TenantPortalPage({
         branchMenuOverrides={branchMenuOverrides}
         containerRates={containerRates || []}
         operatingHours={operatingHours || []}
+        customer={customer}
+        customerAddresses={customerAddresses}
       />
     )
   } catch (error) {

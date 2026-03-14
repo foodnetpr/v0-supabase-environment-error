@@ -21,6 +21,7 @@ interface StripeCheckoutProps {
     smsConsent: boolean
     servicePackage?: string | null
     stripeAccountId?: string | null // Stripe Connect account ID for the branch
+    customerId?: string | null // Platform customer ID
   }
   onSuccess: () => void
   onCancel: () => void

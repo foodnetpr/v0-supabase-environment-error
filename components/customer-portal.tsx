@@ -222,6 +222,29 @@ interface Restaurant {
   show_service_packages?: boolean // ADDED: Setting to control visibility of service packages
 }
 
+interface CustomerAddress {
+  id: string
+  label: string | null
+  address_line_1: string
+  address_line_2: string | null
+  city: string
+  state: string | null
+  postal_code: string | null
+  latitude: number | null
+  longitude: number | null
+  delivery_instructions: string | null
+  is_default: boolean
+}
+
+interface Customer {
+  id: string
+  email: string
+  first_name: string | null
+  last_name: string | null
+  phone: string | null
+  default_address_id: string | null
+}
+
 interface CustomerPortalProps {
   restaurant: Restaurant
   categories: Category[]
@@ -236,6 +259,8 @@ interface CustomerPortalProps {
   branchMenuOverrides?: BranchMenuOverride[]
   containerRates?: any[]
   operatingHours?: OperatingHour[]
+  customer?: Customer | null
+  customerAddresses?: CustomerAddress[]
   }
 
 export default function CustomerPortal({
@@ -252,6 +277,8 @@ export default function CustomerPortal({
   branchMenuOverrides = [],
   containerRates = [],
   operatingHours = [],
+  customer,
+  customerAddresses = [],
   }: CustomerPortalProps) {
   // Branch selection state
   const isChain = (restaurant as any).is_chain && branches.length > 0
@@ -1277,12 +1304,13 @@ export default function CustomerPortal({
     const dynamicDeliveryFee = deliveryMethod === "delivery" ? deliveryFeeCalculation.fee : 0
     const total = subtotal + tax + dynamicDeliveryFee + tipAmount
 
-    const orderData = {
-      restaurantId: restaurant.id,
-      restaurantName: restaurant.name,
-      restaurantAddress: effectiveRestaurant.restaurant_address || "",
-      branchId: selectedBranch.id,
-      branchName: selectedBranch?.name || null,
+const orderData = {
+  restaurantId: restaurant.id,
+  restaurantName: restaurant.name,
+  restaurantAddress: effectiveRestaurant.restaurant_address || "",
+  branchId: selectedBranch.id,
+  branchName: selectedBranch?.name || null,
+  customerId: customer?.id || null, // Platform customer ID for order history
       // Payment provider settings - check branch first, then fall back to restaurant
       paymentProvider: (selectedBranch as any)?.payment_provider || (restaurant as any)?.payment_provider || "stripe",
       stripeAccountId: (selectedBranch as any)?.stripe_account_id || (restaurant as any)?.stripe_account_id || null,
@@ -3963,6 +3991,70 @@ export default function CustomerPortal({
                         Direccion de Entrega
                       </h3>
                     </div>
+
+                    {/* Saved Addresses Selector */}
+                    {customerAddresses.length > 0 && (
+                      <div className="space-y-2">
+                        <Label>Direcciones Guardadas</Label>
+                        <div className="grid gap-2">
+                          {customerAddresses.map((addr) => (
+                            <button
+                              key={addr.id}
+                              type="button"
+                              onClick={() => {
+                                setDeliveryForm({
+                                  ...deliveryForm,
+                                  streetAddress: addr.address_line_1,
+                                  streetAddress2: addr.address_line_2 || "",
+                                  city: addr.city,
+                                  state: addr.state || "PR",
+                                  zip: addr.postal_code || "",
+                                  deliveryInstructions: addr.delivery_instructions || "",
+                                })
+                                // Trigger delivery fee calculation
+                                handleCalculateDeliveryFee({
+                                  ...deliveryForm,
+                                  streetAddress: addr.address_line_1,
+                                  city: addr.city,
+                                  state: addr.state || "PR",
+                                  zip: addr.postal_code || "",
+                                })
+                              }}
+                              className="flex items-start gap-3 p-3 border rounded-lg text-left hover:bg-slate-50 transition-colors"
+                              style={{
+                                borderColor: deliveryForm.streetAddress === addr.address_line_1 ? primaryColor : "#e5e7eb",
+                                backgroundColor: deliveryForm.streetAddress === addr.address_line_1 ? `${primaryColor}10` : "white",
+                              }}
+                            >
+                              <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: primaryColor }} />
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-sm">
+                                  {addr.label || "Direccion"}
+                                  {addr.is_default && (
+                                    <span className="ml-2 text-xs bg-slate-100 px-2 py-0.5 rounded">Principal</span>
+                                  )}
+                                </p>
+                                <p className="text-sm text-muted-foreground truncate">
+                                  {addr.address_line_1}
+                                  {addr.address_line_2 && `, ${addr.address_line_2}`}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  {addr.city}{addr.state && `, ${addr.state}`} {addr.postal_code}
+                                </p>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                        <div className="relative py-2">
+                          <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t" />
+                          </div>
+                          <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-white px-2 text-muted-foreground">o ingresa nueva direccion</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     <div>
                       <Label>Direccion *</Label>
