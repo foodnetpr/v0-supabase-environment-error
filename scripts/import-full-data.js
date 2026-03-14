@@ -26,8 +26,8 @@ function createSlug(name) {
 async function importData() {
   console.log("Starting full data import...")
 
-  // Read the JSON file
-  const jsonPath = path.join(process.cwd(), "data/foodnet_all_menus.json")
+  // Read the JSON file - use absolute path since script runs in different context
+  const jsonPath = "/vercel/share/v0-project/data/foodnet_all_menus.json"
   const jsonData = JSON.parse(fs.readFileSync(jsonPath, "utf-8"))
 
   console.log(`Found ${jsonData.length} restaurants in JSON file`)
