@@ -64,7 +64,9 @@ export async function GET(request: NextRequest) {
               name: item.n,
               quantity: item.q,
               price: item.p,
-              totalPrice: item.p
+              totalPrice: item.p,
+              type: item.t || "menu", // Restore item type
+              internalShopItemId: item.iid || null, // Restore internal shop item ID
             }))
           } catch {
             return []
@@ -122,15 +124,18 @@ async function insertOrderWithFinancials(orderData: any, sessionId: string) {
   const restaurantId = orderData.restaurantId
   const branchId = orderData.branchId
 
-  // Separate cart into food items vs service package items
-  let foodSubtotal = 0
-  let serviceRevenue = 0
+  // Separate cart into: restaurant items, internal shop items, service packages
+  let foodSubtotal = 0 // Restaurant menu items
+  let internalShopSubtotal = 0 // Platform-owned items (drinks, extras)
+  let serviceRevenue = 0 // Service packages
 
   for (const item of orderData.cart || []) {
     const itemTotal = (item.price || 0) * (item.quantity || 1)
     if (item.type === "package") {
       serviceRevenue += itemTotal
-    } else {
+    } else if (item.type === "internal_shop") {
+      internalShopSubtotal += itemTotal
+    } else if (item.type !== "delivery_fee") {
       foodSubtotal += itemTotal
     }
   }
@@ -139,6 +144,9 @@ async function insertOrderWithFinancials(orderData: any, sessionId: string) {
   if (orderData.servicePackageTotal) {
     serviceRevenue += orderData.servicePackageTotal
   }
+
+  // Restaurant subtotal is what the restaurant provided (food items only)
+  const restaurantSubtotal = foodSubtotal
 
   // Fetch the applicable discount percentage based on order type
   const orderType = orderData.orderType // "delivery" or "pickup"
@@ -236,6 +244,8 @@ async function insertOrderWithFinancials(orderData: any, sessionId: string) {
     service_revenue: serviceRevenue,
     restaurant_discount_percent: discountPercent,
     restaurant_payout: Math.round(restaurantPayout * 100) / 100,
+    restaurant_subtotal: restaurantSubtotal,
+    internal_shop_subtotal: internalShopSubtotal,
     order_source: orderData.order_source || "online",
     payment_provider: "stripe",
   }).select().single()
@@ -247,15 +257,20 @@ async function insertOrderWithFinancials(orderData: any, sessionId: string) {
 
   // Insert order items into order_items table
   if (orderData.cart && orderData.cart.length > 0 && order) {
-    const orderItems = orderData.cart.map((item: any) => ({
-      order_id: order.id,
-      menu_item_id: item.menu_item_id || item.id || null,
-      item_name: item.name || item.item_name,
-      quantity: item.quantity || 1,
-      unit_price: item.price || item.unit_price || 0,
-      total_price: item.total_price || (item.price * (item.quantity || 1)),
-      selected_options: item.selectedOptions || item.selected_options || {},
-    }))
+    const orderItems = orderData.cart
+      .filter((item: any) => item.type !== "delivery_fee") // Exclude delivery fee pseudo-item
+      .map((item: any) => ({
+        order_id: order.id,
+        menu_item_id: item.type === "internal_shop" ? null : (item.menu_item_id || item.id || null),
+        item_name: item.name || item.item_name,
+        quantity: item.quantity || 1,
+        unit_price: item.price || item.unit_price || 0,
+        total_price: item.total_price || (item.price * (item.quantity || 1)),
+        selected_options: item.selectedOptions || item.selected_options || {},
+        // Internal shop tracking
+        is_internal_shop_item: item.type === "internal_shop",
+        internal_shop_item_id: item.type === "internal_shop" ? item.internalShopItemId : null,
+      }))
 
     const { error: itemsError } = await supabase.from("order_items").insert(orderItems)
     if (itemsError) {

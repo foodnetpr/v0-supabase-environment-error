@@ -393,6 +393,13 @@ export function SuperAdminClient({
               <Megaphone className="h-4 w-4" />
               Marketing & Sales
             </button>
+            <Link
+              href="/super-admin/internal-shop"
+              className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-lg border-b-2 border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 transition-colors"
+            >
+              <ShoppingCart className="h-4 w-4" />
+              Internal Shop
+            </Link>
           </div>
         </div>
       </header>

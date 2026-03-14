@@ -129,11 +129,13 @@ export async function createCheckoutSession(orderData: {
     const restaurantId = (orderData as any).restaurantId || orderData.eventDetails?.restaurantId || ""
     const branchId = (orderData as any).branchId || orderData.eventDetails?.branchId || ""
     
-    // Create a minimal cart representation for metadata (just names and prices)
+    // Create a minimal cart representation for metadata (just names, prices, and type)
     const cartSummary = orderData.cart.map(item => ({
       n: item.name,
       q: item.quantity,
-      p: item.totalPrice || item.price
+      p: item.totalPrice || item.price,
+      t: item.type || "menu", // Track item type: "menu", "internal_shop", "package", "delivery_fee"
+      iid: item.internalShopItemId || null, // Internal shop item ID if applicable
     }))
     const cartJson = JSON.stringify(cartSummary)
     // Truncate cart if too long (500 char limit)

@@ -28,6 +28,7 @@ import { type DesignTemplate, getTemplateStyles, MenuItemCard, ServicePackageCar
 import { BulkOrderModal } from "@/components/bulk-order-modal"
 import { BranchSelector } from "@/components/branch-selector"
 import { useToast } from "@/components/ui/use-toast" // Import useToast
+import { InternalShopExtras } from "@/components/internal-shop-extras"
 
 import { createBrowserClient } from "@/lib/supabase/client"
 
@@ -4306,6 +4307,46 @@ const orderData = {
                       } as React.CSSProperties
                     }
                     placeholder="Cualquier peticion especial o restriccion alimentaria..."
+                  />
+                </div>
+
+                {/* Internal Shop Extras - Add drinks, snacks, etc. */}
+                <div
+                  className="space-y-4 border-l-4 pl-4 -ml-2 py-3 pr-2 rounded-r-lg"
+                  style={{
+                    borderColor: primaryColor,
+                    backgroundColor: `${primaryColor}08`,
+                  }}
+                >
+                  <InternalShopExtras
+                    onAddToCart={(item, quantity) => {
+                      setCart((prevCart) => {
+                        // Remove any existing internal shop item with same ID
+                        const filtered = prevCart.filter(
+                          (cartItem) => !(cartItem.type === "internal_shop" && cartItem.internalShopItemId === item.id)
+                        )
+                        
+                        // Add if quantity > 0
+                        if (quantity > 0) {
+                          filtered.push({
+                            type: "internal_shop",
+                            id: `internal-${item.id}`,
+                            internalShopItemId: item.id,
+                            name: item.name,
+                            price: Number(item.price),
+                            quantity: quantity,
+                            image_url: item.image_url,
+                            category: item.category,
+                          })
+                        }
+                        
+                        return filtered
+                      })
+                      setCartVersion((v) => v + 1)
+                    }}
+                    existingItems={cart
+                      .filter((item) => item.type === "internal_shop")
+                      .map((item) => ({ id: item.internalShopItemId, quantity: item.quantity }))}
                   />
                 </div>
 
