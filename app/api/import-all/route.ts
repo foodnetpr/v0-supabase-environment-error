@@ -133,7 +133,7 @@ export async function POST(request: Request) {
                 display_order: itemIndex,
                 is_active: true,
               }, {
-                onConflict: "restaurant_id,category_id,name",
+                onConflict: "category_id,name",
               })
               .select()
               .single()
