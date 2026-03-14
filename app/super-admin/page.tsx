@@ -1,10 +1,14 @@
-import { createClient } from "@/lib/supabase/server"
+import { createClient } from "@supabase/supabase-js"
 import { SuperAdminClient } from "./components/super-admin-client"
 
 export const dynamic = "force-dynamic"
 
 export default async function SuperAdminPage() {
-  const supabase = await createClient()
+  // Use service role client for admin operations to bypass RLS
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
 
   // Fetch all restaurants with counts
   const { data: restaurants, error: restaurantsError } = await supabase
@@ -17,12 +21,10 @@ export default async function SuperAdminPage() {
   }
 
   // Fetch counts with higher limit to avoid default 1000 row cap
-  const { data: menuCounts, error: menuError } = await supabase
+  const { data: menuCounts } = await supabase
     .from("menu_items")
     .select("restaurant_id")
     .limit(100000)
-  
-  console.log("[v0] Super Admin - menuCounts fetched:", menuCounts?.length, "error:", menuError?.message)
   
   const { data: orderCounts } = await supabase
     .from("orders")
@@ -60,8 +62,6 @@ export default async function SuperAdminPage() {
       menuCountMap[item.restaurant_id] = (menuCountMap[item.restaurant_id] || 0) + 1
     }
   })
-  
-  console.log("[v0] Super Admin - menuCountMap keys:", Object.keys(menuCountMap).length, "sample:", Object.entries(menuCountMap).slice(0, 3))
 
   orderCounts?.forEach((item) => {
     orderCountMap[item.restaurant_id] = (orderCountMap[item.restaurant_id] || 0) + 1
