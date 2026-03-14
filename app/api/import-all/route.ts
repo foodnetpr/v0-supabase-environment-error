@@ -47,6 +47,7 @@ export async function POST(request: Request) {
     for (const entry of jsonData) {
       try {
         const restaurant = entry.restaurant
+        const info = entry.info || {} // New info object with logo_url, featured_url, phone, address, cuisine, delivery_fee, min_order, delivery_time_minutes, hours
         const categories = entry.categories || []
         
         if (!restaurant || !restaurant.name) {
@@ -56,18 +57,25 @@ export async function POST(request: Request) {
 
         const slug = createSlug(restaurant.name)
 
-        // Insert restaurant
+        // Insert restaurant - map info fields to database columns
         const { data: restaurantData, error: restaurantError } = await supabase
           .from("restaurants")
           .upsert({
             name: restaurant.name,
             slug: slug,
             external_id: String(restaurant.id),
-            phone: restaurant.phone || null,
-            restaurant_address: restaurant.address || null,
-            logo_url: restaurant.logo_url || null,
-            hero_image_url: restaurant.featured_url || null,
-            marketplace_image_url: restaurant.featured_url || restaurant.logo_url || null,
+            // Map from info object
+            phone: info.phone || restaurant.phone || null,
+            address: info.address || restaurant.address || null,
+            restaurant_address: info.address || restaurant.address || null,
+            logo_url: info.logo_url || restaurant.logo_url || null,
+            hero_image_url: info.featured_url || restaurant.featured_url || null,
+            marketplace_image_url: info.featured_url || info.logo_url || restaurant.featured_url || restaurant.logo_url || null,
+            cuisine_type: info.cuisine || restaurant.cuisine || null,
+            delivery_fee: info.delivery_fee != null ? Number(info.delivery_fee) : null,
+            min_delivery_order: info.min_order != null ? Number(info.min_order) : null,
+            delivery_lead_time: info.delivery_time_minutes != null ? Number(info.delivery_time_minutes) : null,
+            // Default settings
             primary_color: "#ef4444",
             is_active: true,
             pickup_enabled: true,
