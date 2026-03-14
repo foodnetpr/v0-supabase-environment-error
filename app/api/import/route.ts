@@ -105,7 +105,7 @@ export async function POST(request: Request) {
             accepts_pickup: true,
             accepts_delivery: true,
             tax_rate: 11.5, // Puerto Rico IVU
-            marketplace_opt_in: true, // Show in marketplace by default
+            show_in_marketplace: true, // Show in marketplace by default
           }, {
             onConflict: "slug",
             ignoreDuplicates: false,
