@@ -1,8 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
-import { ImageUpload } from "@/components/image-upload"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
@@ -37,9 +36,59 @@ export function CuisineTypesTab() {
   const [editName, setEditName] = useState("")
   const [editIconUrl, setEditIconUrl] = useState<string | null>(null)
   const [savingEdit, setSavingEdit] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   
   // Delete confirmation
   const [deletingCuisine, setDeletingCuisine] = useState<CuisineType | null>(null)
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      setUploadError("Por favor selecciona una imagen válida")
+      return
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError("La imagen debe ser menor a 5MB")
+      return
+    }
+
+    setUploading(true)
+    setUploadError(null)
+
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+
+      const response = await fetch("/api/upload-cuisine-icon", {
+        method: "POST",
+        body: formData,
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || "Error al subir la imagen")
+      }
+
+      setEditIconUrl(result.url)
+    } catch (error) {
+      console.error("Upload error:", error)
+      setUploadError(error instanceof Error ? error.message : "Error al subir la imagen")
+    } finally {
+      setUploading(false)
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ""
+      }
+    }
+  }
 
   const loadCuisineTypes = async () => {
     setLoading(true)
@@ -69,6 +118,7 @@ export function CuisineTypesTab() {
     setEditingCuisine(cuisine)
     setEditName(cuisine.name)
     setEditIconUrl(cuisine.icon_url)
+    setUploadError(null)
   }
 
   const handleSaveEdit = async () => {
@@ -221,11 +271,40 @@ export function CuisineTypesTab() {
                 </div>
                 
                 {/* Image upload */}
-                <ImageUpload
-                  value={editIconUrl || undefined}
-                  onChange={(url) => setEditIconUrl(url)}
-                  label="Subir imagen"
-                />
+                <div className="w-full">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    id="cuisine-icon-upload"
+                  />
+                  <label
+                    htmlFor="cuisine-icon-upload"
+                    className={`flex items-center justify-center gap-2 w-full py-3 px-4 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+                      uploading
+                        ? "border-slate-300 bg-slate-50 cursor-not-allowed"
+                        : "border-slate-300 hover:border-slate-400 hover:bg-slate-50"
+                    }`}
+                  >
+                    {uploading ? (
+                      <>
+                        <Loader2 className="h-5 w-5 animate-spin text-slate-500" />
+                        <span className="text-sm text-slate-500">Subiendo...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-5 w-5 text-slate-500" />
+                        <span className="text-sm text-slate-600">Seleccionar imagen</span>
+                      </>
+                    )}
+                  </label>
+                  {uploadError && (
+                    <p className="text-sm text-red-500 mt-2 text-center">{uploadError}</p>
+                  )}
+                  <p className="text-xs text-slate-400 mt-2 text-center">PNG, JPG o WebP. Max 5MB.</p>
+                </div>
                 
                 {editIconUrl && (
                   <Button
