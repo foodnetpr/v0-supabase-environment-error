@@ -149,9 +149,9 @@ export function MarketplaceHome({
 
       {/* Restaurant Grid */}
       {restaurants.length > 0 && (
-        <section id="restaurantes" className="pt-6 pb-16">
-          <div className="mx-auto max-w-6xl px-6">
-            <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+        <section id="restaurantes" className="pt-4 sm:pt-6 pb-12 sm:pb-16">
+          <div className="mx-auto max-w-6xl px-3 sm:px-6">
+            <div className="grid grid-cols-2 gap-3 sm:gap-6 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
               {filteredRestaurants.map((restaurant) => (
                 <RestaurantCard key={restaurant.id} restaurant={restaurant} />
               ))}
@@ -161,10 +161,10 @@ export function MarketplaceHome({
       )}
 
       {filteredRestaurants.length === 0 && restaurants.length > 0 && (
-        <div className="mx-auto max-w-6xl px-6 py-20 text-center">
-          <Card className="p-12 max-w-2xl mx-auto border-slate-200">
-            <h3 className="text-2xl font-bold mb-4 text-slate-900">No Se Encontraron Restaurantes</h3>
-            <p className="text-slate-600 mb-6">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 py-12 sm:py-20 text-center">
+          <Card className="p-6 sm:p-12 max-w-2xl mx-auto border-slate-200">
+            <h3 className="text-lg sm:text-2xl font-bold mb-3 sm:mb-4 text-slate-900">No Se Encontraron Restaurantes</h3>
+            <p className="text-sm sm:text-base text-slate-600 mb-4 sm:mb-6">
               No hay restaurantes que coincidan con los filtros seleccionados.
             </p>
             <Button
@@ -182,10 +182,10 @@ export function MarketplaceHome({
       )}
 
       {filteredRestaurants.length === 0 && restaurants.length === 0 && (
-        <div className="mx-auto max-w-6xl px-6 py-20 text-center">
-          <Card className="p-12 max-w-2xl mx-auto border-slate-200">
-            <h3 className="text-2xl font-bold mb-4 text-slate-900">No Hay Restaurantes Disponibles</h3>
-            <p className="text-slate-600">Vuelva pronto mientras los restaurantes se unen a nuestro mercado.</p>
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 py-12 sm:py-20 text-center">
+          <Card className="p-6 sm:p-12 max-w-2xl mx-auto border-slate-200">
+            <h3 className="text-lg sm:text-2xl font-bold mb-3 sm:mb-4 text-slate-900">No Hay Restaurantes Disponibles</h3>
+            <p className="text-sm sm:text-base text-slate-600">Vuelva pronto mientras los restaurantes se unen a nuestro mercado.</p>
           </Card>
         </div>
       )}
@@ -238,7 +238,7 @@ function HeroSlideshow({
   }, [nextSlide])
 
   return (
-    <section className="relative min-h-[320px] flex items-center overflow-hidden">
+    <section className="relative min-h-[200px] sm:min-h-[320px] flex items-center overflow-hidden">
       {/* Slide backgrounds */}
       {slides.map((slide, index) => (
         <div
@@ -261,44 +261,44 @@ function HeroSlideshow({
       <div className="absolute inset-0 bg-gradient-to-r from-slate-900/90 via-slate-900/70 to-slate-900/40 z-[2]" />
 
       {/* Content - left-aligned matching partners hero */}
-      <div className="relative z-10 mx-auto w-full max-w-6xl px-6 py-14">
+      <div className="relative z-10 mx-auto w-full max-w-6xl px-4 sm:px-6 py-8 sm:py-14">
         <div className="max-w-2xl">
-          <span className="mb-3 inline-block rounded-full bg-amber-400/90 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-slate-900">
+          <span className="mb-2 sm:mb-3 inline-block rounded-full bg-amber-400/90 px-3 sm:px-4 py-1 sm:py-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-900">
             Mercado Boricua para el Mejor Catering
           </span>
-          <h1 className="text-balance text-3xl font-bold leading-tight tracking-tight text-white md:text-4xl lg:text-5xl">
+          <h1 className="text-balance text-xl sm:text-3xl md:text-4xl lg:text-5xl font-bold leading-tight tracking-tight text-white">
             {slides[currentSlide].title}
           </h1>
-          <p className="mt-3 max-w-xl text-pretty text-base leading-relaxed text-slate-200">
+          <p className="mt-2 sm:mt-3 max-w-xl text-pretty text-sm sm:text-base leading-relaxed text-slate-200">
             {slides[currentSlide].subtitle}
           </p>
         </div>
       </div>
 
-      {/* Navigation arrows */}
+      {/* Navigation arrows - hidden on mobile, use swipe instead */}
       <button
         onClick={prevSlide}
-        className="absolute left-4 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-black/30 text-white hover:bg-black/50 transition-colors"
+        className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-20 p-1.5 sm:p-2 rounded-full bg-black/30 text-white hover:bg-black/50 transition-colors hidden sm:block"
         aria-label="Slide anterior"
       >
-        <ChevronLeft className="h-5 w-5" />
+        <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
       </button>
       <button
         onClick={nextSlide}
-        className="absolute right-4 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-black/30 text-white hover:bg-black/50 transition-colors"
+        className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-20 p-1.5 sm:p-2 rounded-full bg-black/30 text-white hover:bg-black/50 transition-colors hidden sm:block"
         aria-label="Siguiente slide"
       >
-        <ChevronRight className="h-5 w-5" />
+        <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
       </button>
 
       {/* Dots indicator */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
+      <div className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 sm:gap-2">
         {slides.map((_, index) => (
           <button
             key={index}
             onClick={() => setCurrentSlide(index)}
-            className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
-              index === currentSlide ? "bg-white w-6" : "bg-white/50 hover:bg-white/70"
+            className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full transition-all duration-300 ${
+              index === currentSlide ? "bg-white w-5 sm:w-6" : "bg-white/50 hover:bg-white/70"
             }`}
             aria-label={`Ir al slide ${index + 1}`}
           />
@@ -314,7 +314,7 @@ function RestaurantCard({ restaurant }: { restaurant: Restaurant }) {
 
   return (
     <Link href={`/${restaurant.slug}`} className="block h-full">
-      <div className="group overflow-hidden rounded-2xl border border-slate-200 bg-white transition-all duration-300 hover:border-amber-200 hover:shadow-lg hover:shadow-amber-600/5 h-full flex flex-col">
+      <div className="group overflow-hidden rounded-xl sm:rounded-2xl border border-slate-200 bg-white transition-all duration-300 hover:border-amber-200 hover:shadow-lg hover:shadow-amber-600/5 h-full flex flex-col">
         <div className="relative aspect-[4/3] bg-slate-100 overflow-hidden">
           {tileImage ? (
             <Image
@@ -325,16 +325,16 @@ function RestaurantCard({ restaurant }: { restaurant: Restaurant }) {
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
-              <span className="text-4xl font-bold text-slate-300">{restaurant.name.charAt(0)}</span>
+              <span className="text-2xl sm:text-4xl font-bold text-slate-300">{restaurant.name.charAt(0)}</span>
             </div>
           )}
         </div>
 
-        <div className="p-4 bg-white flex-1 flex flex-col justify-center">
-          <h3 className="font-semibold text-sm text-slate-900 leading-tight">
+        <div className="p-2.5 sm:p-4 bg-white flex-1 flex flex-col justify-center">
+          <h3 className="font-semibold text-xs sm:text-sm text-slate-900 leading-tight line-clamp-2">
             {restaurant.name}
           </h3>
-          <p className="text-xs text-slate-500 mt-0.5 uppercase tracking-wide">{cuisineLabel}</p>
+          <p className="text-[10px] sm:text-xs text-slate-500 mt-0.5 uppercase tracking-wide truncate">{cuisineLabel}</p>
         </div>
       </div>
     </Link>
@@ -343,22 +343,22 @@ function RestaurantCard({ restaurant }: { restaurant: Restaurant }) {
 
 function MarketplaceFooter() {
   return (
-    <footer className="border-t border-slate-200 bg-white py-8 mt-auto">
-      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 sm:flex-row">
+    <footer className="border-t border-slate-200 bg-white py-6 sm:py-8 mt-auto">
+      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 sm:gap-4 px-4 sm:px-6 sm:flex-row">
         <Image
           src="/foodnet-delivery-logo.jpg"
           alt="FoodNetDelivery"
           width={120}
           height={36}
-          className="h-7 w-auto"
+          className="h-6 sm:h-7 w-auto"
         />
-        <div className="flex items-center gap-6 text-xs text-slate-500">
+        <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-6 text-[10px] sm:text-xs text-slate-500 text-center">
           <Link href="/partners" className="hover:text-slate-900 transition-colors">
             Para Restaurantes
           </Link>
-          <span className="text-slate-300">|</span>
+          <span className="text-slate-300 hidden sm:inline">|</span>
           <span suppressHydrationWarning>
-            &copy; {new Date().getFullYear()} FoodNetDelivery. Todos los derechos reservados.
+            &copy; {new Date().getFullYear()} FoodNetDelivery
           </span>
         </div>
       </div>

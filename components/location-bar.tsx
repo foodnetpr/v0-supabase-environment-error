@@ -50,6 +50,7 @@ interface LocationBarProps {
   initialLocation?: UserLocation | null
   initialMode?: OrderMode
   showModeToggle?: boolean
+  isMobile?: boolean
 }
 
 export function LocationBar({ 
@@ -57,7 +58,8 @@ export function LocationBar({
   onModeChange,
   initialLocation, 
   initialMode = "delivery",
-  showModeToggle = true
+  showModeToggle = true,
+  isMobile = false
 }: LocationBarProps) {
   const [location, setLocation] = useState<UserLocation | null>(initialLocation || null)
   const [mode, setMode] = useState<OrderMode>(initialMode)
@@ -252,6 +254,103 @@ export function LocationBar({
     }
   }
 
+  // Mobile Layout
+  if (isMobile) {
+    return (
+      <div className="flex flex-col gap-2">
+        {/* Row 1: Delivery/Pickup Toggle + Use Location */}
+        <div className="flex items-center gap-2">
+          {showModeToggle && (
+            <div className="flex items-center bg-slate-100 rounded-full p-0.5 flex-shrink-0">
+              <button
+                onClick={() => handleModeChange("delivery")}
+                className={`px-3 py-1.5 text-sm font-medium rounded-full transition-all ${
+                  mode === "delivery"
+                    ? "bg-black text-white"
+                    : "text-slate-600"
+                }`}
+              >
+                Delivery
+              </button>
+              <button
+                onClick={() => handleModeChange("pickup")}
+                className={`px-3 py-1.5 text-sm font-medium rounded-full transition-all ${
+                  mode === "pickup"
+                    ? "bg-black text-white"
+                    : "text-slate-600"
+                }`}
+              >
+                Pickup
+              </button>
+            </div>
+          )}
+          
+          <button
+            onClick={handleUseMyLocation}
+            disabled={isLoadingGeo}
+            className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-300 rounded-full hover:bg-slate-50 transition-colors flex-shrink-0 disabled:opacity-50 ml-auto"
+          >
+            {isLoadingGeo ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Navigation className="w-4 h-4" />
+            )}
+            <span className="text-sm font-medium">
+              {isLoadingGeo ? "..." : "Mi ubicación"}
+            </span>
+          </button>
+        </div>
+
+        {/* Row 2: Address Input (Full Width) */}
+        <div className="relative w-full">
+          <div className="flex items-center border border-slate-300 rounded-lg overflow-hidden bg-white">
+            <div className="flex items-center px-2.5 border-r border-slate-200 bg-slate-50">
+              <MapPin className="w-4 h-4 text-slate-500" />
+            </div>
+            <Input
+              ref={inputRef}
+              type="text"
+              placeholder="Buscar dirección o código postal..."
+              value={addressInput}
+              onChange={(e) => handleAddressInputChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleAddressSubmit()
+                }
+              }}
+              onFocus={() => {
+                if (suggestions.length > 0) {
+                  setShowSuggestions(true)
+                }
+              }}
+              className="border-0 h-10 text-sm focus-visible:ring-0 focus-visible:ring-offset-0 flex-1"
+            />
+          </div>
+
+          {/* Suggestions Dropdown */}
+          {showSuggestions && suggestions.length > 0 && (
+            <div
+              ref={suggestionsRef}
+              className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50 overflow-hidden"
+            >
+              {suggestions.map((suggestion, index) => (
+                <button
+                  key={suggestion.place_id || index}
+                  onClick={() => handleSuggestionSelect(suggestion)}
+                  className="w-full px-3 py-3 text-left text-sm hover:bg-slate-100 transition-colors flex items-center gap-2"
+                >
+                  <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                  <span className="truncate">{suggestion.description}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // Desktop Layout
   return (
     <div className="flex items-center gap-2 flex-1">
       {/* 1. Delivery / Pickup Toggle - conditionally shown */}

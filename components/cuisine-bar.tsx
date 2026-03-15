@@ -63,12 +63,12 @@ export function CuisineBar({ selectedCuisine, onCuisineChange, availableCuisines
 
   return (
     <div className="relative bg-white border-b border-slate-100">
-      <div className="mx-auto max-w-6xl px-6">
-        {/* Left Arrow */}
+      <div className="mx-auto max-w-6xl px-3 sm:px-6">
+        {/* Left Arrow - hidden on mobile, uses touch scroll */}
         {showLeftArrow && (
           <button
             onClick={() => scroll("left")}
-            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-white shadow-md rounded-full p-1.5 hover:bg-slate-50 transition-colors"
+            className="absolute left-1 sm:left-2 top-1/2 -translate-y-1/2 z-10 bg-white shadow-md rounded-full p-1 sm:p-1.5 hover:bg-slate-50 transition-colors hidden sm:block"
             aria-label="Scroll left"
           >
             <ChevronLeft className="w-4 h-4 text-slate-600" />
@@ -79,32 +79,32 @@ export function CuisineBar({ selectedCuisine, onCuisineChange, availableCuisines
         <div
           ref={scrollRef}
           onScroll={handleScroll}
-          className="flex items-center gap-4 overflow-x-auto scrollbar-hide py-4"
+          className="flex items-center gap-1 sm:gap-4 overflow-x-auto scrollbar-hide py-3 sm:py-4 -mx-1 px-1"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
           {displayCuisines.map((cuisine) => (
             <button
               key={cuisine.id}
               onClick={() => onCuisineChange(cuisine.id)}
-              className={`flex flex-col items-center gap-1 transition-all flex-shrink-0 group px-2 py-1 rounded-lg ${
+              className={`flex flex-col items-center gap-0.5 sm:gap-1 transition-all flex-shrink-0 group px-1.5 sm:px-2 py-1 rounded-lg ${
                 selectedCuisine === cuisine.id
                   ? "bg-slate-100"
                   : "hover:bg-slate-50"
               }`}
             >
-              {/* Image - no circular frame, natural display */}
-              <div className="relative w-14 h-14 flex items-center justify-center">
+              {/* Image - smaller on mobile */}
+              <div className="relative w-10 h-10 sm:w-14 sm:h-14 flex items-center justify-center">
                 <Image
                   src={cuisine.icon}
                   alt={cuisine.name}
                   width={56}
                   height={56}
-                  className="object-contain"
+                  className="object-contain w-10 h-10 sm:w-14 sm:h-14"
                 />
               </div>
               {/* Label */}
               <span 
-                className={`text-xs font-medium whitespace-nowrap transition-colors ${
+                className={`text-[10px] sm:text-xs font-medium whitespace-nowrap transition-colors ${
                   selectedCuisine === cuisine.id
                     ? "text-slate-900"
                     : "text-slate-500 group-hover:text-slate-900"
@@ -116,11 +116,11 @@ export function CuisineBar({ selectedCuisine, onCuisineChange, availableCuisines
           ))}
         </div>
 
-        {/* Right Arrow */}
+        {/* Right Arrow - hidden on mobile, uses touch scroll */}
         {showRightArrow && (
           <button
             onClick={() => scroll("right")}
-            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-white shadow-md rounded-full p-1.5 hover:bg-slate-50 transition-colors"
+            className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 z-10 bg-white shadow-md rounded-full p-1 sm:p-1.5 hover:bg-slate-50 transition-colors hidden sm:block"
             aria-label="Scroll right"
           >
             <ChevronRight className="w-4 h-4 text-slate-600" />
