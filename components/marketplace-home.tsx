@@ -296,25 +296,28 @@ function PromoBar() {
             <Link
               key={promo.id}
               href="#"
-              className="flex-shrink-0 w-[200px] sm:w-[280px] group"
+              className="flex-shrink-0 w-[240px] sm:w-[300px] group"
             >
-              <div className="relative aspect-[4/3] rounded-xl sm:rounded-2xl overflow-hidden bg-slate-100">
+              <div className="relative aspect-[5/2] rounded-lg overflow-hidden bg-slate-100">
                 <Image
                   src={promo.image}
                   alt={promo.title}
                   fill
                   className="object-cover group-hover:scale-105 transition-transform duration-300"
                 />
+                {/* Gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                 {/* Badge pill */}
-                <div className={`absolute top-2 sm:top-3 left-2 sm:left-3 ${promo.badgeColor} text-white text-[10px] sm:text-xs font-bold px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full`}>
+                <div className={`absolute top-2 left-2 ${promo.badgeColor} text-white text-[10px] font-bold px-2 py-0.5 rounded`}>
                   {promo.badge}
                 </div>
-              </div>
-              <div className="mt-2 sm:mt-3">
-                <h3 className="font-semibold text-sm sm:text-base text-slate-900 group-hover:text-amber-600 transition-colors">
-                  {promo.title}
-                </h3>
-                <p className="text-xs sm:text-sm text-slate-500">{promo.subtitle}</p>
+                {/* Text inside card */}
+                <div className="absolute bottom-2 left-2 right-2">
+                  <h3 className="font-semibold text-sm text-white leading-tight">
+                    {promo.title}
+                  </h3>
+                  <p className="text-[10px] text-white/80">{promo.subtitle}</p>
+                </div>
               </div>
             </Link>
           ))}
