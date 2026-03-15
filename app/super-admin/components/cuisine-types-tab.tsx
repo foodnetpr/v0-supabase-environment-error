@@ -36,6 +36,7 @@ export function CuisineTypesTab() {
   const [editName, setEditName] = useState("")
   const [editIconUrl, setEditIconUrl] = useState<string | null>(null)
   const [savingEdit, setSavingEdit] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -119,30 +120,34 @@ export function CuisineTypesTab() {
     setEditName(cuisine.name)
     setEditIconUrl(cuisine.icon_url)
     setUploadError(null)
+    setSaveError(null)
   }
 
   const handleSaveEdit = async () => {
-    console.log("[v0] handleSaveEdit called", { editingCuisine, editName, editIconUrl })
-    if (!editingCuisine) {
-      console.log("[v0] No editingCuisine, returning")
-      return
-    }
+    if (!editingCuisine) return
+    
     setSavingEdit(true)
-    console.log("[v0] Calling updateCuisineType with:", editingCuisine.id, { name: editName, icon_url: editIconUrl })
+    setSaveError(null)
+    
     try {
       const result = await updateCuisineType(editingCuisine.id, {
         name: editName,
         icon_url: editIconUrl,
       })
-      console.log("[v0] updateCuisineType result:", result)
+      
       if (result.success) {
         await loadCuisineTypes()
         setEditingCuisine(null)
       } else {
-        console.error("[v0] Update failed:", result.error)
+        // Show user-friendly error message
+        if (result.error?.includes("duplicate key") || result.error?.includes("unique constraint")) {
+          setSaveError("Ya existe un tipo de cocina con ese nombre")
+        } else {
+          setSaveError(result.error || "Error al guardar")
+        }
       }
     } catch (error) {
-      console.error("[v0] Error in handleSaveEdit:", error)
+      setSaveError("Error inesperado al guardar")
     }
     setSavingEdit(false)
   }
@@ -332,14 +337,19 @@ export function CuisineTypesTab() {
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingCuisine(null)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSaveEdit} disabled={savingEdit || !editName.trim()}>
-              {savingEdit && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              Guardar
-            </Button>
+          <DialogFooter className="flex-col gap-2 sm:flex-row">
+            {saveError && (
+              <p className="text-sm text-red-500 w-full text-center sm:text-left sm:flex-1">{saveError}</p>
+            )}
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setEditingCuisine(null)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSaveEdit} disabled={savingEdit || !editName.trim()}>
+                {savingEdit && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                Guardar
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
