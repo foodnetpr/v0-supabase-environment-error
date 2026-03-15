@@ -4,34 +4,20 @@ import { useRef, useState } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import Image from "next/image"
 
-// Cuisine types with image icons
-const CUISINE_TYPES = [
-  { id: "all", name: "Todos", icon: "/cuisine-icons/internacional.png" },
-  { id: "puertorriquena", name: "Puertorriqueña", icon: "/cuisine-icons/puertorriquena.png" },
-  { id: "italiana", name: "Italiana", icon: "/cuisine-icons/italiana.png" },
-  { id: "mexicana", name: "Mexicana", icon: "/cuisine-icons/mexicana.png" },
-  { id: "argentina", name: "Argentina", icon: "/cuisine-icons/argentina.png" },
-  { id: "espanola", name: "Española", icon: "/cuisine-icons/espanola.png" },
-  { id: "colombiana", name: "Colombiana", icon: "/cuisine-icons/colombiana.png" },
-  { id: "india", name: "India", icon: "/cuisine-icons/india.png" },
-  { id: "americana", name: "Americana", icon: "/cuisine-icons/hamburgers.png" },
-  { id: "hamburgers", name: "Hamburgers", icon: "/cuisine-icons/hamburgers.png" },
-  { id: "sandwiches", name: "Sandwiches", icon: "/cuisine-icons/sandwiches.png" },
-  { id: "pollo", name: "Pollo", icon: "/cuisine-icons/pollo.png" },
-  { id: "alitas", name: "Alitas", icon: "/cuisine-icons/alitas.png" },
-  { id: "bbq", name: "BBQ", icon: "/cuisine-icons/bbq.png" },
-  { id: "steakhouse", name: "Steakhouse", icon: "/cuisine-icons/steakhouse.png" },
-  { id: "internacional", name: "Internacional", icon: "/cuisine-icons/internacional.png" },
-  { id: "bubble_tea", name: "Bubble Tea", icon: "/cuisine-icons/bubble_tea.png" },
-]
+type CuisineType = {
+  id: string
+  name: string
+  icon_url: string | null
+  display_order: number
+}
 
 interface CuisineBarProps {
   selectedCuisine: string
   onCuisineChange: (cuisine: string) => void
-  availableCuisines?: string[]
+  cuisineTypes: CuisineType[]
 }
 
-export function CuisineBar({ selectedCuisine, onCuisineChange, availableCuisines }: CuisineBarProps) {
+export function CuisineBar({ selectedCuisine, onCuisineChange, cuisineTypes }: CuisineBarProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [showLeftArrow, setShowLeftArrow] = useState(false)
   const [showRightArrow, setShowRightArrow] = useState(true)
@@ -54,12 +40,16 @@ export function CuisineBar({ selectedCuisine, onCuisineChange, availableCuisines
     }
   }
 
-  // Filter to only show cuisines that have restaurants, plus "all"
-  const displayCuisines = CUISINE_TYPES.filter(
-    (c) => c.id === "all" || !availableCuisines || availableCuisines.some(
-      (ac) => ac?.toLowerCase().includes(c.id) || c.name.toLowerCase().includes(ac?.toLowerCase() || "")
-    )
-  )
+  // If no cuisine selected, all restaurants show (no filtering needed)
+  // Clicking a cuisine filters, clicking it again deselects (goes back to "all")
+  const handleCuisineClick = (cuisineName: string) => {
+    if (selectedCuisine === cuisineName) {
+      // Clicking selected cuisine deselects it (show all)
+      onCuisineChange("all")
+    } else {
+      onCuisineChange(cuisineName)
+    }
+  }
 
   return (
     <div className="relative bg-white border-b border-slate-100">
@@ -82,38 +72,47 @@ export function CuisineBar({ selectedCuisine, onCuisineChange, availableCuisines
           className="flex items-center gap-1 sm:gap-4 overflow-x-auto scrollbar-hide py-3 sm:py-4 -mx-1 px-1"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
-          {displayCuisines.map((cuisine) => (
-            <button
-              key={cuisine.id}
-              onClick={() => onCuisineChange(cuisine.id)}
-              className={`flex flex-col items-center gap-0.5 sm:gap-1 transition-all flex-shrink-0 group px-1.5 sm:px-2 py-1 rounded-lg ${
-                selectedCuisine === cuisine.id
-                  ? "bg-slate-100"
-                  : "hover:bg-slate-50"
-              }`}
-            >
-              {/* Image - smaller on mobile */}
-              <div className="relative w-10 h-10 sm:w-14 sm:h-14 flex items-center justify-center">
-                <Image
-                  src={cuisine.icon}
-                  alt={cuisine.name}
-                  width={56}
-                  height={56}
-                  className="object-contain w-10 h-10 sm:w-14 sm:h-14"
-                />
-              </div>
-              {/* Label */}
-              <span 
-                className={`text-[10px] sm:text-xs font-medium whitespace-nowrap transition-colors ${
-                  selectedCuisine === cuisine.id
-                    ? "text-slate-900"
-                    : "text-slate-500 group-hover:text-slate-900"
+          {cuisineTypes.map((cuisine) => {
+            const isSelected = selectedCuisine === cuisine.name
+            return (
+              <button
+                key={cuisine.id}
+                onClick={() => handleCuisineClick(cuisine.name)}
+                className={`flex flex-col items-center gap-0.5 sm:gap-1 transition-all flex-shrink-0 group px-1.5 sm:px-2 py-1 rounded-lg ${
+                  isSelected
+                    ? "bg-slate-100 ring-2 ring-amber-500"
+                    : "hover:bg-slate-50"
                 }`}
               >
-                {cuisine.name}
-              </span>
-            </button>
-          ))}
+                {/* Image */}
+                <div className="relative w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center rounded-lg overflow-hidden bg-slate-50">
+                  {cuisine.icon_url ? (
+                    <Image
+                      src={cuisine.icon_url}
+                      alt={cuisine.name}
+                      fill
+                      className="object-cover"
+                      unoptimized
+                    />
+                  ) : (
+                    <span className="text-lg font-bold text-slate-300">
+                      {cuisine.name.charAt(0)}
+                    </span>
+                  )}
+                </div>
+                {/* Label */}
+                <span 
+                  className={`text-[10px] sm:text-xs font-medium whitespace-nowrap transition-colors ${
+                    isSelected
+                      ? "text-slate-900"
+                      : "text-slate-500 group-hover:text-slate-900"
+                  }`}
+                >
+                  {cuisine.name}
+                </span>
+              </button>
+            )
+          })}
         </div>
 
         {/* Right Arrow - hidden on mobile, uses touch scroll */}

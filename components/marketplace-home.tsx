@@ -34,9 +34,17 @@ type MarketplaceSettings = {
   hero_subtitle: string
 }
 
+type CuisineType = {
+  id: string
+  name: string
+  icon_url: string | null
+  display_order: number
+}
+
 interface MarketplaceHomeProps {
   restaurants: Restaurant[]
   marketplaceSettings?: MarketplaceSettings
+  cuisineTypes: CuisineType[]
 }
 
 // Haversine formula to calculate distance between two points
@@ -58,6 +66,7 @@ function toRad(deg: number): number {
 export function MarketplaceHome({
   restaurants,
   marketplaceSettings,
+  cuisineTypes,
 }: MarketplaceHomeProps) {
   const heroImage = marketplaceSettings?.hero_image_url || "/images/partners-hero.jpg"
   const heroTitle = marketplaceSettings?.hero_title || "De Todo para Tu Junte"
@@ -68,11 +77,6 @@ export function MarketplaceHome({
   const [cuisineFilter, setCuisineFilter] = useState<string>("all")
   const [locationFilter, setLocationFilter] = useState<string>("all")
 
-  const cuisineTypes = useMemo(() => {
-    const types = new Set(restaurants.map((r) => r.cuisine_type).filter(Boolean))
-    return Array.from(types).sort()
-  }, [restaurants])
-
   const AREAS = [
     "Hato Rey", "Condado", "Miramar", "Isla Verde", "Puerto Nuevo",
     "Rio Piedras", "Santurce", "Guaynabo Pueblo", "San Patricio", "Señorial",
@@ -81,10 +85,9 @@ export function MarketplaceHome({
   // Filter and sort restaurants based on user location and other filters
   const filteredRestaurants = useMemo(() => {
     let filtered = restaurants.filter((restaurant) => {
-      // Cuisine filter - check if restaurant cuisine matches or contains the filter text
+      // Cuisine filter - match by cuisine type name (case-insensitive)
       const matchesCuisine = cuisineFilter === "all" || 
-        (restaurant.cuisine_type?.toLowerCase().includes(cuisineFilter.toLowerCase()) ||
-         cuisineFilter.toLowerCase().includes(restaurant.cuisine_type?.toLowerCase() || ""))
+        restaurant.cuisine_type?.toLowerCase() === cuisineFilter.toLowerCase()
       const matchesLocation = locationFilter === "all" || restaurant.area === locationFilter
       
       // If user has set a location, filter by delivery radius
@@ -137,7 +140,7 @@ export function MarketplaceHome({
       <CuisineBar
         selectedCuisine={cuisineFilter}
         onCuisineChange={setCuisineFilter}
-        availableCuisines={cuisineTypes as string[]}
+        cuisineTypes={cuisineTypes}
       />
 
       {/* Hero - Full-width banner matching partners style */}

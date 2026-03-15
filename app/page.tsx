@@ -14,8 +14,15 @@ export default async function HomePage() {
 
   if (error) {
     console.error("Error fetching marketplace restaurants:", error)
-    return <MarketplaceHome restaurants={[]} />
+    return <MarketplaceHome restaurants={[]} cuisineTypes={[]} />
   }
+
+  // Fetch cuisine types from database
+  const { data: cuisineTypes } = await supabase
+    .from("cuisine_types")
+    .select("id, name, icon_url, display_order")
+    .eq("is_active", true)
+    .order("display_order")
 
   const { data: marketplaceSettings } = await supabase.from("marketplace_settings").select("*").limit(1).single()
 
@@ -23,6 +30,7 @@ export default async function HomePage() {
     <MarketplaceHome 
       restaurants={restaurants || []} 
       marketplaceSettings={marketplaceSettings || undefined}
+      cuisineTypes={cuisineTypes || []}
     />
   )
 }
