@@ -56,6 +56,16 @@ export default async function SuperAdminPage() {
 
   const { data: marketplaceSettings } = await supabase.from("marketplace_settings").select("*").limit(1).single()
 
+  // Fetch platform settings for operations tab
+  const { data: platformSettings } = await supabase.from("platform_settings").select("*").single()
+  
+  // Fetch active scheduled blocks
+  const { data: scheduledBlocks } = await supabase
+    .from("scheduled_blocks")
+    .select("*, restaurants(name)")
+    .eq("is_active", true)
+    .order("starts_at", { ascending: true })
+
   // Fetch cuisine types
   const { data: cuisineTypes } = await supabase
     .from("cuisine_types")
@@ -99,5 +109,14 @@ export default async function SuperAdminPage() {
     categories_count: categoryCountMap[restaurant.id] || 0,
   }))
 
-  return <SuperAdminClient restaurants={restaurantsWithCounts} marketplaceSettings={marketplaceSettings || undefined} initialCuisineTypes={cuisineTypes || []} initialMarketplaceAreas={marketplaceAreas || []} />
+  return (
+    <SuperAdminClient 
+      restaurants={restaurantsWithCounts} 
+      marketplaceSettings={marketplaceSettings || undefined} 
+      initialCuisineTypes={cuisineTypes || []} 
+      initialMarketplaceAreas={marketplaceAreas || []}
+      platformSettings={platformSettings || undefined}
+      scheduledBlocks={scheduledBlocks || []}
+    />
+  )
 }

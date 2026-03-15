@@ -35,7 +35,8 @@ import {
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { createRestaurant, updateRestaurant, deleteRestaurant, fetchCuisineTypes, createCuisineType, deleteCuisineType, updateCuisineType, fetchMarketplaceAreas, createMarketplaceArea, deleteMarketplaceArea, updateMarketplaceArea } from "../actions"
-import { Trash2, Shield, Megaphone, Globe, Copy, ArrowUpRight, MapPin } from "lucide-react"
+import { Trash2, Shield, Megaphone, Globe, Copy, ArrowUpRight, MapPin, Clock, AlertTriangle } from "lucide-react"
+import { OperationsTab } from "./operations-tab"
 
 interface Restaurant {
   id: string
@@ -76,6 +77,30 @@ interface MarketplaceArea {
   is_active: boolean
 }
 
+interface PlatformSettings {
+  id: string
+  is_platform_open: boolean
+  is_pop_blocked: boolean
+  operating_hours_start: string
+  operating_hours_end: string
+  operating_days: Record<string, boolean>
+  emergency_block_active: boolean
+  emergency_block_reason: string | null
+  pop_reopen_at: string | null
+  pop_block_message: string | null
+}
+
+interface ScheduledBlock {
+  id: string
+  restaurant_id: string | null
+  block_type: string
+  starts_at: string
+  ends_at: string
+  reason: string | null
+  is_active: boolean
+  restaurants?: { name: string } | null
+}
+
 interface SuperAdminClientProps {
   restaurants: Restaurant[]
   marketplaceSettings?: {
@@ -86,6 +111,8 @@ interface SuperAdminClientProps {
   }
   initialCuisineTypes?: CuisineType[]
   initialMarketplaceAreas?: MarketplaceArea[]
+  platformSettings?: PlatformSettings
+  scheduledBlocks?: ScheduledBlock[]
 }
 
 const DESIGN_TEMPLATES = [
@@ -110,6 +137,8 @@ export function SuperAdminClient({
   marketplaceSettings: initialSettings,
   initialCuisineTypes = [],
   initialMarketplaceAreas = [],
+  platformSettings,
+  scheduledBlocks = [],
 }: SuperAdminClientProps) {
   const router = useRouter()
   const [restaurants, setRestaurants] = useState<Restaurant[]>(initialRestaurants)
@@ -175,7 +204,7 @@ export function SuperAdminClient({
     show_powered_by: true,
   })
 
-  const [activeTab, setActiveTab] = useState<"restaurants" | "marketing">("restaurants")
+  const [activeTab, setActiveTab] = useState<"restaurants" | "marketing" | "operations">("restaurants")
   const [showSettingsModal, setShowSettingsModal] = useState(false)
   const [marketplaceSettings, setMarketplaceSettings] = useState({
     id: initialSettings?.id || "",
@@ -392,6 +421,17 @@ export function SuperAdminClient({
             >
               <Megaphone className="h-4 w-4" />
               Marketing & Sales
+            </button>
+            <button
+              onClick={() => setActiveTab("operations")}
+              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-lg border-b-2 transition-colors ${
+                activeTab === "operations"
+                  ? "border-slate-900 text-slate-900 bg-slate-50"
+                  : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+              }`}
+            >
+              <Clock className="h-4 w-4" />
+              Operations
             </button>
             <Link
               href="/super-admin/internal-shop"
@@ -866,6 +906,15 @@ export function SuperAdminClient({
             </Card>
           </div>
         </main>
+      )}
+
+      {/* Operations Tab */}
+      {activeTab === "operations" && (
+        <OperationsTab
+          restaurants={restaurants}
+          platformSettings={platformSettings}
+          scheduledBlocks={scheduledBlocks}
+        />
       )}
 
       {/* Create Restaurant Modal - keep existing */}
