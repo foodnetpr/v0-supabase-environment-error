@@ -351,6 +351,23 @@ export default function CustomerPortal({
   })()
 
   const [deliveryMethod, setDeliveryMethod] = useState<"delivery" | "pickup">("delivery")
+  
+  // Auto-set deliveryMethod based on branch's enabled options
+  useEffect(() => {
+    if (selectedBranch) {
+      const deliveryEnabled = selectedBranch.delivery_enabled
+      const pickupEnabled = selectedBranch.pickup_enabled
+      
+      // If only one option is available, auto-select it
+      if (deliveryEnabled && !pickupEnabled) {
+        setDeliveryMethod("delivery")
+      } else if (!deliveryEnabled && pickupEnabled) {
+        setDeliveryMethod("pickup")
+      }
+      // If both are enabled, keep current selection (default is delivery)
+    }
+  }, [selectedBranch])
+  
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [dietaryFilters, setDietaryFilters] = useState<string[]>([])
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null)
@@ -1860,28 +1877,46 @@ const orderData = {
             </div>
             {/* Bottom row on mobile: Delivery/Pickup toggle + Account + Cart (desktop only cart here) */}
             <div className="flex items-center justify-center gap-4 md:justify-end">
-              <div className="flex items-center bg-muted rounded-full p-1">
-                <Button
-                  variant={deliveryMethod === "delivery" ? "default" : "ghost"}
-                  size="sm"
-                  className={`rounded-full`}
-                  style={deliveryMethod === "delivery" ? { backgroundColor: primaryColor } : {}}
-                  onClick={() => setDeliveryMethod("delivery")}
-                >
-                  <Truck className="w-4 h-4 mr-2" />
-                  Entrega
-                </Button>
-                <Button
-                  variant={deliveryMethod === "pickup" ? "default" : "ghost"}
-                  size="sm"
-                  className={`rounded-full`}
-                  style={deliveryMethod === "pickup" ? { backgroundColor: primaryColor } : {}}
-                  onClick={() => setDeliveryMethod("pickup")}
-                >
-                  <Package className="w-4 h-4 mr-2" />
-                  Recogido
-                </Button>
-              </div>
+              {/* Only show toggle if BOTH delivery and pickup are enabled */}
+              {selectedBranch?.delivery_enabled && selectedBranch?.pickup_enabled ? (
+                <div className="flex items-center bg-muted rounded-full p-1">
+                  <Button
+                    variant={deliveryMethod === "delivery" ? "default" : "ghost"}
+                    size="sm"
+                    className={`rounded-full`}
+                    style={deliveryMethod === "delivery" ? { backgroundColor: primaryColor } : {}}
+                    onClick={() => setDeliveryMethod("delivery")}
+                  >
+                    <Truck className="w-4 h-4 mr-2" />
+                    Entrega
+                  </Button>
+                  <Button
+                    variant={deliveryMethod === "pickup" ? "default" : "ghost"}
+                    size="sm"
+                    className={`rounded-full`}
+                    style={deliveryMethod === "pickup" ? { backgroundColor: primaryColor } : {}}
+                    onClick={() => setDeliveryMethod("pickup")}
+                  >
+                    <Package className="w-4 h-4 mr-2" />
+                    Recogido
+                  </Button>
+                </div>
+              ) : (
+                /* Show single badge when only one option is available */
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium text-white" style={{ backgroundColor: primaryColor }}>
+                  {selectedBranch?.delivery_enabled ? (
+                    <>
+                      <Truck className="w-4 h-4" />
+                      Solo Entrega
+                    </>
+                  ) : (
+                    <>
+                      <Package className="w-4 h-4" />
+                      Solo Recogido
+                    </>
+                  )}
+                </div>
+              )}
               {user ? (
                 <Button
                   variant="ghost"
