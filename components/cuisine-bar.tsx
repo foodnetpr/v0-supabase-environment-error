@@ -86,22 +86,20 @@ export function CuisineBar({ selectedCuisine, onCuisineChange, availableCuisines
             <button
               key={cuisine.id}
               onClick={() => onCuisineChange(cuisine.id)}
-              className={`flex flex-col items-center gap-2 transition-all flex-shrink-0 group`}
+              className={`flex flex-col items-center gap-1 transition-all flex-shrink-0 group px-2 py-1 rounded-lg ${
+                selectedCuisine === cuisine.id
+                  ? "bg-slate-100"
+                  : "hover:bg-slate-50"
+              }`}
             >
-              {/* Image container */}
-              <div 
-                className={`relative w-16 h-16 rounded-full overflow-hidden transition-all ${
-                  selectedCuisine === cuisine.id
-                    ? "ring-2 ring-slate-900 ring-offset-2"
-                    : "group-hover:ring-2 group-hover:ring-slate-300 group-hover:ring-offset-1"
-                }`}
-              >
+              {/* Image - no circular frame, natural display */}
+              <div className="relative w-14 h-14 flex items-center justify-center">
                 <Image
                   src={cuisine.icon}
                   alt={cuisine.name}
-                  fill
-                  className="object-cover"
-                  sizes="64px"
+                  width={56}
+                  height={56}
+                  className="object-contain"
                 />
               </div>
               {/* Label */}
@@ -109,7 +107,7 @@ export function CuisineBar({ selectedCuisine, onCuisineChange, availableCuisines
                 className={`text-xs font-medium whitespace-nowrap transition-colors ${
                   selectedCuisine === cuisine.id
                     ? "text-slate-900"
-                    : "text-slate-600 group-hover:text-slate-900"
+                    : "text-slate-500 group-hover:text-slate-900"
                 }`}
               >
                 {cuisine.name}
