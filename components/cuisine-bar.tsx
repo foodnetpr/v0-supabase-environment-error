@@ -99,14 +99,14 @@ export function CuisineBar({ selectedCuisine, onCuisineChange, cuisineTypes, res
                     : "hover:bg-slate-50"
                 }`}
               >
-                {/* Image */}
-                <div className="relative w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center rounded-lg overflow-hidden bg-slate-50">
+                {/* Image - rectangular to fit landscape food images */}
+                <div className="relative w-16 h-10 sm:w-20 sm:h-12 flex items-center justify-center rounded-lg overflow-hidden bg-slate-50">
                   {cuisine.icon_url ? (
                     <Image
                       src={cuisine.icon_url}
                       alt={cuisine.name}
                       fill
-                      className="object-cover"
+                      className="object-contain"
                       unoptimized
                     />
                   ) : (
