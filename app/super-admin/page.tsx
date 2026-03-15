@@ -80,6 +80,12 @@ export default async function SuperAdminPage() {
     .eq("is_active", true)
     .order("display_order", { ascending: true })
 
+  // Fetch admin users for admin management tab
+  const { data: adminUsers } = await supabase
+    .from("admin_users")
+    .select("*, restaurants(name, slug)")
+    .order("created_at", { ascending: false })
+
   // Aggregate counts
   const menuCountMap: Record<string, number> = {}
   const orderCountMap: Record<string, number> = {}
@@ -117,6 +123,7 @@ export default async function SuperAdminPage() {
       initialMarketplaceAreas={marketplaceAreas || []}
       platformSettings={platformSettings || undefined}
       scheduledBlocks={scheduledBlocks || []}
+      adminUsers={adminUsers || []}
     />
   )
 }
