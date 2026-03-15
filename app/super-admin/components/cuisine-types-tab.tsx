@@ -122,15 +122,27 @@ export function CuisineTypesTab() {
   }
 
   const handleSaveEdit = async () => {
-    if (!editingCuisine) return
+    console.log("[v0] handleSaveEdit called", { editingCuisine, editName, editIconUrl })
+    if (!editingCuisine) {
+      console.log("[v0] No editingCuisine, returning")
+      return
+    }
     setSavingEdit(true)
-    const result = await updateCuisineType(editingCuisine.id, {
-      name: editName,
-      icon_url: editIconUrl,
-    })
-    if (result.success) {
-      await loadCuisineTypes()
-      setEditingCuisine(null)
+    console.log("[v0] Calling updateCuisineType with:", editingCuisine.id, { name: editName, icon_url: editIconUrl })
+    try {
+      const result = await updateCuisineType(editingCuisine.id, {
+        name: editName,
+        icon_url: editIconUrl,
+      })
+      console.log("[v0] updateCuisineType result:", result)
+      if (result.success) {
+        await loadCuisineTypes()
+        setEditingCuisine(null)
+      } else {
+        console.error("[v0] Update failed:", result.error)
+      }
+    } catch (error) {
+      console.error("[v0] Error in handleSaveEdit:", error)
     }
     setSavingEdit(false)
   }
