@@ -2,25 +2,27 @@
 
 import { useRef, useState } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import Image from "next/image"
 
-// Cuisine types with emoji icons and colors
+// Cuisine types with image icons
 const CUISINE_TYPES = [
-  { id: "all", name: "Todos", icon: "🍽️", color: "bg-slate-100" },
-  { id: "italiana", name: "Italiana", icon: "🍝", color: "bg-red-50" },
-  { id: "mexicana", name: "Mexicana", icon: "🌮", color: "bg-orange-50" },
-  { id: "argentina", name: "Argentina", icon: "🥩", color: "bg-amber-50" },
-  { id: "tailandesa", name: "Tailandesa", icon: "🍜", color: "bg-green-50" },
-  { id: "japonesa", name: "Japonesa", icon: "🍣", color: "bg-pink-50" },
-  { id: "china", name: "China", icon: "🥡", color: "bg-red-50" },
-  { id: "americana", name: "Americana", icon: "🍔", color: "bg-yellow-50" },
-  { id: "criolla", name: "Criolla", icon: "🍗", color: "bg-orange-50" },
-  { id: "mariscos", name: "Mariscos", icon: "🦐", color: "bg-blue-50" },
-  { id: "pizza", name: "Pizza", icon: "🍕", color: "bg-red-50" },
-  { id: "postres", name: "Postres", icon: "🍰", color: "bg-pink-50" },
-  { id: "cafe", name: "Café", icon: "☕", color: "bg-amber-50" },
-  { id: "vegetariana", name: "Vegetariana", icon: "🥗", color: "bg-green-50" },
-  { id: "panaderia", name: "Panadería", icon: "🥐", color: "bg-orange-50" },
-  { id: "catering", name: "Catering", icon: "🍱", color: "bg-purple-50" },
+  { id: "all", name: "Todos", icon: "/cuisine-icons/internacional.png" },
+  { id: "puertorriquena", name: "Puertorriqueña", icon: "/cuisine-icons/puertorriquena.png" },
+  { id: "italiana", name: "Italiana", icon: "/cuisine-icons/italiana.png" },
+  { id: "mexicana", name: "Mexicana", icon: "/cuisine-icons/mexicana.png" },
+  { id: "argentina", name: "Argentina", icon: "/cuisine-icons/argentina.png" },
+  { id: "espanola", name: "Española", icon: "/cuisine-icons/espanola.png" },
+  { id: "colombiana", name: "Colombiana", icon: "/cuisine-icons/colombiana.png" },
+  { id: "india", name: "India", icon: "/cuisine-icons/india.png" },
+  { id: "americana", name: "Americana", icon: "/cuisine-icons/hamburgers.png" },
+  { id: "hamburgers", name: "Hamburgers", icon: "/cuisine-icons/hamburgers.png" },
+  { id: "sandwiches", name: "Sandwiches", icon: "/cuisine-icons/sandwiches.png" },
+  { id: "pollo", name: "Pollo", icon: "/cuisine-icons/pollo.png" },
+  { id: "alitas", name: "Alitas", icon: "/cuisine-icons/alitas.png" },
+  { id: "bbq", name: "BBQ", icon: "/cuisine-icons/bbq.png" },
+  { id: "steakhouse", name: "Steakhouse", icon: "/cuisine-icons/steakhouse.png" },
+  { id: "internacional", name: "Internacional", icon: "/cuisine-icons/internacional.png" },
+  { id: "bubble_tea", name: "Bubble Tea", icon: "/cuisine-icons/bubble_tea.png" },
 ]
 
 interface CuisineBarProps {
@@ -77,21 +79,41 @@ export function CuisineBar({ selectedCuisine, onCuisineChange, availableCuisines
         <div
           ref={scrollRef}
           onScroll={handleScroll}
-          className="flex items-center gap-2 overflow-x-auto scrollbar-hide py-3"
+          className="flex items-center gap-4 overflow-x-auto scrollbar-hide py-4"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
           {displayCuisines.map((cuisine) => (
             <button
               key={cuisine.id}
               onClick={() => onCuisineChange(cuisine.id)}
-              className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all flex-shrink-0 min-w-[72px] ${
-                selectedCuisine === cuisine.id
-                  ? "bg-slate-900 text-white"
-                  : `${cuisine.color} hover:bg-slate-100 text-slate-700`
-              }`}
+              className={`flex flex-col items-center gap-2 transition-all flex-shrink-0 group`}
             >
-              <span className="text-2xl">{cuisine.icon}</span>
-              <span className="text-xs font-medium whitespace-nowrap">{cuisine.name}</span>
+              {/* Image container */}
+              <div 
+                className={`relative w-16 h-16 rounded-full overflow-hidden transition-all ${
+                  selectedCuisine === cuisine.id
+                    ? "ring-2 ring-slate-900 ring-offset-2"
+                    : "group-hover:ring-2 group-hover:ring-slate-300 group-hover:ring-offset-1"
+                }`}
+              >
+                <Image
+                  src={cuisine.icon}
+                  alt={cuisine.name}
+                  fill
+                  className="object-cover"
+                  sizes="64px"
+                />
+              </div>
+              {/* Label */}
+              <span 
+                className={`text-xs font-medium whitespace-nowrap transition-colors ${
+                  selectedCuisine === cuisine.id
+                    ? "text-slate-900"
+                    : "text-slate-600 group-hover:text-slate-900"
+                }`}
+              >
+                {cuisine.name}
+              </span>
             </button>
           ))}
         </div>
