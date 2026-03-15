@@ -383,6 +383,9 @@ export default function RestaurantAdminClient({
     packages_section_title: "Service Packages",
     design_template: "modern", // Default template
     show_service_packages: true, // Added state for show_service_packages
+    // Order type settings
+    delivery_enabled: true,
+    pickup_enabled: true,
     // Payment provider settings
     payment_provider: "stripe" as "stripe" | "square" | "stripe_athmovil" | "square_athmovil",
     stripe_account_id: "",
@@ -478,7 +481,7 @@ export default function RestaurantAdminClient({
       const { data: restaurantData } = await supabase
         .from("restaurants")
         .select(
-          "tax_rate, delivery_fee, tip_option_1, tip_option_2, tip_option_3, lead_time_hours, delivery_lead_time_hours, pickup_lead_time_hours, max_advance_days, min_delivery_order, min_pickup_order, restaurant_address, primary_color, standalone_domain, design_template, packages_section_title, name, logo_url, banner_logo_url, hero_image_url, delivery_enabled, show_service_packages, shipday_api_key, is_chain, hide_branch_selector_title, delivery_base_fee, delivery_included_containers, footer_description, footer_email, footer_phone, footer_links, payment_provider, stripe_account_id, square_access_token, square_location_id, square_environment, athmovil_public_token, athmovil_ecommerce_id",
+          "tax_rate, delivery_fee, tip_option_1, tip_option_2, tip_option_3, lead_time_hours, delivery_lead_time_hours, pickup_lead_time_hours, max_advance_days, min_delivery_order, min_pickup_order, restaurant_address, primary_color, standalone_domain, design_template, packages_section_title, name, logo_url, banner_logo_url, hero_image_url, delivery_enabled, pickup_enabled, show_service_packages, shipday_api_key, is_chain, hide_branch_selector_title, delivery_base_fee, delivery_included_containers, footer_description, footer_email, footer_phone, footer_links, payment_provider, stripe_account_id, square_access_token, square_location_id, square_environment, athmovil_public_token, athmovil_ecommerce_id",
         )
         .eq("id", restaurantId)
         .single()
@@ -507,7 +510,8 @@ export default function RestaurantAdminClient({
           max_advance_days: restaurantData.max_advance_days?.toString() || "",
           min_delivery_order: restaurantData.min_delivery_order?.toString() || "0",
           min_pickup_order: restaurantData.min_pickup_order?.toString() || "0",
-          delivery_enabled: restaurantData.delivery_enabled ?? true, // Set delivery_enabled
+          delivery_enabled: restaurantData.delivery_enabled ?? true,
+          pickup_enabled: restaurantData.pickup_enabled ?? true,
           shipday_api_key: restaurantData.shipday_api_key || "",
   delivery_base_fee: restaurantData.delivery_base_fee?.toString() || "28",
   delivery_included_containers: restaurantData.delivery_included_containers?.toString() || "4",
@@ -1795,6 +1799,7 @@ export default function RestaurantAdminClient({
       tip_option_2: settingsForm.tip_option_2 ? Number.parseFloat(settingsForm.tip_option_2) : null,
       tip_option_3: settingsForm.tip_option_3 ? Number.parseFloat(settingsForm.tip_option_3) : null,
       delivery_enabled: settingsForm.delivery_enabled,
+  pickup_enabled: settingsForm.pickup_enabled,
   delivery_base_fee: settingsForm.delivery_base_fee ? Number.parseFloat(settingsForm.delivery_base_fee) : null,
   delivery_included_containers: settingsForm.delivery_included_containers ? Number.parseInt(settingsForm.delivery_included_containers) : null,
   delivery_radius: settingsForm.delivery_radius ? Number.parseFloat(settingsForm.delivery_radius) : null,
@@ -3621,16 +3626,26 @@ const pickupOrders = orders.filter((o: any) => o.order_type === "pickup" || o.de
                   </div>
                 </div>
 
-                {/* Delivery Enabled Toggle */}
+                {/* Order Type Settings */}
                 <div className="border-t pt-6">
-                  <Label className="text-base font-semibold">Delivery Settings</Label>
-                  <div className="flex items-center gap-3 mt-3">
-                    <Switch
-                      id="delivery-enabled"
-                      checked={settingsForm.delivery_enabled}
-                      onCheckedChange={(checked) => setSettingsForm({ ...settingsForm, delivery_enabled: checked })}
-                    />
-                    <Label htmlFor="delivery-enabled">Enable Delivery</Label>
+                  <Label className="text-base font-semibold">Order Settings</Label>
+                  <div className="grid grid-cols-2 gap-6 mt-3">
+                    <div className="flex items-center gap-3">
+                      <Switch
+                        id="pickup-enabled"
+                        checked={settingsForm.pickup_enabled}
+                        onCheckedChange={(checked) => setSettingsForm({ ...settingsForm, pickup_enabled: checked })}
+                      />
+                      <Label htmlFor="pickup-enabled">Enable Pick-Up</Label>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Switch
+                        id="delivery-enabled"
+                        checked={settingsForm.delivery_enabled}
+                        onCheckedChange={(checked) => setSettingsForm({ ...settingsForm, delivery_enabled: checked })}
+                      />
+                      <Label htmlFor="delivery-enabled">Enable Delivery</Label>
+                    </div>
                   </div>
                   {settingsForm.delivery_enabled && (
                     <div className="mt-4">
