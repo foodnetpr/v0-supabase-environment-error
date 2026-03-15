@@ -347,10 +347,10 @@ export async function deleteCuisineType(id: string) {
   }
 }
 
-export async function updateCuisineType(id: string, name: string) {
+export async function updateCuisineType(id: string, updates: { name?: string; icon_url?: string | null }) {
   try {
     const supabase = createServiceClient()
-    const { error } = await supabase.from("cuisine_types").update({ name }).eq("id", id)
+    const { error } = await supabase.from("cuisine_types").update(updates).eq("id", id)
     if (error) {
       console.error("[Super Admin] Update cuisine type error:", error)
       return { success: false, error: error.message }
