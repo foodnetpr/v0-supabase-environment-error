@@ -1794,7 +1794,8 @@ const orderData = {
   return (
     <div className="min-h-screen bg-background">
       {/* Global Navigation - persists across all pages */}
-      <GlobalNavbar showLocationBar={false} />
+      {/* Show location bar but hide mode toggle since restaurant has its own Entrega/Recogido */}
+      <GlobalNavbar showLocationBar={true} showModeToggle={false} />
       
       <header className={templateStyles.headerBar}>
         <div className="container mx-auto px-4 py-3">

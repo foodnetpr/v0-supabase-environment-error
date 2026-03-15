@@ -8,13 +8,14 @@ import { useState, useEffect } from "react"
 
 interface GlobalNavbarProps {
   showLocationBar?: boolean
-  showCuisineBar?: boolean
+  showModeToggle?: boolean
   onLocationChange?: (location: UserLocation | null) => void
   onModeChange?: (mode: OrderMode) => void
 }
 
 export function GlobalNavbar({
   showLocationBar = true,
+  showModeToggle = true,
   onLocationChange,
   onModeChange,
 }: GlobalNavbarProps) {
@@ -81,6 +82,7 @@ export function GlobalNavbar({
               onModeChange={handleModeChange}
               initialLocation={userLocation}
               initialMode={orderMode}
+              showModeToggle={showModeToggle}
             />
           )}
 

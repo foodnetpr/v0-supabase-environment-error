@@ -49,13 +49,15 @@ interface LocationBarProps {
   onModeChange?: (mode: OrderMode) => void
   initialLocation?: UserLocation | null
   initialMode?: OrderMode
+  showModeToggle?: boolean
 }
 
 export function LocationBar({ 
   onLocationChange, 
   onModeChange,
   initialLocation, 
-  initialMode = "delivery" 
+  initialMode = "delivery",
+  showModeToggle = true
 }: LocationBarProps) {
   const [location, setLocation] = useState<UserLocation | null>(initialLocation || null)
   const [mode, setMode] = useState<OrderMode>(initialMode)
@@ -252,29 +254,31 @@ export function LocationBar({
 
   return (
     <div className="flex items-center gap-2 flex-1">
-      {/* 1. Delivery / Pickup Toggle */}
-      <div className="flex items-center bg-slate-100 rounded-full p-0.5 flex-shrink-0">
-        <button
-          onClick={() => handleModeChange("delivery")}
-          className={`px-3 py-1 text-sm font-medium rounded-full transition-all ${
-            mode === "delivery"
-              ? "bg-black text-white"
-              : "text-slate-600 hover:text-slate-900"
-          }`}
-        >
-          Delivery
-        </button>
-        <button
-          onClick={() => handleModeChange("pickup")}
-          className={`px-3 py-1 text-sm font-medium rounded-full transition-all ${
-            mode === "pickup"
-              ? "bg-black text-white"
-              : "text-slate-600 hover:text-slate-900"
-          }`}
-        >
-          Pickup
-        </button>
-      </div>
+      {/* 1. Delivery / Pickup Toggle - conditionally shown */}
+      {showModeToggle && (
+        <div className="flex items-center bg-slate-100 rounded-full p-0.5 flex-shrink-0">
+          <button
+            onClick={() => handleModeChange("delivery")}
+            className={`px-3 py-1 text-sm font-medium rounded-full transition-all ${
+              mode === "delivery"
+                ? "bg-black text-white"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            Delivery
+          </button>
+          <button
+            onClick={() => handleModeChange("pickup")}
+            className={`px-3 py-1 text-sm font-medium rounded-full transition-all ${
+              mode === "pickup"
+                ? "bg-black text-white"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            Pickup
+          </button>
+        </div>
+      )}
 
       {/* 2. Use My Location Button */}
       <button
