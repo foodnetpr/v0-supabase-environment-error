@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import Link from "next/link"
 import Image from "next/image"
-import { useState, useMemo, useEffect, useCallback } from "react"
+import { useState, useMemo, useEffect, useRef } from "react"
 import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react"
 import { type UserLocation, type OrderMode } from "./location-bar"
 import { CuisineBar } from "./cuisine-bar"
@@ -141,11 +141,7 @@ export function MarketplaceHome({
       />
 
       {/* Hero - Full-width banner matching partners style */}
-      <HeroSlideshow
-        heroTitle={heroTitle}
-        heroSubtitle={heroSubtitle}
-        heroImage={heroImage}
-      />
+      <PromoBar />
 
       {/* Restaurant Grid */}
       {restaurants.length > 0 && (
@@ -195,114 +191,134 @@ export function MarketplaceHome({
   )
 }
 
-function HeroSlideshow({
-  heroTitle,
-  heroSubtitle,
-  heroImage,
-}: {
-  heroTitle: string
-  heroSubtitle: string
-  heroImage: string
-}) {
-  const slides = [
+function PromoBar() {
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [showLeftArrow, setShowLeftArrow] = useState(false)
+  const [showRightArrow, setShowRightArrow] = useState(true)
+
+  const promos = [
     {
-      image: heroImage,
-      title: heroTitle,
-      subtitle: heroSubtitle,
+      id: "1",
+      image: "/images/slide-catering-1.jpg",
+      badge: "Oferta Especial",
+      title: "Catering para tu Evento",
+      subtitle: "Ordena hoy",
+      badgeColor: "bg-red-500",
     },
-  {
-    image: "/images/slide-catering-2.jpg",
-    title: "Lo Hacemos Fácil para tí",
-    subtitle: "Servicio completo... ya sea para reuniones familiares o eventos corporativos",
-  },
-  {
-    image: "/images/slide-catering-3.jpg",
-    title: "Sabor que Conecta",
-    subtitle: "Personaliza tu menú para cada ocasión...",
+    {
+      id: "2",
+      image: "/images/slide-catering-2.jpg",
+      badge: "Nuevo",
+      title: "Menú Corporativo",
+      subtitle: "Desde $15/persona",
+      badgeColor: "bg-emerald-500",
+    },
+    {
+      id: "3",
+      image: "/images/slide-catering-3.jpg",
+      badge: "Popular",
+      title: "Fiestas y Celebraciones",
+      subtitle: "Paquetes especiales",
+      badgeColor: "bg-amber-500",
+    },
+    {
+      id: "4",
+      image: "/images/slide-catering-1.jpg",
+      badge: "2x1",
+      title: "Platos Principales",
+      subtitle: "Solo esta semana",
+      badgeColor: "bg-red-500",
+    },
+    {
+      id: "5",
+      image: "/images/slide-catering-2.jpg",
+      badge: "Gratis",
+      title: "Delivery Gratis",
+      subtitle: "En ordenes +$50",
+      badgeColor: "bg-blue-500",
     },
   ]
 
-  const [currentSlide, setCurrentSlide] = useState(0)
+  const handleScroll = () => {
+    if (!scrollRef.current) return
+    const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current
+    setShowLeftArrow(scrollLeft > 10)
+    setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 10)
+  }
 
-  const nextSlide = useCallback(() => {
-    setCurrentSlide((prev) => (prev + 1) % slides.length)
-  }, [slides.length])
-
-  const prevSlide = useCallback(() => {
-    setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length)
-  }, [slides.length])
-
-  useEffect(() => {
-    const timer = setInterval(nextSlide, 5000)
-    return () => clearInterval(timer)
-  }, [nextSlide])
+  const scroll = (direction: "left" | "right") => {
+    if (!scrollRef.current) return
+    const scrollAmount = 320
+    scrollRef.current.scrollBy({
+      left: direction === "left" ? -scrollAmount : scrollAmount,
+      behavior: "smooth",
+    })
+  }
 
   return (
-    <section className="relative min-h-[200px] sm:min-h-[320px] flex items-center overflow-hidden">
-      {/* Slide backgrounds */}
-      {slides.map((slide, index) => (
+    <section className="relative bg-white py-4 sm:py-6">
+      <div className="mx-auto max-w-6xl px-3 sm:px-6">
+        {/* Section header */}
+        <div className="flex items-center justify-between mb-3 sm:mb-4">
+          <h2 className="text-base sm:text-lg font-bold text-slate-900">Ofertas y Promociones</h2>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => scroll("left")}
+              disabled={!showLeftArrow}
+              className={`p-1.5 rounded-full transition-colors ${
+                showLeftArrow ? "bg-slate-100 hover:bg-slate-200 text-slate-700" : "text-slate-300 cursor-not-allowed"
+              }`}
+              aria-label="Scroll left"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => scroll("right")}
+              disabled={!showRightArrow}
+              className={`p-1.5 rounded-full transition-colors ${
+                showRightArrow ? "bg-slate-100 hover:bg-slate-200 text-slate-700" : "text-slate-300 cursor-not-allowed"
+              }`}
+              aria-label="Scroll right"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Scrollable promo cards */}
         <div
-          key={index}
-          className="absolute inset-0 transition-opacity duration-700 ease-in-out"
-          style={{
-            opacity: index === currentSlide ? 1 : 0,
-            zIndex: index === currentSlide ? 1 : 0,
-          }}
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className="flex gap-3 sm:gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-3 px-3 sm:mx-0 sm:px-0"
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
-          <Image
-            src={slide.image}
-            alt=""
-            fill
-            className="object-cover"
-            priority={index === 0}
-          />
+          {promos.map((promo) => (
+            <Link
+              key={promo.id}
+              href="#"
+              className="flex-shrink-0 w-[200px] sm:w-[280px] group"
+            >
+              <div className="relative aspect-[4/3] rounded-xl sm:rounded-2xl overflow-hidden bg-slate-100">
+                <Image
+                  src={promo.image}
+                  alt={promo.title}
+                  fill
+                  className="object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+                {/* Badge pill */}
+                <div className={`absolute top-2 sm:top-3 left-2 sm:left-3 ${promo.badgeColor} text-white text-[10px] sm:text-xs font-bold px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full`}>
+                  {promo.badge}
+                </div>
+              </div>
+              <div className="mt-2 sm:mt-3">
+                <h3 className="font-semibold text-sm sm:text-base text-slate-900 group-hover:text-amber-600 transition-colors">
+                  {promo.title}
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-500">{promo.subtitle}</p>
+              </div>
+            </Link>
+          ))}
         </div>
-      ))}
-      <div className="absolute inset-0 bg-gradient-to-r from-slate-900/90 via-slate-900/70 to-slate-900/40 z-[2]" />
-
-      {/* Content - left-aligned matching partners hero */}
-      <div className="relative z-10 mx-auto w-full max-w-6xl px-4 sm:px-6 py-8 sm:py-14">
-        <div className="max-w-2xl">
-          <span className="mb-2 sm:mb-3 inline-block rounded-full bg-amber-400/90 px-3 sm:px-4 py-1 sm:py-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-900">
-            Mercado Boricua para el Mejor Catering
-          </span>
-          <h1 className="text-balance text-xl sm:text-3xl md:text-4xl lg:text-5xl font-bold leading-tight tracking-tight text-white">
-            {slides[currentSlide].title}
-          </h1>
-          <p className="mt-2 sm:mt-3 max-w-xl text-pretty text-sm sm:text-base leading-relaxed text-slate-200">
-            {slides[currentSlide].subtitle}
-          </p>
-        </div>
-      </div>
-
-      {/* Navigation arrows - hidden on mobile, use swipe instead */}
-      <button
-        onClick={prevSlide}
-        className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-20 p-1.5 sm:p-2 rounded-full bg-black/30 text-white hover:bg-black/50 transition-colors hidden sm:block"
-        aria-label="Slide anterior"
-      >
-        <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
-      </button>
-      <button
-        onClick={nextSlide}
-        className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-20 p-1.5 sm:p-2 rounded-full bg-black/30 text-white hover:bg-black/50 transition-colors hidden sm:block"
-        aria-label="Siguiente slide"
-      >
-        <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
-      </button>
-
-      {/* Dots indicator */}
-      <div className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 sm:gap-2">
-        {slides.map((_, index) => (
-          <button
-            key={index}
-            onClick={() => setCurrentSlide(index)}
-            className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full transition-all duration-300 ${
-              index === currentSlide ? "bg-white w-5 sm:w-6" : "bg-white/50 hover:bg-white/70"
-            }`}
-            aria-label={`Ir al slide ${index + 1}`}
-          />
-        ))}
       </div>
     </section>
   )
