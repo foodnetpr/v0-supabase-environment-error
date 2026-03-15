@@ -543,16 +543,74 @@ export function OperationsTab({
             )}
           </div>
 
-          {/* POP Restaurant List */}
+          {/* Blocked POP Restaurants List - Shown when POP is blocked */}
+          {settings.is_pop_blocked && (
+            <div className="rounded-lg border-2 border-destructive/30 bg-destructive/5 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="font-semibold text-destructive flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  Blocked POP Restaurants
+                </h4>
+                <span className="text-sm text-muted-foreground">
+                  Check to unblock individual restaurants
+                </span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {popRestaurants.filter(r => r.block_override).length} of {popRestaurants.length} restaurants are open (overridden)
+              </p>
+              <div className="grid gap-2 max-h-64 overflow-y-auto">
+                {popRestaurants.map((restaurant) => {
+                  const isOpen = restaurant.block_override
+                  return (
+                    <div
+                      key={restaurant.id}
+                      className={cn(
+                        "flex items-center gap-3 p-3 rounded-lg border transition-colors",
+                        isOpen
+                          ? "bg-green-50 border-green-200"
+                          : "bg-white border-destructive/20"
+                      )}
+                    >
+                      <Checkbox
+                        id={`pop-override-${restaurant.id}`}
+                        checked={restaurant.block_override}
+                        onCheckedChange={() => toggleRestaurantOverride(restaurant.id, restaurant.block_override)}
+                      />
+                      <label
+                        htmlFor={`pop-override-${restaurant.id}`}
+                        className={cn(
+                          "flex-1 cursor-pointer font-medium",
+                          isOpen ? "text-green-700" : "text-slate-700"
+                        )}
+                      >
+                        {restaurant.name}
+                      </label>
+                      <Badge variant={isOpen ? "default" : "destructive"} className="text-xs">
+                        {isOpen ? "OPEN" : "BLOCKED"}
+                      </Badge>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* POP Restaurant List - Full management view */}
           <div className="space-y-2">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-medium">All POP Restaurants</h4>
+              <span className="text-sm text-muted-foreground">
+                Temp Closure: Quick block for 30 or 60 minutes
+              </span>
+            </div>
             <div className="grid grid-cols-[1fr,auto,auto,auto] gap-4 px-4 py-2 text-sm font-medium text-muted-foreground border-b">
               <div>Restaurant</div>
-              <div className="text-center">Override</div>
+              <div className="text-center">{settings.is_pop_blocked ? "Keep Open" : "Override"}</div>
               <div className="text-center">Temp Closure</div>
               <div className="text-center">Status</div>
             </div>
             {popRestaurants.map((restaurant) => {
-              const isBlocked = settings.is_pop_blocked && !restaurant.block_override || restaurant.is_manually_blocked
+              const isBlocked = (settings.is_pop_blocked && !restaurant.block_override) || restaurant.is_manually_blocked
               return (
                 <div
                   key={restaurant.id}
