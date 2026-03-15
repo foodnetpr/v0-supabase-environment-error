@@ -100,6 +100,7 @@ import {
   saveOperatingHours,
   type OperatingHourEntry,
   type AvailableDays,
+  type AvailabilityDaypart,
 } from "./actions"
 import { Checkbox } from "@/components/ui/checkbox" // Import Checkbox
 
@@ -2646,38 +2647,64 @@ payment_provider: branchForm.payment_provider || "stripe",
                                           </div>
                                         </div>
                                       </div>
-                                      {/* Day Availability */}
-                                      <div className="flex items-center gap-1 mt-2 flex-wrap">
-                                        <span className="text-xs text-gray-500 mr-1">Disponible:</span>
-                                        {(["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const).map((day) => {
-                                          const dayLabels = { sun: "Dom", mon: "Lun", tue: "Mar", wed: "Mie", thu: "Jue", fri: "Vie", sat: "Sab" }
-                                          const availableDays = item.available_days || { sun: true, mon: true, tue: true, wed: true, thu: true, fri: true, sat: true }
-                                          const isChecked = availableDays[day] !== false
-                                          return (
-                                            <label
-                                              key={day}
-                                              className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs cursor-pointer transition-colors ${
-                                                isChecked ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-400"
-                                              }`}
-                                            >
-                                              <input
-                                                type="checkbox"
-                                                checked={isChecked}
-                                                onChange={async (e) => {
-                                                  const newDays = { ...availableDays, [day]: e.target.checked }
-                                                  try {
-                                                    await updateMenuItem(item.id, { available_days: newDays })
-                                                    setMenuItems(prev => prev.map(mi => mi.id === item.id ? { ...mi, available_days: newDays } : mi))
-                                                  } catch (error) {
-                                                    toast({ title: "Error", description: "Failed to update availability", variant: "destructive" })
-                                                  }
-                                                }}
-                                                className="sr-only"
-                                              />
-                                              {dayLabels[day]}
-                                            </label>
-                                          )
-                                        })}
+                                      {/* Day & Daypart Availability */}
+                                      <div className="flex items-center gap-2 mt-2 flex-wrap">
+                                        {/* Daypart Dropdown */}
+                                        <select
+                                          value={item.availability_daypart || "all"}
+                                          onChange={async (e) => {
+                                            const newDaypart = e.target.value as AvailabilityDaypart
+                                            try {
+                                              await updateMenuItem(item.id, { availability_daypart: newDaypart })
+                                              setMenuItems(prev => prev.map(mi => mi.id === item.id ? { ...mi, availability_daypart: newDaypart } : mi))
+                                            } catch (error) {
+                                              toast({ title: "Error", description: "Failed to update daypart", variant: "destructive" })
+                                            }
+                                          }}
+                                          className="text-xs border border-gray-200 rounded px-1.5 py-0.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                                        >
+                                          <option value="all">All Day</option>
+                                          <option value="breakfast_lunch">Breakfast & Lunch</option>
+                                          <option value="breakfast_dinner">Breakfast & Dinner</option>
+                                          <option value="lunch_dinner">Lunch & Dinner</option>
+                                          <option value="breakfast">Breakfast Only</option>
+                                          <option value="lunch">Lunch Only</option>
+                                          <option value="dinner">Dinner Only</option>
+                                        </select>
+                                        
+                                        {/* Day Checkboxes */}
+                                        <div className="flex items-center gap-1 flex-wrap">
+                                          {(["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const).map((day) => {
+                                            const dayLabels = { sun: "D", mon: "L", tue: "M", wed: "W", thu: "J", fri: "V", sat: "S" }
+                                            const availableDays = item.available_days || { sun: true, mon: true, tue: true, wed: true, thu: true, fri: true, sat: true }
+                                            const isChecked = availableDays[day] !== false
+                                            return (
+                                              <label
+                                                key={day}
+                                                title={({ sun: "Domingo", mon: "Lunes", tue: "Martes", wed: "Miercoles", thu: "Jueves", fri: "Viernes", sat: "Sabado" } as const)[day]}
+                                                className={`inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-medium cursor-pointer transition-colors ${
+                                                  isChecked ? "bg-emerald-500 text-white" : "bg-gray-200 text-gray-400"
+                                                }`}
+                                              >
+                                                <input
+                                                  type="checkbox"
+                                                  checked={isChecked}
+                                                  onChange={async (e) => {
+                                                    const newDays = { ...availableDays, [day]: e.target.checked }
+                                                    try {
+                                                      await updateMenuItem(item.id, { available_days: newDays })
+                                                      setMenuItems(prev => prev.map(mi => mi.id === item.id ? { ...mi, available_days: newDays } : mi))
+                                                    } catch (error) {
+                                                      toast({ title: "Error", description: "Failed to update availability", variant: "destructive" })
+                                                    }
+                                                  }}
+                                                  className="sr-only"
+                                                />
+                                                {dayLabels[day]}
+                                              </label>
+                                            )
+                                          })}
+                                        </div>
                                       </div>
                                       <div className="flex gap-2 mt-3">
                                         <Button size="sm" variant="outline" onClick={() => handleManageOptions(item)}>

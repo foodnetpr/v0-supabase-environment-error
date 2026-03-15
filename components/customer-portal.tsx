@@ -93,6 +93,7 @@ interface MenuItem {
     fri: boolean
     sat: boolean
   }
+  availability_daypart?: "all" | "breakfast_lunch" | "breakfast_dinner" | "lunch_dinner" | "breakfast" | "lunch" | "dinner"
 }
 
 interface PackageAddon {
@@ -299,20 +300,50 @@ export default function CustomerPortal({
   )
   const [showBranchSelector, setShowBranchSelector] = useState(isChain)
 
-  // Helper to check if item is available today
-  const isAvailableToday = (item: MenuItem) => {
+  // Helper to check if item is available now (day + daypart)
+  const isAvailableNow = (item: MenuItem) => {
+    const now = new Date()
     const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const
-    const today = days[new Date().getDay()]
+    const today = days[now.getDay()]
+    
+    // Check day availability
     const availableDays = item.available_days as Record<string, boolean> | null
-    // If no available_days set, item is available all days
-    if (!availableDays) return true
-    return availableDays[today] !== false
+    if (availableDays && availableDays[today] === false) return false
+    
+    // Check daypart availability
+    const daypart = (item as any).availability_daypart || "all"
+    if (daypart === "all") return true
+    
+    // Get restaurant daypart times (with defaults)
+    const r = restaurant as any
+    const breakfastStart = r.breakfast_start || "06:00"
+    const breakfastEnd = r.breakfast_end || "11:00"
+    const lunchStart = r.lunch_start || "11:00"
+    const lunchEnd = r.lunch_end || "16:00"
+    const dinnerStart = r.dinner_start || "16:00"
+    const dinnerEnd = r.dinner_end || "22:00"
+    
+    const currentTime = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`
+    
+    const inBreakfast = currentTime >= breakfastStart && currentTime < breakfastEnd
+    const inLunch = currentTime >= lunchStart && currentTime < lunchEnd
+    const inDinner = currentTime >= dinnerStart && currentTime < dinnerEnd
+    
+    switch (daypart) {
+      case "breakfast": return inBreakfast
+      case "lunch": return inLunch
+      case "dinner": return inDinner
+      case "breakfast_lunch": return inBreakfast || inLunch
+      case "breakfast_dinner": return inBreakfast || inDinner
+      case "lunch_dinner": return inLunch || inDinner
+      default: return true
+    }
   }
 
-  // Apply branch menu overrides and day availability filter to produce effective menu items
+  // Apply branch menu overrides and day/daypart availability filter to produce effective menu items
   const effectiveMenuItems = (() => {
-    // First filter by day availability
-    const dayFilteredItems = menuItems.filter(isAvailableToday)
+    // First filter by day and daypart availability
+    const dayFilteredItems = menuItems.filter(isAvailableNow)
     
     if (!selectedBranch) return dayFilteredItems
     const overrides = branchMenuOverrides.filter((o) => o.branch_id === selectedBranch.id)

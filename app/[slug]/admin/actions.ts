@@ -305,6 +305,16 @@ export type AvailableDays = {
   sun: boolean
 }
 
+// Type for daypart availability
+export type AvailabilityDaypart = 
+  | "all"
+  | "breakfast_lunch"
+  | "breakfast_dinner"
+  | "lunch_dinner"
+  | "breakfast"
+  | "lunch"
+  | "dinner"
+
 export async function updateMenuItem(
   id: string,
   data: {
@@ -328,6 +338,7 @@ export async function updateMenuItem(
     container_type?: string
     containers_per_unit?: number
     available_days?: AvailableDays
+    availability_daypart?: AvailabilityDaypart
   },
 ) {
   const supabase = getAdminClient()
@@ -353,6 +364,7 @@ export async function updateMenuItem(
   if (data.container_type !== undefined) updateData.container_type = data.container_type
   if (data.containers_per_unit !== undefined) updateData.containers_per_unit = data.containers_per_unit
   if (data.available_days !== undefined) updateData.available_days = data.available_days
+  if (data.availability_daypart !== undefined) updateData.availability_daypart = data.availability_daypart
 
   const { data: item, error } = await supabase.from("menu_items").update(updateData).eq("id", id).select().single()
 
