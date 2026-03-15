@@ -84,6 +84,15 @@ interface MenuItem {
   price: number
   is_cart_upsell?: boolean
   lead_time_hours?: number
+  available_days?: {
+    sun: boolean
+    mon: boolean
+    tue: boolean
+    wed: boolean
+    thu: boolean
+    fri: boolean
+    sat: boolean
+  }
 }
 
 interface PackageAddon {
@@ -290,13 +299,26 @@ export default function CustomerPortal({
   )
   const [showBranchSelector, setShowBranchSelector] = useState(isChain)
 
-  // Apply branch menu overrides to produce effective menu items
+  // Helper to check if item is available today
+  const isAvailableToday = (item: MenuItem) => {
+    const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const
+    const today = days[new Date().getDay()]
+    const availableDays = item.available_days as Record<string, boolean> | null
+    // If no available_days set, item is available all days
+    if (!availableDays) return true
+    return availableDays[today] !== false
+  }
+
+  // Apply branch menu overrides and day availability filter to produce effective menu items
   const effectiveMenuItems = (() => {
-    if (!selectedBranch) return menuItems
+    // First filter by day availability
+    const dayFilteredItems = menuItems.filter(isAvailableToday)
+    
+    if (!selectedBranch) return dayFilteredItems
     const overrides = branchMenuOverrides.filter((o) => o.branch_id === selectedBranch.id)
-    if (overrides.length === 0) return menuItems
+    if (overrides.length === 0) return dayFilteredItems
     const overrideMap = new Map(overrides.map((o) => [o.menu_item_id, o]))
-    return menuItems
+    return dayFilteredItems
       .filter((item) => {
         const o = overrideMap.get(item.id)
         return !o?.is_hidden

@@ -99,6 +99,7 @@ import {
   getOperatingHours,
   saveOperatingHours,
   type OperatingHourEntry,
+  type AvailableDays,
 } from "./actions"
 import { Checkbox } from "@/components/ui/checkbox" // Import Checkbox
 
@@ -2644,6 +2645,39 @@ payment_provider: branchForm.payment_provider || "stripe",
                                             />
                                           </div>
                                         </div>
+                                      </div>
+                                      {/* Day Availability */}
+                                      <div className="flex items-center gap-1 mt-2 flex-wrap">
+                                        <span className="text-xs text-gray-500 mr-1">Disponible:</span>
+                                        {(["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const).map((day) => {
+                                          const dayLabels = { sun: "Dom", mon: "Lun", tue: "Mar", wed: "Mie", thu: "Jue", fri: "Vie", sat: "Sab" }
+                                          const availableDays = item.available_days || { sun: true, mon: true, tue: true, wed: true, thu: true, fri: true, sat: true }
+                                          const isChecked = availableDays[day] !== false
+                                          return (
+                                            <label
+                                              key={day}
+                                              className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs cursor-pointer transition-colors ${
+                                                isChecked ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-400"
+                                              }`}
+                                            >
+                                              <input
+                                                type="checkbox"
+                                                checked={isChecked}
+                                                onChange={async (e) => {
+                                                  const newDays = { ...availableDays, [day]: e.target.checked }
+                                                  try {
+                                                    await updateMenuItem(item.id, { available_days: newDays })
+                                                    setMenuItems(prev => prev.map(mi => mi.id === item.id ? { ...mi, available_days: newDays } : mi))
+                                                  } catch (error) {
+                                                    toast({ title: "Error", description: "Failed to update availability", variant: "destructive" })
+                                                  }
+                                                }}
+                                                className="sr-only"
+                                              />
+                                              {dayLabels[day]}
+                                            </label>
+                                          )
+                                        })}
                                       </div>
                                       <div className="flex gap-2 mt-3">
                                         <Button size="sm" variant="outline" onClick={() => handleManageOptions(item)}>

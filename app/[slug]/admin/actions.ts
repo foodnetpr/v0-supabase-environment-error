@@ -294,6 +294,17 @@ export async function createMenuItem(data: {
   return item
 }
 
+// Type for available days
+export type AvailableDays = {
+  mon: boolean
+  tue: boolean
+  wed: boolean
+  thu: boolean
+  fri: boolean
+  sat: boolean
+  sun: boolean
+}
+
 export async function updateMenuItem(
   id: string,
   data: {
@@ -316,6 +327,7 @@ export async function updateMenuItem(
     lead_time_hours?: number | null
     container_type?: string
     containers_per_unit?: number
+    available_days?: AvailableDays
   },
 ) {
   const supabase = getAdminClient()
@@ -340,6 +352,7 @@ export async function updateMenuItem(
   if (data.lead_time_hours !== undefined) updateData.lead_time_hours = data.lead_time_hours
   if (data.container_type !== undefined) updateData.container_type = data.container_type
   if (data.containers_per_unit !== undefined) updateData.containers_per_unit = data.containers_per_unit
+  if (data.available_days !== undefined) updateData.available_days = data.available_days
 
   const { data: item, error } = await supabase.from("menu_items").update(updateData).eq("id", id).select().single()
 
