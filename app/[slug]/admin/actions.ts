@@ -881,6 +881,18 @@ export async function updateRestaurantSettings(
     footer_phone?: string | null
     footer_links?: any[] | null
     delivery_included_containers?: number | null
+    // Location and delivery radius
+    delivery_radius?: number | null
+    // Order notification settings
+    order_notification_method?: "email" | "kds" | "chowly" | "square_kds" | "multiple"
+    chowly_enabled?: boolean
+    chowly_api_key?: string | null
+    chowly_location_id?: string | null
+    square_kds_enabled?: boolean
+    kds_enabled?: boolean
+    kds_auto_print?: boolean
+    kds_sound_enabled?: boolean
+    kds_access_token?: string | null
   },
 ) {
   const supabase = getAdminClient()
