@@ -132,20 +132,36 @@ export async function POST(request: Request) {
 
     if (catErr) results.errors.push(`categories: ${catErr.message}`)
 
-    const categoryIdMap = new Map<string, string>()
-    for (const c of insertedCats ?? []) categoryIdMap.set(c.external_id, c.id)
+    // Map both by external_id AND by name (since upsert conflict is on name)
+    const categoryIdByExtId = new Map<string, string>()
+    const categoryIdByName = new Map<string, string>()
+    for (const c of insertedCats ?? []) {
+      categoryIdByExtId.set(c.external_id, c.id)
+      categoryIdByName.set(c.name, c.id)
+    }
     results.categories = insertedCats?.length ?? 0
+
+    // Debug: count items in source JSON
+    let totalSourceItems = 0
+    for (const cat of categories) {
+      totalSourceItems += (cat.items || []).length
+    }
 
     // ── Collect all items ─────────────────────────────────────────────────────
     type ItemMeta = { extId: string; options: any[] }
     const itemRows: any[] = []
     const itemMetas: ItemMeta[] = []
+    let skippedItemsNoCategory = 0
 
     for (let ci = 0; ci < categories.length; ci++) {
       const cat = categories[ci]
       const catExtId = String(cat.external_id || cat.id || ci)
-      const categoryId = categoryIdMap.get(catExtId)
-      if (!categoryId) continue
+      // Try external_id first, fall back to name lookup
+      const categoryId = categoryIdByExtId.get(catExtId) || categoryIdByName.get(cat.name)
+      if (!categoryId) {
+        skippedItemsNoCategory += (cat.items || []).length
+        continue
+      }
       const items: any[] = cat.items || []
       for (let ii = 0; ii < items.length; ii++) {
         const item = items[ii]
@@ -236,9 +252,20 @@ export async function POST(request: Request) {
     if (choiceErr) results.errors.push(`item_option_choices: ${choiceErr.message}`)
     results.choices = choiceRows.length
 
+    // Debug logging
+    console.log(`[v0] Import ${restaurant.name}: source items=${totalSourceItems}, categories=${categoryRows.length}, items inserted=${results.items}, skipped (no cat)=${skippedItemsNoCategory}, options=${results.options}, choices=${results.choices}`)
+
     return NextResponse.json({
       success: true,
       results,
+      debug: {
+        sourceItems: totalSourceItems,
+        skippedItemsNoCategory,
+        categoryRowsBuilt: categoryRows.length,
+        itemRowsBuilt: itemRows.length,
+        optionRowsBuilt: optionRows.length,
+        choiceRowsBuilt: choiceRows.length,
+      }
     })
 
   } catch (error: any) {
