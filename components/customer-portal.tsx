@@ -4881,6 +4881,39 @@ const orderData = {
           </div>
         </div>
       </footer>
+
+      {/* Floating "View Cart" pill — always visible while scrolling, like DoorDash/Uber Eats */}
+      <div
+        className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 ease-in-out ${
+          foodCartCount > 0 && !showCart && !showCheckout
+            ? "opacity-100 translate-y-0 pointer-events-auto"
+            : "opacity-0 translate-y-4 pointer-events-none"
+        }`}
+      >
+        <button
+          onClick={() => setShowCart(true)}
+          className="flex items-center gap-3 pl-3 pr-5 py-3 rounded-full shadow-2xl text-white font-semibold text-sm whitespace-nowrap"
+          style={{ backgroundColor: primaryColor }}
+          aria-label={`Ver carrito — ${foodCartCount} ${foodCartCount === 1 ? "artículo" : "artículos"}`}
+        >
+          {/* Item count badge */}
+          <span
+            className="flex items-center justify-center w-7 h-7 rounded-full bg-white/25 text-white font-bold text-sm tabular-nums"
+          >
+            {foodCartCount}
+          </span>
+          <span>Ver carrito</span>
+          <span className="opacity-80">
+            —
+          </span>
+          <span>
+            ${cart
+              .filter((i) => i.type !== "delivery_fee")
+              .reduce((sum, i) => sum + (i.totalPrice || 0), 0)
+              .toFixed(2)}
+          </span>
+        </button>
+      </div>
     </div>
   )
 }
