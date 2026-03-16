@@ -3809,7 +3809,7 @@ const orderData = {
             {/* Cart Footer with Total */}
             {foodCartCount > 0 && (() => {
               const taxRate = effectiveRestaurant.tax_rate ? effectiveRestaurant.tax_rate / 100 : 0
-              const deliveryFee = deliveryMethod === "delivery" ? deliveryFeeCalculation.fee : 0
+              const deliveryFee = deliveryMethod === "delivery" ? deliveryFeeCalculation.displayedFee : 0
               const menuSubtotal = cart
                 .filter((i) => i.type !== "delivery_fee")
                 .reduce((s, i) => s + (i.totalPrice || 0), 0)
@@ -4605,14 +4605,7 @@ const orderData = {
                           {deliveryFeeCalculation.distance > 0 && ` (${deliveryFeeCalculation.distance.toFixed(1)} mi)`}
                           :
                         </span>
-                        <span className="flex items-center gap-1.5">
-                          {deliveryFeeCalculation.displayedFee < deliveryFeeCalculation.fee && (
-                            <span className="line-through text-muted-foreground text-xs">
-                              ${deliveryFeeCalculation.fee.toFixed(2)}
-                            </span>
-                          )}
-                          <span>${deliveryFeeCalculation.displayedFee.toFixed(2)}</span>
-                        </span>
+                        <span>${deliveryFeeCalculation.displayedFee.toFixed(2)}</span>
                       </div>
                     )}
                     {/* CHANGE: Tax label now falls back to 0% instead of 8.75% */}
