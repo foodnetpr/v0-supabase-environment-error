@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     url.searchParams.set("place_id", placeId)
     url.searchParams.set("key", apiKey)
     url.searchParams.set("fields", "geometry,address_components,formatted_address")
-    url.searchParams.set("language", "es")
+    // No language= param — preserves accurate short_name values for state abbreviations
 
     const response = await fetch(url.toString())
 

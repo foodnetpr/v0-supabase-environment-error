@@ -1570,10 +1570,10 @@ const orderData = {
         const m = Math.floor(eta.getMinutes() / 15) * 15
         return `${h}:${m.toString().padStart(2, "0")}`
       })(),
-      streetAddress: "", // Use streetAddress
+      streetAddress: "",
       streetAddress2: "",
       city: "",
-      state: "FL",
+      state: "PR",
       zip: "",
       specialInstructions: "",
       smsConsent: false,

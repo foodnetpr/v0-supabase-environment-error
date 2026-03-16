@@ -52,7 +52,7 @@ export async function createRestaurant(data: {
         email: data.email || null,
         phone: data.phone || null,
         city: data.city || null,
-        state: data.state || "FL",
+        state: data.state || "PR",
         design_template: data.design_template,
         primary_color: data.primary_color,
         is_active: true,

@@ -14,8 +14,9 @@ export async function GET(request: Request) {
   }
 
   try {
+    // region=pr biases results toward Puerto Rico; no language= to preserve short_name accuracy
     const response = await fetch(
-      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}&language=es`
+      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}&region=pr`
     )
     const data = await response.json()
 
