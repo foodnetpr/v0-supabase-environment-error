@@ -26,11 +26,18 @@ export default async function HomePage() {
 
   const { data: marketplaceSettings } = await supabase.from("marketplace_settings").select("*").limit(1).single()
 
+  const { data: platformSettings } = await supabase
+    .from("platform_settings")
+    .select("blocked_zip_codes")
+    .limit(1)
+    .single()
+
   return (
     <MarketplaceHome 
       restaurants={restaurants || []} 
       marketplaceSettings={marketplaceSettings || undefined}
       cuisineTypes={cuisineTypes || []}
+      blockedZipCodes={platformSettings?.blocked_zip_codes || []}
     />
   )
 }

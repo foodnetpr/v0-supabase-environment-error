@@ -71,6 +71,7 @@ export async function PUT(request: Request) {
           emergency_block_reason: body.emergency_block_reason,
           pop_reopen_at: body.pop_reopen_at,
           pop_block_message: body.pop_block_message,
+          blocked_zip_codes: body.blocked_zip_codes ?? [],
           updated_at: new Date().toISOString(),
         })
         .eq("id", existing.id)
@@ -101,6 +102,7 @@ export async function PUT(request: Request) {
           emergency_block_reason: body.emergency_block_reason,
           pop_reopen_at: body.pop_reopen_at,
           pop_block_message: body.pop_block_message,
+          blocked_zip_codes: body.blocked_zip_codes ?? [],
         })
         .select()
         .single()

@@ -70,6 +70,7 @@ interface PlatformSettings {
   emergency_block_reason: string | null
   pop_reopen_at: string | null
   pop_block_message: string | null
+  blocked_zip_codes: string[]
 }
 
 interface ScheduledBlock {
@@ -152,6 +153,7 @@ export function OperationsTab({
       emergency_block_reason: null,
       pop_reopen_at: null,
       pop_block_message: null,
+      blocked_zip_codes: [],
     }
   )
   const [scheduledBlocks, setScheduledBlocks] = useState(initialBlocks)
@@ -503,6 +505,106 @@ export function OperationsTab({
               )}
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Blocked Zip Codes */}
+      <Card className={cn(
+        "border-2",
+        settings.blocked_zip_codes.length > 0 ? "border-orange-400 bg-orange-50" : "border-border"
+      )}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5" />
+            Blocked Delivery Zones
+          </CardTitle>
+          <CardDescription>
+            Block delivery to specific zip codes temporarily — e.g. during a marathon or road closure. Customers in these zip codes will see a notice and cannot place orders.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {settings.blocked_zip_codes.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {settings.blocked_zip_codes.map((zip) => (
+                <span key={zip} className="inline-flex items-center gap-1 bg-orange-100 border border-orange-300 text-orange-800 text-sm font-mono px-2.5 py-1 rounded-full">
+                  {zip}
+                  <button
+                    onClick={() => {
+                      const next = settings.blocked_zip_codes.filter((z) => z !== zip)
+                      setSettings({ ...settings, blocked_zip_codes: next })
+                    }}
+                    className="ml-1 hover:text-orange-600"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 border rounded-lg p-4 bg-white">
+            {[
+              { zip: "00901", area: "Viejo San Juan" },
+              { zip: "00907", area: "Condado" },
+              { zip: "00909", area: "Santurce" },
+              { zip: "00917", area: "Hato Rey" },
+              { zip: "00918", area: "Hato Rey Norte" },
+              { zip: "00920", area: "Río Piedras" },
+              { zip: "00923", area: "Cupey" },
+              { zip: "00926", area: "Cupey Gardens" },
+              { zip: "00949", area: "Toa Baja" },
+              { zip: "00956", area: "Bayamón" },
+              { zip: "00959", area: "Bayamón Este" },
+              { zip: "00965", area: "Guaynabo" },
+              { zip: "00968", area: "Guaynabo Norte" },
+              { zip: "00969", area: "Garden Hills" },
+              { zip: "00976", area: "Trujillo Alto" },
+              { zip: "00979", area: "Carolina" },
+              { zip: "00983", area: "Isla Verde" },
+            ].map(({ zip, area }) => {
+              const checked = settings.blocked_zip_codes.includes(zip)
+              return (
+                <label key={zip} className="flex items-center gap-2 cursor-pointer select-none">
+                  <Checkbox
+                    checked={checked}
+                    onCheckedChange={() => {
+                      const next = checked
+                        ? settings.blocked_zip_codes.filter((z) => z !== zip)
+                        : [...settings.blocked_zip_codes, zip]
+                      setSettings({ ...settings, blocked_zip_codes: next })
+                    }}
+                  />
+                  <span className="text-sm">
+                    <span className="font-mono font-medium">{zip}</span>
+                    <span className="text-muted-foreground ml-1 text-xs">{area}</span>
+                  </span>
+                </label>
+              )
+            })}
+          </div>
+
+          <Button
+            onClick={async () => {
+              setIsSaving(true)
+              try {
+                await fetch("/api/platform-settings", {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(settings),
+                })
+              } finally {
+                setIsSaving(false)
+              }
+            }}
+            disabled={isSaving}
+            variant={settings.blocked_zip_codes.length > 0 ? "destructive" : "default"}
+            className="gap-2"
+          >
+            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {settings.blocked_zip_codes.length > 0
+              ? `Save — ${settings.blocked_zip_codes.length} zone${settings.blocked_zip_codes.length !== 1 ? "s" : ""} blocked`
+              : "Save — No zones blocked"}
+          </Button>
         </CardContent>
       </Card>
 
