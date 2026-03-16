@@ -38,9 +38,10 @@ export async function POST() {
       const options: any[] = item.options ?? item.item_options ?? []
       for (const option of options) {
         const extId = String(option.id ?? option.external_id ?? "").trim()
-        const prompt = String(option.prompt ?? "").trim()
-        if (extId && prompt) {
-          promptMap.set(extId, prompt)
+        // Prefer the customer-facing prompt; fall back to group_name (internal name)
+        const label = String(option.prompt ?? option.group_name ?? "").trim()
+        if (extId && label) {
+          promptMap.set(extId, label)
         }
       }
     }
