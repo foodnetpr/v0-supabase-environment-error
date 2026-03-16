@@ -15,8 +15,10 @@ export async function GET(request: Request) {
   }
 
   try {
+    // No &language= param — language affects formatted_address text but can corrupt
+    // short_name values for administrative_area_level_1 (e.g. returning "San Juan" instead of "PR")
     const response = await fetch(
-      `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}&language=es`
+      `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}`
     )
     const data = await response.json()
 

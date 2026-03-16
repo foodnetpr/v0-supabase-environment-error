@@ -61,12 +61,8 @@ export async function GET(request: NextRequest) {
       if (!city && types.includes("administrative_area_level_2")) {
         city = comp.long_name || ""
       }
-      // For Puerto Rico: state code "PR" comes from country
-      if (types.includes("country") && comp.short_name === "PR") {
-        state = "PR"
-      }
-      // Fallback for US addresses
-      if (!state && types.includes("administrative_area_level_1")) {
+      // Always use short_name (2-letter abbreviation) for state — covers PR, FL, NY, etc.
+      if (types.includes("administrative_area_level_1")) {
         state = comp.short_name || ""
       }
       if (types.includes("postal_code")) {
