@@ -738,19 +738,22 @@ export default function CustomerPortal({
   }, [deliveryMethod])
 
   // Delivery form state
+  // Pre-populate with the customer's default (or first) saved address if available
+  const defaultSavedAddress = customerAddresses.find((a) => a.is_default) || customerAddresses[0] || null
+
   const [deliveryForm, setDeliveryForm] = useState({
-    fullName: "", // Changed from fullName to name for consistency with the original update logic
-    email: "",
-    phone: "",
+    fullName: customer ? `${customer.first_name || ""} ${customer.last_name || ""}`.trim() : "",
+    email: customer?.email || "",
+    phone: customer?.phone || "",
     company: "",
     eventDate: "",
     eventTime: "",
-    streetAddress: "", // Changed from street to streetAddress for clarity
-    streetAddress2: "", // Line 2: Apt, Urb, Suite, etc.
-    city: "",
-    state: "PR", // Default to Puerto Rico
-    zip: "",
-    specialInstructions: "",
+    streetAddress: defaultSavedAddress?.address_line_1 || "",
+    streetAddress2: defaultSavedAddress?.address_line_2 || "",
+    city: defaultSavedAddress?.city || "",
+    state: defaultSavedAddress?.state || "PR",
+    zip: defaultSavedAddress?.postal_code || "",
+    specialInstructions: defaultSavedAddress?.delivery_instructions || "",
     smsConsent: false,
     tipPercentage: (() => {
       const raw = effectiveRestaurant.tip_option_1 || 15
@@ -759,7 +762,9 @@ export default function CustomerPortal({
     customTip: "",
   })
 
-  const [showPackageModal, setShowPackageModal] = useState(false) // Added state for package modal visibility
+  const [showPackageModal, setShowPackageModal] = useState(false)
+
+
 
   const scrollToCategory = (category: string) => {
     const element = categoryRefs.current[category]
@@ -1301,6 +1306,25 @@ export default function CustomerPortal({
       }))
     }
   }
+
+  // Auto-calculate delivery fee on mount when a saved address is already available
+  useEffect(() => {
+    if (
+      deliveryMethod === "delivery" &&
+      defaultSavedAddress?.address_line_1 &&
+      defaultSavedAddress?.city &&
+      defaultSavedAddress?.postal_code
+    ) {
+      handleCalculateDeliveryFee({
+        streetAddress: defaultSavedAddress.address_line_1,
+        streetAddress2: defaultSavedAddress.address_line_2 || "",
+        city: defaultSavedAddress.city,
+        state: defaultSavedAddress.state || "PR",
+        zip: defaultSavedAddress.postal_code,
+      })
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deliveryMethod, restaurant.id])
 
   const handleSubmitCheckout = async () => {
     if (!user) {
