@@ -3807,29 +3807,138 @@ const orderData = {
           )}
 
             {/* Cart Footer with Total */}
-            {foodCartCount > 0 && (
-            <div className="flex-shrink-0 border-t pt-4 mt-2 space-y-3 px-5 pb-5">
-              <div className="flex items-center justify-between text-lg font-semibold">
-                <span>Subtotal</span>
-                <span style={{ color: primaryColor }}>
-                  ${cart.reduce((sum, item) => sum + (item.totalPrice || 0), 0).toFixed(2)}
-                </span>
-              </div>
-              {isBelowMinimum && (
-                <p className="text-sm text-amber-600 text-center">
-                  Orden minima {deliveryMethod === "delivery" ? "para delivery" : "para pickup"}: ${activeMinimumOrder.toFixed(2)}. Faltan ${(activeMinimumOrder - menuItemsTotal).toFixed(2)} en productos.
-                </p>
-              )}
-              <Button
-                onClick={handleProceedToCheckout}
-                className="w-full h-12 text-base font-semibold text-white shadow-md hover:shadow-lg transition-shadow"
-                style={{ backgroundColor: primaryColor }}
-                disabled={isBelowMinimum}
-              >
-                {isBelowMinimum ? `Minimo $${activeMinimumOrder.toFixed(2)}` : "Proceder al Pago"}
-              </Button>
-            </div>
-          )}
+            {foodCartCount > 0 && (() => {
+              const taxRate = effectiveRestaurant.tax_rate ? effectiveRestaurant.tax_rate / 100 : 0
+              const deliveryFee = deliveryMethod === "delivery" ? deliveryFeeCalculation.fee : 0
+              const menuSubtotal = cart
+                .filter((i) => i.type !== "delivery_fee")
+                .reduce((s, i) => s + (i.totalPrice || 0), 0)
+              const ivuAmount = menuSubtotal * taxRate
+              const tipAmount = deliveryForm.tipPercentage > 0
+                ? (menuSubtotal * deliveryForm.tipPercentage) / 100
+                : Number(deliveryForm.customTip || 0)
+              const orderTotal = menuSubtotal + deliveryFee + ivuAmount + tipAmount
+              const tipPresets = [10, 15, 18, 20]
+
+              return (
+                <div className="flex-shrink-0 border-t bg-white">
+                  {/* Below-minimum warning */}
+                  {isBelowMinimum && (
+                    <div className="px-5 pt-3">
+                      <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-center">
+                        Orden mínima {deliveryMethod === "delivery" ? "para delivery" : "para pickup"}: ${activeMinimumOrder.toFixed(2)}. Faltan ${(activeMinimumOrder - menuItemsTotal).toFixed(2)}.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Order total section */}
+                  <div className="px-5 pt-4 pb-2 space-y-2">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Total de la Orden</p>
+
+                    {/* Subtotal */}
+                    <div className="flex justify-between text-sm text-gray-700">
+                      <span>Subtotal</span>
+                      <span>${menuSubtotal.toFixed(2)}</span>
+                    </div>
+
+                    {/* Delivery fee */}
+                    {deliveryMethod === "delivery" && (
+                      <div className="flex justify-between text-sm text-gray-700">
+                        <span className="flex items-center gap-1">
+                          Delivery
+                          {deliveryFeeCalculation.distance > 0 && (
+                            <span className="text-xs text-gray-400">({deliveryFeeCalculation.distance.toFixed(1)} mi)</span>
+                          )}
+                        </span>
+                        <span>{deliveryFee > 0 ? `$${deliveryFee.toFixed(2)}` : <span className="text-green-600 font-medium">Gratis</span>}</span>
+                      </div>
+                    )}
+
+                    {/* IVU (Puerto Rico sales tax) */}
+                    {taxRate > 0 && (
+                      <div className="flex justify-between text-sm text-gray-700">
+                        <span className="flex items-center gap-1">
+                          IVU
+                          <span className="text-xs text-gray-400">({effectiveRestaurant.tax_rate}%)</span>
+                        </span>
+                        <span>${ivuAmount.toFixed(2)}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Tip section */}
+                  <div className="px-5 py-3 border-t border-gray-100">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-700">Propina</span>
+                      <span className="text-sm font-semibold text-gray-900">${tipAmount.toFixed(2)}</span>
+                    </div>
+                    <p className="text-xs text-gray-400 mb-2">100% de tu propina va al repartidor.</p>
+                    <div className="flex gap-2">
+                      {tipPresets.map((pct) => (
+                        <button
+                          key={pct}
+                          onClick={() => setDeliveryForm({ ...deliveryForm, tipPercentage: pct, customTip: "" })}
+                          className="flex-1 py-1.5 rounded-full text-xs font-semibold border transition-all"
+                          style={{
+                            backgroundColor: deliveryForm.tipPercentage === pct ? primaryColor : "transparent",
+                            color: deliveryForm.tipPercentage === pct ? "#fff" : "#374151",
+                            borderColor: deliveryForm.tipPercentage === pct ? primaryColor : "#d1d5db",
+                          }}
+                        >
+                          {pct}%
+                        </button>
+                      ))}
+                      <button
+                        onClick={() => setDeliveryForm({ ...deliveryForm, tipPercentage: 0, customTip: "" })}
+                        className="flex-1 py-1.5 rounded-full text-xs font-semibold border transition-all"
+                        style={{
+                          backgroundColor: deliveryForm.tipPercentage === 0 && !deliveryForm.customTip ? primaryColor : "transparent",
+                          color: deliveryForm.tipPercentage === 0 && !deliveryForm.customTip ? "#fff" : "#374151",
+                          borderColor: deliveryForm.tipPercentage === 0 && !deliveryForm.customTip ? primaryColor : "#d1d5db",
+                        }}
+                      >
+                        Otro
+                      </button>
+                    </div>
+                    {deliveryForm.tipPercentage === 0 && (
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="Cantidad personalizada"
+                        value={deliveryForm.customTip || ""}
+                        onChange={(e) => setDeliveryForm({ ...deliveryForm, customTip: e.target.value })}
+                        className="mt-2 w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2"
+                        style={{ "--tw-ring-color": `${primaryColor}40` } as React.CSSProperties}
+                      />
+                    )}
+                  </div>
+
+                  {/* Grand total + CTA */}
+                  <div className="px-5 pb-2 space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-base font-bold text-gray-900">Total</span>
+                      <span className="text-base font-bold" style={{ color: primaryColor }}>${orderTotal.toFixed(2)}</span>
+                    </div>
+                    <Button
+                      onClick={handleProceedToCheckout}
+                      className="w-full h-12 text-base font-semibold text-white shadow-md hover:shadow-lg transition-shadow"
+                      style={{ backgroundColor: primaryColor }}
+                      disabled={isBelowMinimum}
+                    >
+                      {isBelowMinimum ? `Mínimo $${activeMinimumOrder.toFixed(2)}` : "Realizar Pedido"}
+                    </Button>
+                  </div>
+
+                  {/* Legal disclaimer */}
+                  <div className="px-5 pt-1 pb-4">
+                    <p className="text-[11px] text-gray-400 leading-relaxed">
+                      Al realizar tu pedido aceptas los términos del servicio. El IVU final puede variar al momento del cobro. La propina va directamente al repartidor y se basa en el subtotal antes de descuentos.
+                    </p>
+                  </div>
+                </div>
+              )
+            })()}
             </div>{/* end flex-col body */}
           </div>{/* end panel */}
         </div>
