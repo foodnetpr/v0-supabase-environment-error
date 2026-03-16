@@ -45,200 +45,197 @@ export async function POST(request: Request) {
       return id >= startId && id <= endId
     })
 
-    const results = {
-      restaurants: 0,
-      categories: 0,
-      items: 0,
-      options: 0,
-      choices: 0,
-      batchRange: `${startId}–${endId}`,
-      totalInBatch: batch.length,
-      errors: [] as string[]
+    const errors: string[] = []
+
+    // ── PHASE 1: Upsert restaurants (need IDs for children) ──────────────────
+    const restaurantRows = batch
+      .map((entry: any) => {
+        const r = entry?.restaurant
+        if (!r?.name) return null
+        return {
+          name: r.name,
+          slug: createSlug(r.name),
+          external_id: String(r.id),
+          phone: r.phone || null,
+          address: r.address || null,
+          restaurant_address: r.address || null,
+          logo_url: r.logo_url || null,
+          hero_image_url: r.featured_url || null,
+          marketplace_image_url: r.featured_url || r.logo_url || null,
+          cuisine_type: r.cuisine || null,
+          delivery_fee: r.delivery_fee != null ? Number(r.delivery_fee) : null,
+          min_delivery_order: r.min_order != null ? Number(r.min_order) : null,
+          delivery_lead_time: r.delivery_time_minutes != null ? Number(r.delivery_time_minutes) : null,
+          tax_rate: r.tax_rate != null ? Number(r.tax_rate) / 100 : 0.115,
+          primary_color: "#ef4444",
+          is_active: true,
+          pickup_enabled: true,
+          delivery_enabled: true,
+          show_in_marketplace: true,
+        }
+      })
+      .filter(Boolean)
+
+    const { data: insertedRestaurants, error: restErr } = await supabase
+      .from("restaurants")
+      .upsert(restaurantRows, { onConflict: "slug" })
+      .select("id, slug, external_id")
+
+    if (restErr) {
+      return NextResponse.json({ error: "Restaurant upsert failed", message: restErr.message }, { status: 500 })
     }
 
-    // Process each restaurant in the batch
+    // Map external_id → DB id for fast lookup
+    const restaurantIdMap = new Map<string, string>()
+    for (const r of insertedRestaurants ?? []) {
+      restaurantIdMap.set(r.external_id, r.id)
+    }
+
+    // ── PHASE 2: Bulk upsert categories ──────────────────────────────────────
+    const categoryRows: any[] = []
+    // Track source data needed for item building
+    type CatMeta = { extId: string; restaurantExtId: string; items: any[] }
+    const catMetas: CatMeta[] = []
+
     for (const entry of batch) {
-      try {
-        const restaurant = entry.restaurant
-        const categories = entry.categories || []
-        
-        if (!restaurant || !restaurant.name) {
-          results.errors.push(`Skipped entry - no restaurant name`)
-          continue
-        }
-
-        const slug = createSlug(restaurant.name)
-
-        // Insert restaurant - all fields are directly on restaurant object
-        const { data: restaurantData, error: restaurantError } = await supabase
-          .from("restaurants")
-          .upsert({
-            name: restaurant.name,
-            slug: slug,
-            external_id: String(restaurant.id),
-            phone: restaurant.phone || null,
-            address: restaurant.address || null,
-            restaurant_address: restaurant.address || null,
-            logo_url: restaurant.logo_url || null,
-            hero_image_url: restaurant.featured_url || null,
-            marketplace_image_url: restaurant.featured_url || restaurant.logo_url || null,
-            cuisine_type: restaurant.cuisine || null,
-            delivery_fee: restaurant.delivery_fee != null ? Number(restaurant.delivery_fee) : null,
-            min_delivery_order: restaurant.min_order != null ? Number(restaurant.min_order) : null,
-            delivery_lead_time: restaurant.delivery_time_minutes != null ? Number(restaurant.delivery_time_minutes) : null,
-            tax_rate: restaurant.tax_rate != null ? Number(restaurant.tax_rate) / 100 : 0.115,
-            // Default settings
-            primary_color: "#ef4444",
-            is_active: true,
-            pickup_enabled: true,
-            delivery_enabled: true,
-            show_in_marketplace: true,
-          }, {
-            onConflict: "slug",
-          })
-          .select()
-          .single()
-
-        if (restaurantError) {
-          results.errors.push(`Restaurant ${restaurant.name}: ${restaurantError.message}`)
-          continue
-        }
-
-        const restaurantId = restaurantData.id
-        results.restaurants++
-
-        // Process categories
-        for (let catIndex = 0; catIndex < categories.length; catIndex++) {
-          const category = categories[catIndex]
-          
-          const { data: categoryData, error: categoryError } = await supabase
-            .from("categories")
-            .upsert({
-              restaurant_id: restaurantId,
-              name: category.name,
-              description: category.description || null,
-              external_id: String(category.external_id || category.id || catIndex),
-              display_order: catIndex,
-              is_active: true,
-            }, {
-              onConflict: "restaurant_id,name",
-            })
-            .select()
-            .single()
-
-          if (categoryError) {
-            results.errors.push(`Category ${category.name}: ${categoryError.message}`)
-            continue
-          }
-
-          const categoryId = categoryData.id
-          results.categories++
-
-          // Process items
-          const items = category.items || []
-          for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
-            const item = items[itemIndex]
-
-            const { data: itemData, error: itemError } = await supabase
-              .from("menu_items")
-              .upsert({
-                restaurant_id: restaurantId,
-                category_id: categoryId,
-                name: item.name,
-                description: item.description || null,
-                price: item.price || 0,
-                image_url: item.image_url || null,
-                external_id: String(item.external_id || item.id || `${catIndex}-${itemIndex}`),
-                display_order: itemIndex,
-                is_active: true,
-              }, {
-                onConflict: "category_id,name",
-              })
-              .select()
-              .single()
-
-            if (itemError) {
-              results.errors.push(`Item ${item.name}: ${itemError.message}`)
-              continue
-            }
-
-            const itemId = itemData.id
-            results.items++
-
-            // Process options (item.options in the JSON)
-            const optionGroups = item.options || item.option_groups || []
-            for (let optIndex = 0; optIndex < optionGroups.length; optIndex++) {
-              const option = optionGroups[optIndex]
-
-              const { data: optionData, error: optionError } = await supabase
-                .from("item_options")
-                .upsert({
-                  menu_item_id: itemId,
-                  category: option.group_name || option.name,
-                  prompt: option.prompt || null,
-                  is_required: option.required || false,
-                  min_selection: option.min_select || 0,
-                  max_selection: option.max_select || 10,
-                  external_id: String(option.id || `${itemId}-opt-${optIndex}`),
-                  display_order: optIndex,
-                }, {
-                  onConflict: "menu_item_id,category",
-                })
-                .select()
-                .single()
-
-              if (optionError) {
-                results.errors.push(`Option ${option.group_name}: ${optionError.message}`)
-                continue
-              }
-
-              const optionId = optionData.id
-              results.options++
-
-              // Process choices
-              const choices = option.choices || []
-              for (let choiceIndex = 0; choiceIndex < choices.length; choiceIndex++) {
-                const choice = choices[choiceIndex]
-
-                const { error: choiceError } = await supabase
-                  .from("item_option_choices")
-                  .upsert({
-                    item_option_id: optionId,
-                    name: choice.name,
-                    price_modifier: choice.price_delta || 0,
-                    external_id: String(choice.id || `${optionId}-choice-${choiceIndex}`),
-                    display_order: choiceIndex,
-                  }, {
-                    onConflict: "item_option_id,name",
-                  })
-
-                if (choiceError) {
-                  results.errors.push(`Choice ${choice.name}: ${choiceError.message}`)
-                  continue
-                }
-
-                results.choices++
-              }
-            }
-          }
-        }
-      } catch (entryError: any) {
-        results.errors.push(`Entry error: ${entryError.message}`)
+      const r = entry?.restaurant
+      if (!r?.name) continue
+      const restaurantExtId = String(r.id)
+      for (let ci = 0; ci < (entry.categories ?? []).length; ci++) {
+        const cat = entry.categories[ci]
+        const extId = String(cat.external_id || cat.id || `${restaurantExtId}-cat-${ci}`)
+        categoryRows.push({
+          restaurant_id: restaurantIdMap.get(restaurantExtId),
+          name: cat.name,
+          description: cat.description || null,
+          external_id: extId,
+          display_order: ci,
+          is_active: true,
+        })
+        catMetas.push({ extId, restaurantExtId, items: cat.items || [] })
       }
     }
+
+    const { data: insertedCats, error: catErr } = await supabase
+      .from("categories")
+      .upsert(categoryRows.filter(r => r.restaurant_id), { onConflict: "restaurant_id,name" })
+      .select("id, external_id")
+
+    if (catErr) errors.push(`categories: ${catErr.message}`)
+
+    const categoryIdMap = new Map<string, string>()
+    for (const c of insertedCats ?? []) categoryIdMap.set(c.external_id, c.id)
+
+    // ── PHASE 3: Bulk upsert menu_items ──────────────────────────────────────
+    const itemRows: any[] = []
+    type ItemMeta = { extId: string; catExtId: string; restaurantExtId: string; options: any[] }
+    const itemMetas: ItemMeta[] = []
+
+    for (const meta of catMetas) {
+      const categoryId = categoryIdMap.get(meta.extId)
+      const restaurantId = restaurantIdMap.get(meta.restaurantExtId)
+      if (!categoryId || !restaurantId) continue
+      for (let ii = 0; ii < meta.items.length; ii++) {
+        const item = meta.items[ii]
+        const extId = String(item.external_id || item.id || `${meta.extId}-item-${ii}`)
+        itemRows.push({
+          restaurant_id: restaurantId,
+          category_id: categoryId,
+          name: item.name,
+          description: item.description || null,
+          price: item.price || 0,
+          image_url: item.image_url || null,
+          external_id: extId,
+          display_order: ii,
+          is_active: true,
+        })
+        itemMetas.push({ extId, catExtId: meta.extId, restaurantExtId: meta.restaurantExtId, options: item.options || item.option_groups || [] })
+      }
+    }
+
+    const { data: insertedItems, error: itemErr } = await supabase
+      .from("menu_items")
+      .upsert(itemRows, { onConflict: "category_id,name" })
+      .select("id, external_id")
+
+    if (itemErr) errors.push(`menu_items: ${itemErr.message}`)
+
+    const itemIdMap = new Map<string, string>()
+    for (const i of insertedItems ?? []) itemIdMap.set(i.external_id, i.id)
+
+    // ── PHASE 4: Bulk upsert item_options ────────────────────────────────────
+    const optionRows: any[] = []
+    type OptMeta = { extId: string; itemExtId: string; choices: any[] }
+    const optMetas: OptMeta[] = []
+
+    for (const meta of itemMetas) {
+      const itemId = itemIdMap.get(meta.extId)
+      if (!itemId) continue
+      for (let oi = 0; oi < meta.options.length; oi++) {
+        const opt = meta.options[oi]
+        const extId = String(opt.id || `${meta.extId}-opt-${oi}`)
+        optionRows.push({
+          menu_item_id: itemId,
+          category: opt.group_name || opt.name,
+          prompt: opt.prompt || null,
+          is_required: opt.required || false,
+          min_selection: opt.min_select || 0,
+          max_selection: opt.max_select || 10,
+          external_id: extId,
+          display_order: oi,
+        })
+        optMetas.push({ extId, itemExtId: meta.extId, choices: opt.choices || [] })
+      }
+    }
+
+    const { data: insertedOpts, error: optErr } = await supabase
+      .from("item_options")
+      .upsert(optionRows, { onConflict: "menu_item_id,category" })
+      .select("id, external_id")
+
+    if (optErr) errors.push(`item_options: ${optErr.message}`)
+
+    const optionIdMap = new Map<string, string>()
+    for (const o of insertedOpts ?? []) optionIdMap.set(o.external_id, o.id)
+
+    // ── PHASE 5: Bulk upsert item_option_choices ──────────────────────────────
+    const choiceRows: any[] = []
+
+    for (const meta of optMetas) {
+      const optionId = optionIdMap.get(meta.extId)
+      if (!optionId) continue
+      for (let ci = 0; ci < meta.choices.length; ci++) {
+        const choice = meta.choices[ci]
+        choiceRows.push({
+          item_option_id: optionId,
+          name: choice.name,
+          price_modifier: choice.price_delta || 0,
+          external_id: String(choice.id || `${meta.extId}-choice-${ci}`),
+          display_order: ci,
+        })
+      }
+    }
+
+    const { error: choiceErr } = await supabase
+      .from("item_option_choices")
+      .upsert(choiceRows, { onConflict: "item_option_id,name" })
+
+    if (choiceErr) errors.push(`item_option_choices: ${choiceErr.message}`)
 
     return NextResponse.json({
       success: true,
-      message: `Import completed`,
+      message: "Import completed",
       results: {
-        restaurants: results.restaurants,
-        categories: results.categories,
-        items: results.items,
-        options: results.options,
-        choices: results.choices,
-        errorCount: results.errors.length,
-        errors: results.errors.slice(0, 20) // Only return first 20 errors
-      }
+        batchRange: `${startId}–${endId}`,
+        totalInBatch: batch.length,
+        restaurants: insertedRestaurants?.length ?? 0,
+        categories: insertedCats?.length ?? 0,
+        items: insertedItems?.length ?? 0,
+        options: insertedOpts?.length ?? 0,
+        choices: choiceRows.length,
+        errorCount: errors.length,
+        errors: errors.slice(0, 20),
+      },
     })
 
   } catch (error: any) {
