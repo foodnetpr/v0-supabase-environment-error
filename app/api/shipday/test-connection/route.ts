@@ -134,13 +134,13 @@ export async function POST(request: NextRequest) {
         orderItem: [{
           name: itemsDescription,
           quantity: 1,
-          unitPrice: Number(order.total_amount) || 0,
+          unitPrice: Number(order.subtotal) || 0,
         }],
-        tips: Number(order.tip_amount) || 0,
-        tax: Number(order.tax_amount) || 0,
+        tips: Number(order.tip) || 0,
+        tax: Number(order.tax) || 0,
         discountAmount: 0,
         deliveryFee: Number(order.delivery_fee) || 0,
-        totalOrderCost: Number(order.total_amount) || 0,
+        totalOrderCost: Number(order.total) || 0,
         paymentMethod: "credit_card",
         orderSource: "JunteReady",
       }
