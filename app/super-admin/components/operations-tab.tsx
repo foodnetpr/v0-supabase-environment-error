@@ -172,6 +172,8 @@ export function OperationsTab({
   }))
   const [tierGrid, setTierGrid] = useState<{ minDistance: number; maxDistance: number; baseFee: string }[]>(DEFAULT_TIERS)
   const [isBulkApplyingAll, setIsBulkApplyingAll] = useState(false)
+  const [isBackfillingPrompts, setIsBackfillingPrompts] = useState(false)
+  const [backfillPromptsResult, setBackfillPromptsResult] = useState<{ message?: string; updated?: number; skipped?: number; promptMapSize?: number; error?: string } | null>(null)
   const [tierGridResult, setTierGridResult] = useState<{ success?: boolean; updated?: number; error?: string } | null>(null)
   const [filterPaymentType, setFilterPaymentType] = useState<"all" | "ach" | "pop">("all")
   
@@ -1206,6 +1208,60 @@ export function OperationsTab({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Data Maintenance */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Data Maintenance</CardTitle>
+          <CardDescription>One-time data migration and backfill utilities</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-col gap-2">
+            <div>
+              <p className="text-sm font-medium">Backfill Option Group Prompts</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Reads <code className="bg-muted px-1 rounded text-xs">foodnet_import_complete.json</code> and populates
+                the customer-facing <code className="bg-muted px-1 rounded text-xs">prompt</code> field on all option
+                groups by matching <code className="bg-muted px-1 rounded text-xs">external_id</code>. Safe to run
+                multiple times — only updates rows where the value differs.
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button
+                disabled={isBackfillingPrompts}
+                onClick={async () => {
+                  setIsBackfillingPrompts(true)
+                  setBackfillPromptsResult(null)
+                  try {
+                    const res = await fetch("/api/admin/backfill-prompts", { method: "POST" })
+                    const data = await res.json()
+                    setBackfillPromptsResult(data)
+                  } catch (err: any) {
+                    setBackfillPromptsResult({ error: err.message })
+                  } finally {
+                    setIsBackfillingPrompts(false)
+                  }
+                }}
+                variant="outline"
+                className="gap-2"
+              >
+                {isBackfillingPrompts ? (
+                  <><Loader2 className="h-4 w-4 animate-spin" /> Running...</>
+                ) : (
+                  "Backfill Option Prompts"
+                )}
+              </Button>
+            </div>
+            {backfillPromptsResult && (
+              <p className={`text-sm ${backfillPromptsResult.error ? "text-red-600" : "text-green-700"}`}>
+                {backfillPromptsResult.error
+                  ? `Error: ${backfillPromptsResult.error}`
+                  : `${backfillPromptsResult.message} — Updated: ${backfillPromptsResult.updated ?? 0}, Skipped: ${backfillPromptsResult.skipped ?? 0} (${backfillPromptsResult.promptMapSize ?? 0} prompts in JSON)`}
+              </p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
