@@ -746,13 +746,18 @@ export default function CustomerPortal({
     email: customer?.email || "",
     phone: customer?.phone || "",
     company: "",
-    eventDate: "",
-    eventTime: "",
-    streetAddress: defaultSavedAddress?.address_line_1 || "",
-    streetAddress2: defaultSavedAddress?.address_line_2 || "",
-    city: defaultSavedAddress?.city || "",
-    state: defaultSavedAddress?.state || "PR",
-    zip: defaultSavedAddress?.postal_code || "",
+    eventDate: (() => {
+      const today = new Date()
+      return today.toISOString().split("T")[0]
+    })(),
+    eventTime: (() => {
+      // Default to now + estimated delivery time (45 min or restaurant's delivery_lead_time_hours in minutes)
+      const deliveryMinutes = (effectiveRestaurant as any).delivery_estimated_minutes || 45
+      const eta = new Date(Date.now() + deliveryMinutes * 60 * 1000)
+      const h = eta.getHours().toString().padStart(2, "0")
+      const m = Math.floor(eta.getMinutes() / 15) * 15  // round to nearest 15 min
+      return `${h}:${m.toString().padStart(2, "0")}`
+    })(),
     specialInstructions: defaultSavedAddress?.delivery_instructions || "",
     smsConsent: false,
     tipPercentage: (() => {
@@ -1497,8 +1502,14 @@ const orderData = {
       email: "",
       phone: "",
       company: "",
-      eventDate: "",
-      eventTime: "",
+      eventDate: new Date().toISOString().split("T")[0],
+      eventTime: (() => {
+        const deliveryMinutes = (effectiveRestaurant as any).delivery_estimated_minutes || 45
+        const eta = new Date(Date.now() + deliveryMinutes * 60 * 1000)
+        const h = eta.getHours().toString().padStart(2, "0")
+        const m = Math.floor(eta.getMinutes() / 15) * 15
+        return `${h}:${m.toString().padStart(2, "0")}`
+      })(),
       streetAddress: "", // Use streetAddress
       streetAddress2: "",
       city: "",
@@ -1738,11 +1749,12 @@ const orderData = {
   const { toast } = useToast() // Initialize toast
 
   const getMethodLeadTime = () => {
-    const generalLead = effectiveRestaurant.lead_time_hours || 24
+    // Default to 0 for immediate delivery restaurants — catering items carry their own lead_time_hours
+    const generalLead = effectiveRestaurant.lead_time_hours ?? 0
     if (deliveryMethod === "delivery") {
-      return effectiveRestaurant.delivery_lead_time_hours || generalLead
+      return effectiveRestaurant.delivery_lead_time_hours ?? generalLead
     }
-    return effectiveRestaurant.pickup_lead_time_hours || generalLead
+    return effectiveRestaurant.pickup_lead_time_hours ?? generalLead
   }
 
   const getMaxLeadTimeFromCart = () => {
@@ -4571,7 +4583,7 @@ const orderData = {
                             </>
                           )}
                         </span>
-                        <span className="font-medium ml-4">${(item.finalPrice || item.basePrice || 0).toFixed(2)}</span>
+                        <span className="font-medium ml-4">${(item.totalPrice ?? item.finalPrice ?? item.basePrice ?? 0).toFixed(2)}</span>
                       </div>
                       )
                     })}
