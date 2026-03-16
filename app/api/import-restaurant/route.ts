@@ -1,7 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
-import fs from "fs"
-import path from "path"
 
 // Helper to create slug from name
 function createSlug(name: string): string {
@@ -13,50 +11,27 @@ function createSlug(name: string): string {
     .trim()
 }
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url)
-  const index = parseInt(searchParams.get("index") || "0")
-  
-  console.log("[v0] Import: Starting import for index", index)
-  
+export async function POST(request: Request) {
   try {
     const supabase = await createClient()
-    
-    // Read the JSON file
-    const jsonPath = path.join(process.cwd(), "data/foodnet_import_complete.json")
-    console.log("[v0] Import: Reading file from", jsonPath)
-    
-    if (!fs.existsSync(jsonPath)) {
-      console.error("[v0] Import: File not found at", jsonPath)
-      return NextResponse.json({ error: `File not found: ${jsonPath}` }, { status: 500 })
+
+    // Entry sent directly from the browser: { restaurant: {...}, categories: [...] }
+    const entry = await request.json()
+
+    if (!entry?.restaurant?.name) {
+      return NextResponse.json({ error: "Invalid payload — expected { restaurant, categories }" }, { status: 400 })
     }
-    
-    const fileContent = fs.readFileSync(jsonPath, "utf-8")
-    const jsonData = JSON.parse(fileContent)
-    console.log("[v0] Import: Parsed JSON with", jsonData.length, "restaurants")
-    
-    if (index >= jsonData.length) {
-      return NextResponse.json({ 
-        success: true, 
-        message: "All restaurants imported",
-        total: jsonData.length,
-        completed: true
-      })
-    }
-    
-    const entry = jsonData[index]
+
     const restaurant = entry.restaurant
     const categories = entry.categories || []
     
-    console.log("[v0] Import: Processing restaurant", restaurant.name, "with", categories.length, "categories")
-    
     const results = {
       restaurant: restaurant.name,
-      categories: 0,
-      items: 0,
-      options: 0,
-      choices: 0,
-      errors: [] as string[]
+      categories: 0 as number,
+      items: 0 as number,
+      options: 0 as number,
+      choices: 0 as number,
+      errors: [] as string[],
     }
     
     const slug = createSlug(restaurant.name)
