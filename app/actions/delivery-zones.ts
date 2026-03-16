@@ -39,9 +39,9 @@ export async function calculateDeliveryFee(params: CalculateDeliveryFeeParams): 
       }
     }
 
-    // Fetch delivery zones + platform subsidy in parallel
+    // Fetch delivery zones, platform subsidy, and restaurant minimum fee in parallel
     const supabase = await createServerClient()
-    const [zonesResult, settingsResult] = await Promise.all([
+    const [zonesResult, settingsResult, restaurantResult] = await Promise.all([
       supabase
         .from("delivery_zones")
         .select("*")
@@ -53,9 +53,15 @@ export async function calculateDeliveryFee(params: CalculateDeliveryFeeParams): 
         .select("delivery_fee_subsidy")
         .limit(1)
         .single(),
+      supabase
+        .from("restaurants")
+        .select("delivery_fee")
+        .eq("id", restaurantId)
+        .single(),
     ])
 
     const subsidy = Number(settingsResult.data?.delivery_fee_subsidy ?? 3.0)
+    const minFee = Number(restaurantResult.data?.delivery_fee ?? 0)
     const { data: zones, error } = zonesResult
 
     if (error || !zones || zones.length === 0) {
@@ -94,7 +100,8 @@ export async function calculateDeliveryFee(params: CalculateDeliveryFeeParams): 
       itemSurcharge = extraItems * matchingZone.per_item_surcharge
     }
 
-    const totalFee = Number(matchingZone.base_fee) + itemSurcharge
+    // Apply minimum fee floor from restaurant config
+    const totalFee = Math.max(Number(matchingZone.base_fee) + itemSurcharge, minFee)
 
     return {
       success: true,
@@ -133,7 +140,7 @@ export async function calculateDeliveryFeeByCoords(params: {
     const distance = haversineDistance(restaurantLat, restaurantLng, customerLat, customerLng)
 
     const supabase = await createServerClient()
-    const [zonesResult, settingsResult] = await Promise.all([
+    const [zonesResult, settingsResult, restaurantResult] = await Promise.all([
       supabase
         .from("delivery_zones")
         .select("*")
@@ -145,9 +152,15 @@ export async function calculateDeliveryFeeByCoords(params: {
         .select("delivery_fee_subsidy")
         .limit(1)
         .single(),
+      supabase
+        .from("restaurants")
+        .select("delivery_fee")
+        .eq("id", restaurantId)
+        .single(),
     ])
 
     const subsidy = Number(settingsResult.data?.delivery_fee_subsidy ?? 3.0)
+    const minFee = Number(restaurantResult.data?.delivery_fee ?? 0)
     const { data: zones, error } = zonesResult
 
     if (error || !zones || zones.length === 0) {
@@ -167,7 +180,8 @@ export async function calculateDeliveryFeeByCoords(params: {
       itemSurcharge = (itemCount - matchingZone.min_items_for_surcharge) * matchingZone.per_item_surcharge
     }
 
-    const totalFee = Number(matchingZone.base_fee) + itemSurcharge
+    // Apply minimum fee floor from restaurant config
+    const totalFee = Math.max(Number(matchingZone.base_fee) + itemSurcharge, minFee)
     return {
       success: true,
       fee: totalFee,
