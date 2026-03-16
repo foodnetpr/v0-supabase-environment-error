@@ -3801,7 +3801,7 @@ const orderData = {
                             ? <span className="text-gray-400 text-xs">Calculando...</span>
                             : hasCalculatedFee
                               ? (deliveryFee > 0 ? `$${deliveryFee.toFixed(2)}` : <span className="text-green-600 font-medium">Gratis</span>)
-                              : <span className="text-gray-400 text-xs italic">Al confirmar dirección</span>
+                              : <span className="text-gray-700 text-sm">Delivery Fee</span>
                           }
                         </span>
                       </div>
