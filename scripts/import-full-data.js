@@ -133,6 +133,7 @@ async function importData() {
               {
                 menu_item_id: insertedItem.id,
                 category: option.group_name || option.prompt || "Options",
+                prompt: option.prompt || null,
                 required: option.required || false,
                 min_select: option.min_select || 0,
                 max_select: option.max_select || 1,
