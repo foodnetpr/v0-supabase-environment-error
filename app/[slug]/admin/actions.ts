@@ -908,6 +908,7 @@ export async function updateRestaurantSettings(
     delivery_included_containers?: number | null
     // Location and delivery radius
     delivery_radius?: number | null
+    delivery_zip_codes?: string[] | null
     // Order notification settings
     order_notification_method?: "email" | "kds" | "chowly" | "square_kds" | "multiple"
     chowly_enabled?: boolean

@@ -376,6 +376,7 @@ export default function RestaurantAdminClient({
     delivery_base_fee: "28",
     delivery_included_containers: "4",
     delivery_radius: "",
+    delivery_zip_codes: [] as string[],
     is_chain: false,
     hide_branch_selector_title: false,
     footer_description: "",
@@ -518,6 +519,7 @@ export default function RestaurantAdminClient({
   delivery_base_fee: restaurantData.delivery_base_fee?.toString() || "28",
   delivery_included_containers: restaurantData.delivery_included_containers?.toString() || "4",
   delivery_radius: restaurantData.delivery_radius?.toString() || "",
+  delivery_zip_codes: restaurantData.delivery_zip_codes || [],
   is_chain: restaurantData.is_chain || false,
           hide_branch_selector_title: restaurantData.hide_branch_selector_title || false,
           design_template: restaurantData.design_template || "modern",
@@ -1805,6 +1807,7 @@ export default function RestaurantAdminClient({
   delivery_base_fee: settingsForm.delivery_base_fee ? Number.parseFloat(settingsForm.delivery_base_fee) : null,
   delivery_included_containers: settingsForm.delivery_included_containers ? Number.parseInt(settingsForm.delivery_included_containers) : null,
   delivery_radius: settingsForm.delivery_radius ? Number.parseFloat(settingsForm.delivery_radius) : null,
+  delivery_zip_codes: settingsForm.delivery_zip_codes.length > 0 ? settingsForm.delivery_zip_codes : null,
       shipday_api_key: settingsForm.shipday_api_key || null,
       is_chain: settingsForm.is_chain,
       hide_branch_selector_title: settingsForm.hide_branch_selector_title,
@@ -3904,6 +3907,61 @@ const pickupOrders = orders.filter((o: any) => o.order_type === "pickup" || o.de
                       />
                       <p className="text-xs text-muted-foreground mt-1">Si el cliente esta fuera de este radio, recibira una alerta.</p>
                     </div>
+                  </div>
+
+                  {/* Delivery Zip Codes */}
+                  <div className="mt-6">
+                    <Label className="text-sm font-semibold">Códigos Postales con Servicio de Delivery</Label>
+                    <p className="text-xs text-muted-foreground mb-3 mt-1">
+                      Selecciona los códigos postales donde este restaurante hace entrega. Si se selecciona al menos uno, se usa esta lista en lugar del radio de millas.
+                    </p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 border rounded-lg p-4 bg-slate-50">
+                      {[
+                        { zip: "00901", area: "Viejo San Juan" },
+                        { zip: "00907", area: "Condado" },
+                        { zip: "00909", area: "Santurce" },
+                        { zip: "00917", area: "Hato Rey" },
+                        { zip: "00918", area: "Hato Rey Norte" },
+                        { zip: "00920", area: "Río Piedras" },
+                        { zip: "00923", area: "Cupey" },
+                        { zip: "00926", area: "Cupey Gardens" },
+                        { zip: "00949", area: "Toa Baja" },
+                        { zip: "00956", area: "Bayamón" },
+                        { zip: "00959", area: "Bayamón Este" },
+                        { zip: "00965", area: "Guaynabo" },
+                        { zip: "00968", area: "Guaynabo Norte" },
+                        { zip: "00969", area: "Garden Hills" },
+                        { zip: "00976", area: "Trujillo Alto" },
+                        { zip: "00979", area: "Carolina" },
+                        { zip: "00983", area: "Isla Verde" },
+                      ].map(({ zip, area }) => {
+                        const checked = settingsForm.delivery_zip_codes.includes(zip)
+                        return (
+                          <label key={zip} className="flex items-center gap-2 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => {
+                                const next = checked
+                                  ? settingsForm.delivery_zip_codes.filter((z) => z !== zip)
+                                  : [...settingsForm.delivery_zip_codes, zip]
+                                setSettingsForm({ ...settingsForm, delivery_zip_codes: next })
+                              }}
+                              className="rounded border-slate-300 text-black focus:ring-black"
+                            />
+                            <span className="text-sm">
+                              <span className="font-mono font-medium">{zip}</span>
+                              <span className="text-muted-foreground ml-1 text-xs">{area}</span>
+                            </span>
+                          </label>
+                        )
+                      })}
+                    </div>
+                    {settingsForm.delivery_zip_codes.length > 0 && (
+                      <p className="text-xs text-green-700 mt-2">
+                        {settingsForm.delivery_zip_codes.length} código{settingsForm.delivery_zip_codes.length !== 1 ? "s" : ""} seleccionado{settingsForm.delivery_zip_codes.length !== 1 ? "s" : ""}. El radio de millas se ignorará para clientes con código postal.
+                      </p>
+                    )}
                   </div>
                 </div>
 
