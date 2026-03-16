@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { createPortal } from "react-dom"
 import { MapPin, Navigation, Loader2, Keyboard, Map } from "lucide-react"
 import {
   Select,
@@ -70,6 +71,21 @@ export function LocationBar({
   const [showSuggestions, setShowSuggestions] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const suggestionsRef = useRef<HTMLDivElement>(null)
+  const [dropdownRect, setDropdownRect] = useState<{ top: number; left: number; width: number } | null>(null)
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => { setIsMounted(true) }, [])
+
+  const updateDropdownRect = () => {
+    if (inputRef.current) {
+      const rect = inputRef.current.getBoundingClientRect()
+      setDropdownRect({
+        top: rect.bottom + window.scrollY + 4,
+        left: rect.left + window.scrollX,
+        width: rect.width,
+      })
+    }
+  }
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -188,6 +204,7 @@ export function LocationBar({
       if (data.predictions && data.predictions.length > 0) {
         setSuggestions(data.predictions.slice(0, 5))
         setShowSuggestions(true)
+        updateDropdownRect()
       } else {
         setSuggestions([])
         setShowSuggestions(false)
@@ -254,6 +271,38 @@ export function LocationBar({
     }
   }
 
+  const suggestionsDropdown =
+    isMounted && showSuggestions && suggestions.length > 0 && dropdownRect
+      ? createPortal(
+          <div
+            ref={suggestionsRef}
+            style={{
+              position: "absolute",
+              top: dropdownRect.top,
+              left: dropdownRect.left,
+              width: dropdownRect.width,
+              zIndex: 99999,
+            }}
+            className="bg-white border border-slate-200 rounded-lg shadow-xl overflow-hidden"
+          >
+            {suggestions.map((suggestion, index) => (
+              <button
+                key={suggestion.place_id || index}
+                onMouseDown={(e) => {
+                  e.preventDefault()
+                  handleSuggestionSelect(suggestion)
+                }}
+                className="w-full px-3 py-2.5 text-left text-sm hover:bg-slate-100 transition-colors flex items-center gap-2"
+              >
+                <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                <span className="truncate">{suggestion.description}</span>
+              </button>
+            ))}
+          </div>,
+          document.body,
+        )
+      : null
+
   // Mobile Layout
   if (isMobile) {
     return (
@@ -300,30 +349,13 @@ export function LocationBar({
               onFocus={() => {
                 if (suggestions.length > 0) {
                   setShowSuggestions(true)
+                  updateDropdownRect()
                 }
               }}
               className="border-0 h-10 text-sm focus-visible:ring-0 focus-visible:ring-offset-0 flex-1"
             />
           </div>
-
-          {/* Suggestions Dropdown */}
-          {showSuggestions && suggestions.length > 0 && (
-            <div
-              ref={suggestionsRef}
-              className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-[9999] overflow-hidden"
-            >
-              {suggestions.map((suggestion, index) => (
-                <button
-                  key={suggestion.place_id || index}
-                  onClick={() => handleSuggestionSelect(suggestion)}
-                  className="w-full px-3 py-3 text-left text-sm hover:bg-slate-100 transition-colors flex items-center gap-2"
-                >
-                  <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                  <span className="truncate">{suggestion.description}</span>
-                </button>
-              ))}
-            </div>
-          )}
+          {suggestionsDropdown}
         </div>
       </div>
     )
@@ -371,6 +403,7 @@ export function LocationBar({
             onFocus={() => {
               if (suggestions.length > 0) {
                 setShowSuggestions(true)
+                updateDropdownRect()
               }
             }}
             className="border-0 h-8 text-sm focus-visible:ring-0 focus-visible:ring-offset-0 flex-1"
@@ -383,25 +416,7 @@ export function LocationBar({
             {isAutoMode ? "Auto" : "Manual"}
           </button>
         </div>
-
-        {/* Suggestions Dropdown */}
-        {showSuggestions && suggestions.length > 0 && (
-          <div
-            ref={suggestionsRef}
-            className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-[9999] overflow-hidden"
-          >
-            {suggestions.map((suggestion, index) => (
-              <button
-                key={suggestion.place_id || index}
-                onClick={() => handleSuggestionSelect(suggestion)}
-                className="w-full px-3 py-2 text-left text-sm hover:bg-slate-100 transition-colors flex items-center gap-2"
-              >
-                <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                <span className="truncate">{suggestion.description}</span>
-              </button>
-            ))}
-          </div>
-        )}
+        {suggestionsDropdown}
       </div>
 
       {/* 4. Zip Code Dropdown */}
