@@ -868,6 +868,25 @@ export async function deleteContainerRate(id: string) {
   return true
 }
 
+// Geocode a free-text address using Google Maps Geocoding API
+// Returns lat/lng or null if not found
+async function geocodeAddressToCoords(address: string): Promise<{ lat: number; lng: number } | null> {
+  try {
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+    if (!apiKey) return null
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`
+    const res = await fetch(url)
+    const json = await res.json()
+    if (json.status === "OK" && json.results?.[0]?.geometry?.location) {
+      const { lat, lng } = json.results[0].geometry.location
+      return { lat, lng }
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
 // Restaurant Settings
 export async function updateRestaurantSettings(
   id: string,
@@ -922,7 +941,18 @@ export async function updateRestaurantSettings(
   },
 ) {
   const supabase = getAdminClient()
-  const { data: restaurant, error } = await supabase.from("restaurants").update(data).eq("id", id).select().single()
+
+  // Auto-geocode whenever the restaurant address is being updated
+  const payload: typeof data & { latitude?: number; longitude?: number } = { ...data }
+  if (data.restaurant_address) {
+    const coords = await geocodeAddressToCoords(data.restaurant_address)
+    if (coords) {
+      payload.latitude = coords.lat
+      payload.longitude = coords.lng
+    }
+  }
+
+  const { data: restaurant, error } = await supabase.from("restaurants").update(payload).eq("id", id).select().single()
 
   if (error) return { error }
   return { data: restaurant, error: null }
