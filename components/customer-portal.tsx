@@ -817,6 +817,18 @@ export default function CustomerPortal({
     setDietaryFilters((prev) => (prev.includes(filter) ? prev.filter((f) => f !== filter) : [...prev, filter]))
   }
 
+  // Returns true if the item name indicates a catering-site delivery charge that
+  // should NOT be added here — delivery is managed by the platform's own fee logic.
+  const isExternalDeliveryItem = (name: string): boolean => {
+    const lower = name.toLowerCase()
+    return (
+      lower.startsWith("entrega a domicilio") ||
+      lower.startsWith("delivery fee") ||
+      lower.startsWith("costo de entrega") ||
+      lower === "delivery"
+    )
+  }
+
   // Returns true if item has no options, no sizes, and no bulk-order flag —
   // i.e. it can be added directly to cart with qty=1, no dialog needed.
   const isSimpleItem = (item: MenuItem): boolean => {
@@ -828,6 +840,7 @@ export default function CustomerPortal({
 
   // Add a no-options item straight to the cart (qty 1) without opening the dialog.
   const addSimpleItemToCart = (item: MenuItem) => {
+    if (isExternalDeliveryItem(item.name)) return
     const newCartItem = {
       id: item.id,
       name: item.name,
@@ -850,6 +863,11 @@ export default function CustomerPortal({
 
   const handleAddToCart = () => {
     if (selectedItem) {
+      // Block delivery line items from catering integrations — handled by platform fee logic
+      if (isExternalDeliveryItem(selectedItem.name)) {
+        setShowItemModal(false)
+        return
+      }
       // Validate required options
       for (const option of selectedItem.item_options || []) {
         if (option.is_required) {
@@ -1805,23 +1823,24 @@ const orderData = {
 
   useEffect(() => {
     if (reorderData && reorderData.order_items) {
-      const reorderedCart = reorderData.order_items.map((orderItem: any) => {
-        const menuItem = effectiveMenuItems.find((item) => item.id === orderItem.menu_item_id)
-
-        return {
-          type: "item",
-          id: orderItem.menu_item_id,
-          name: orderItem.item_name,
-          item: menuItem,
-          quantity: orderItem.quantity,
-          totalPrice: orderItem.unit_price * orderItem.quantity,
-          finalPrice: orderItem.unit_price * orderItem.quantity,
-          basePrice: orderItem.unit_price,
-          image_url: menuItem?.image_url || null,
-          customizations: orderItem.customizations || {},
-          selectedOptions: orderItem.selected_options || {},
-        }
-      })
+      const reorderedCart = reorderData.order_items
+        .filter((orderItem: any) => !isExternalDeliveryItem(orderItem.item_name || ""))
+        .map((orderItem: any) => {
+          const menuItem = effectiveMenuItems.find((item) => item.id === orderItem.menu_item_id)
+          return {
+            type: "item",
+            id: orderItem.menu_item_id,
+            name: orderItem.item_name,
+            item: menuItem,
+            quantity: orderItem.quantity,
+            totalPrice: orderItem.unit_price * orderItem.quantity,
+            finalPrice: orderItem.unit_price * orderItem.quantity,
+            basePrice: orderItem.unit_price,
+            image_url: menuItem?.image_url || null,
+            customizations: orderItem.customizations || {},
+            selectedOptions: orderItem.selected_options || {},
+          }
+        })
 
       setCart(reorderedCart)
       toast({
@@ -2159,7 +2178,9 @@ const orderData = {
           .filter((cat) => cat.is_active)
           .sort((a, b) => a.display_order - b.display_order)
           .map((category) => {
-            const categoryItems = effectiveMenuItems.filter((item) => item.category === category.name)
+            const categoryItems = effectiveMenuItems.filter(
+              (item) => item.category === category.name && !isExternalDeliveryItem(item.name)
+            )
             if (categoryItems.length === 0) return null
 
             return (
