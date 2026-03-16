@@ -1237,12 +1237,13 @@ export default function CustomerPortal({
     if (!restaurant.restaurant_address) {
       setDeliveryFeeCalculation((prev) => ({
         ...prev,
-        fee: effectiveRestaurant.delivery_fee || 25, // Fallback to default
+        fee: 0,
+        displayedFee: 0,
         distance: 0,
-        zoneName: "Entrega Estandar",
+        zoneName: "",
         itemSurcharge: 0,
         isCalculating: false,
-        error: undefined,
+        error: "Restaurant address not configured. Please contact support.",
       }))
       return
     }
@@ -1273,32 +1274,16 @@ export default function CustomerPortal({
           isCalculating: false,
         })
 
-        // Update the delivery fee in the cart — always use full fee for payment
-        setCart((prevCart) => {
-          const filtered = prevCart.filter((item) => item.type !== "delivery_fee")
-          if (deliveryMethod === "delivery") {
-            filtered.push({
-              id: "delivery-fee", // Unique ID for delivery fee
-              name: "Costo de Entrega",
-              type: "delivery_fee",
-              basePrice: result.fee,
-              finalPrice: result.fee,
-              image_url: null,
-              selectedOptions: {},
-              isAutomatic: true, // Mark as automatically added
-            })
-          }
-          return filtered
-        })
+        // Delivery fee is shown as a line item in the cart drawer footer — not injected into cart items
       } else {
         setDeliveryFeeCalculation((prev) => ({
           ...prev,
           isCalculating: false,
           error: result.error,
-          // Reset fee to default if there's an error and no valid calculation
-          fee: effectiveRestaurant.delivery_fee || 25,
+          fee: 0,
+          displayedFee: 0,
           distance: 0,
-          zoneName: "Entrega Estandar",
+          zoneName: "",
           itemSurcharge: 0,
         }))
       }
@@ -1308,10 +1293,10 @@ export default function CustomerPortal({
         ...prev,
         isCalculating: false,
         error: "An unexpected error occurred while calculating delivery fee. Please try again.",
-        // Reset fee to default on error
-        fee: effectiveRestaurant.delivery_fee || 25,
+        fee: 0,
+        displayedFee: 0,
         distance: 0,
-        zoneName: "Entrega Estandar",
+        zoneName: "",
         itemSurcharge: 0,
       }))
     }
@@ -3761,13 +3746,19 @@ const orderData = {
             {foodCartCount > 0 && (() => {
               // tax_rate is stored as a decimal multiplier (0.115 = 11.5%) — no division needed
               const taxRate = effectiveRestaurant.tax_rate ?? 0
-              const deliveryFee = deliveryMethod === "delivery" ? deliveryFeeCalculation.displayedFee : 0
               const menuSubtotal = cart
                 .filter((i) => i.type !== "delivery_fee")
                 .reduce((s, i) => s + (i.totalPrice || 0), 0)
-              // Dispatch fee = % of subtotal (dispatch_fee_percent stored as e.g. 5 = 5%)
+              const hasCalculatedFee = deliveryFeeCalculation.distance > 0 || deliveryFeeCalculation.zoneName !== ""
+              const deliveryFee = deliveryMethod === "delivery" ? deliveryFeeCalculation.displayedFee : 0
+              // Dispatch fee = % of subtotal + subsidy (subsidy re-added here as platform revenue)
               const dispatchFeePercent = deliveryMethod === "delivery" ? Number((effectiveRestaurant as any).dispatch_fee_percent || 0) : 0
-              const dispatchFee = dispatchFeePercent > 0 ? Math.ceil((menuSubtotal * dispatchFeePercent / 100) / 0.05) * 0.05 : 0
+              const deliverySubsidy = deliveryMethod === "delivery" && hasCalculatedFee
+                ? Math.max(0, deliveryFeeCalculation.fee - deliveryFeeCalculation.displayedFee)
+                : 0
+              const dispatchFee = dispatchFeePercent > 0
+                ? Math.ceil(((menuSubtotal * dispatchFeePercent / 100) + deliverySubsidy) / 0.05) * 0.05
+                : 0
               const ivuAmount = menuSubtotal * taxRate
               const tipAmount = deliveryForm.tipPercentage > 0
                 ? (menuSubtotal * deliveryForm.tipPercentage) / 100
@@ -3805,7 +3796,14 @@ const orderData = {
                             <span className="text-xs text-gray-400">({deliveryFeeCalculation.distance.toFixed(1)} mi)</span>
                           )}
                         </span>
-                        <span>{deliveryFee > 0 ? `$${deliveryFee.toFixed(2)}` : <span className="text-green-600 font-medium">Gratis</span>}</span>
+                        <span>
+                          {deliveryFeeCalculation.isCalculating
+                            ? <span className="text-gray-400 text-xs">Calculando...</span>
+                            : hasCalculatedFee
+                              ? (deliveryFee > 0 ? `$${deliveryFee.toFixed(2)}` : <span className="text-green-600 font-medium">Gratis</span>)
+                              : <span className="text-gray-400 text-xs italic">Al confirmar dirección</span>
+                          }
+                        </span>
                       </div>
                     )}
 
