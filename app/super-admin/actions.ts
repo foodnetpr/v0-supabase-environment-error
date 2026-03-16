@@ -554,6 +554,8 @@ export async function updateRestaurant(
     restaurant_discount_percent?: number // JunteReady internal discount
     delivery_discount_percent?: number // Delivery-specific discount
     pickup_discount_percent?: number // Pick-up-specific discount
+    dispatch_fee?: number // Per-order dispatch fee shown in cart
+    cart_disclaimer?: string // Bottom-of-cart note shown to customer
   },
 ) {
   try {

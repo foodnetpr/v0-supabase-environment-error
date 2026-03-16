@@ -3392,14 +3392,10 @@ const orderData = {
           ) : (
             <div className="flex-1 overflow-y-auto space-y-3 min-h-0 py-4 px-5">
               {cart
+                .filter((item) => item.type !== "delivery_fee")
                 .map((item, index) => ({ item, originalIndex: index }))
-                .sort((a, b) => {
-                  const aIsService = a.item.type === "delivery_fee" ? 1 : 0
-                  const bIsService = b.item.type === "delivery_fee" ? 1 : 0
-                  return aIsService - bIsService
-                })
                 .map(({ item, originalIndex: index }) => {
-                const isDeliveryFee = item.type === "delivery_fee"
+                const isDeliveryFee = false
 
                 return (
                   <div
@@ -3854,13 +3850,18 @@ const orderData = {
                       </div>
                     )}
 
+                    {/* Dispatch Fee */}
+                    {deliveryMethod === "delivery" && (effectiveRestaurant as any).dispatch_fee > 0 && (
+                      <div className="flex justify-between text-sm text-gray-700">
+                        <span>Dispatch Fee</span>
+                        <span>${Number((effectiveRestaurant as any).dispatch_fee).toFixed(2)}</span>
+                      </div>
+                    )}
+
                     {/* IVU (Puerto Rico sales tax) */}
                     {taxRate > 0 && (
                       <div className="flex justify-between text-sm text-gray-700">
-                        <span className="flex items-center gap-1">
-                          IVU
-                          <span className="text-xs text-gray-400">({effectiveRestaurant.tax_rate}%)</span>
-                        </span>
+                        <span>IVU</span>
                         <span>${ivuAmount.toFixed(2)}</span>
                       </div>
                     )}
@@ -3872,7 +3873,6 @@ const orderData = {
                       <span className="text-sm font-medium text-gray-700">Propina</span>
                       <span className="text-sm font-semibold text-gray-900">${tipAmount.toFixed(2)}</span>
                     </div>
-                    <p className="text-xs text-gray-400 mb-2">100% de tu propina va al repartidor.</p>
                     <div className="flex gap-2">
                       {tipPresets.map((pct) => (
                         <button
@@ -3930,12 +3930,14 @@ const orderData = {
                     </Button>
                   </div>
 
-                  {/* Legal disclaimer */}
-                  <div className="px-5 pt-1 pb-4">
-                    <p className="text-[11px] text-gray-400 leading-relaxed">
-                      Al realizar tu pedido aceptas los términos del servicio. El IVU final puede variar al momento del cobro. La propina va directamente al repartidor y se basa en el subtotal antes de descuentos.
-                    </p>
-                  </div>
+                  {/* Legal disclaimer — set per-restaurant in super-admin */}
+                  {(effectiveRestaurant as any).cart_disclaimer && (
+                    <div className="px-5 pt-1 pb-4">
+                      <p className="text-[11px] text-gray-400 leading-relaxed">
+                        {(effectiveRestaurant as any).cart_disclaimer}
+                      </p>
+                    </div>
+                  )}
                 </div>
               )
             })()}

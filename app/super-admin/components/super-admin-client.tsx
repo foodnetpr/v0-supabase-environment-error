@@ -226,6 +226,8 @@ export function SuperAdminClient({
     white_label: false,
     show_powered_by: true,
     payment_type: "ach" as "ach" | "pop" | "ath",
+    dispatch_fee: 0,
+    cart_disclaimer: "",
   })
 
   const [activeTab, setActiveTab] = useState<"restaurants" | "marketing" | "operations" | "admin-users" | "cuisine-types" | "reports" | "promo-cards">("restaurants")
@@ -374,6 +376,8 @@ export function SuperAdminClient({
       white_label: restaurant.white_label ?? false,
       show_powered_by: restaurant.show_powered_by ?? true,
       payment_type: (restaurant.payment_type as "ach" | "pop" | "ath") || "ach",
+      dispatch_fee: (restaurant as any).dispatch_fee ?? 0,
+      cart_disclaimer: (restaurant as any).cart_disclaimer || "",
     })
     setShowEditModal(true)
   }
@@ -1491,6 +1495,43 @@ export function SuperAdminClient({
                   Si Delivery o Pick-Up estan en 0, se usa el descuento General.
                 </p>
               </div>
+
+              {/* Dispatch Fee */}
+              <div className="mt-4">
+                <Label htmlFor="edit-dispatch-fee" className="text-sm font-medium text-slate-700">Dispatch Fee ($)</Label>
+                <p className="text-xs text-slate-500 mt-1 mb-2">
+                  Cargo fijo por despacho que se muestra como línea en el carrito del cliente. El subsidio se aplica internamente.
+                </p>
+                <div className="flex items-center gap-1">
+                  <span className="text-sm text-slate-500">$</span>
+                  <Input
+                    id="edit-dispatch-fee"
+                    type="number"
+                    min="0"
+                    step="0.25"
+                    value={editForm.dispatch_fee}
+                    onChange={(e) => setEditForm({ ...editForm, dispatch_fee: parseFloat(e.target.value) || 0 })}
+                    className="w-28"
+                  />
+                </div>
+              </div>
+
+              {/* Cart Disclaimer */}
+              <div className="mt-4">
+                <Label htmlFor="edit-cart-disclaimer" className="text-sm font-medium text-slate-700">Nota en el Carrito</Label>
+                <p className="text-xs text-slate-500 mt-1 mb-2">
+                  Texto que aparece al pie del carrito del cliente (términos, avisos, etc.). Déjalo vacío para no mostrar nada.
+                </p>
+                <textarea
+                  id="edit-cart-disclaimer"
+                  rows={3}
+                  value={editForm.cart_disclaimer}
+                  onChange={(e) => setEditForm({ ...editForm, cart_disclaimer: e.target.value })}
+                  placeholder="Ej: Al realizar tu pedido aceptas los términos del servicio. El IVU final puede variar al momento del cobro."
+                  className="w-full border border-slate-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 resize-none"
+                />
+              </div>
+            </div>
             </div>
 
             <div className="flex items-center gap-3">
