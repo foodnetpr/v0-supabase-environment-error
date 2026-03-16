@@ -18,18 +18,23 @@ export async function POST() {
     return NextResponse.json({ error: "Failed to read JSON: " + err.message }, { status: 500 })
   }
 
-  // 2. Build external_id → prompt map from all restaurants / items / options
-  const restaurants: any[] = Array.isArray(raw)
-    ? raw
-    : raw.restaurants
-      ? raw.restaurants
-      : Object.values(raw)
+  // 2. Build external_id → prompt map
+  // JSON structure: [ { restaurant, categories: [ { items: [ { options: [...] } ] } ] } ]
+  const entries: any[] = Array.isArray(raw) ? raw : raw.restaurants ?? Object.values(raw)
 
   const promptMap = new Map<string, string>()
 
-  for (const restaurant of restaurants) {
-    const items: any[] = restaurant.menu_items ?? restaurant.items ?? []
-    for (const item of items) {
+  for (const entry of entries) {
+    // Support both flat items list and categories-based nesting
+    const categories: any[] = entry.categories ?? []
+    const flatItems: any[] = entry.menu_items ?? entry.items ?? []
+
+    const allItems: any[] = [
+      ...flatItems,
+      ...categories.flatMap((cat: any) => cat.items ?? cat.menu_items ?? []),
+    ]
+
+    for (const item of allItems) {
       const options: any[] = item.options ?? item.item_options ?? []
       for (const option of options) {
         const extId = String(option.id ?? option.external_id ?? "").trim()
@@ -40,6 +45,10 @@ export async function POST() {
       }
     }
   }
+
+  // Log first 3 map entries for verification
+  const sampleEntries = Array.from(promptMap.entries()).slice(0, 3)
+  console.log("[v0] backfill-prompts map sample:", JSON.stringify(sampleEntries))
 
   if (promptMap.size === 0) {
     return NextResponse.json({ error: "No prompts found in JSON — check options[].prompt field" }, { status: 400 })
