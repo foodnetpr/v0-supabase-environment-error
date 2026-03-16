@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
-// POST /api/import-restaurant — accepts a single { restaurant, categories } entry from the browser import page
 
 // Helper to create slug from name
 function createSlug(name: string): string {
@@ -16,7 +15,6 @@ export async function POST(request: Request) {
   try {
     const supabase = await createClient()
 
-    // Entry sent directly from the browser: { restaurant: {...}, categories: [...] }
     const entry = await request.json()
 
     if (!entry?.restaurant?.name) {
@@ -25,23 +23,23 @@ export async function POST(request: Request) {
 
     const restaurant = entry.restaurant
     const categories = entry.categories || []
-    
+
     const results = {
       restaurant: restaurant.name,
-      categories: 0 as number,
-      items: 0 as number,
-      options: 0 as number,
-      choices: 0 as number,
+      categories: 0,
+      items: 0,
+      options: 0,
+      choices: 0,
       errors: [] as string[],
     }
-    
+
     const slug = createSlug(restaurant.name)
     const externalId = String(restaurant.id)
-    
-    // Build restaurant data - all fields are directly on restaurant object
-    const restaurantInsertData = {
+
+    // ── Upsert restaurant ─────────────────────────────────────────────────────
+    const restaurantData = {
       name: restaurant.name,
-      slug: slug,
+      slug,
       external_id: externalId,
       phone: restaurant.phone || null,
       address: restaurant.address || null,
@@ -60,216 +58,142 @@ export async function POST(request: Request) {
       delivery_enabled: true,
       show_in_marketplace: true,
     }
-    
-    // Check if restaurant exists by external_id first
-    const { data: existingRestaurant } = await supabase
+
+    const { data: restRow, error: restErr } = await supabase
       .from("restaurants")
+      .upsert(restaurantData, { onConflict: "slug" })
       .select("id")
-      .eq("external_id", externalId)
       .single()
 
-    let restaurantId: string
-
-    if (existingRestaurant) {
-      // Update existing restaurant
-      const { error: updateError } = await supabase
-        .from("restaurants")
-        .update(restaurantInsertData)
-        .eq("id", existingRestaurant.id)
-
-      if (updateError) {
-        return NextResponse.json({ error: updateError.message }, { status: 500 })
-      }
-      restaurantId = existingRestaurant.id
-    } else {
-      // Check if slug exists (different external_id)
-      const { data: slugExists } = await supabase
-        .from("restaurants")
-        .select("id")
-        .eq("slug", slug)
-        .single()
-
-      if (slugExists) {
-        // Update by slug if no external_id match
-        const { error: updateError } = await supabase
-          .from("restaurants")
-          .update(restaurantInsertData)
-          .eq("id", slugExists.id)
-
-        if (updateError) {
-          return NextResponse.json({ error: updateError.message }, { status: 500 })
-        }
-        restaurantId = slugExists.id
-      } else {
-        // Insert new restaurant
-        const { data: newRestaurant, error: insertError } = await supabase
-          .from("restaurants")
-          .insert(restaurantInsertData)
-          .select()
-          .single()
-
-        if (insertError) {
-          return NextResponse.json({ error: insertError.message }, { status: 500 })
-        }
-        restaurantId = newRestaurant.id
-      }
+    if (restErr || !restRow) {
+      return NextResponse.json({ error: restErr?.message || "Failed to upsert restaurant" }, { status: 500 })
     }
 
-    // ── Bulk upsert categories ────────────────────────────────────────────────
-    const categoryRows = categories.map((cat: any, ci: number) => ({
-      restaurant_id: restaurantId,
-      name: cat.name,
-      description: cat.description || null,
-      external_id: String(cat.external_id || cat.id || ci),
-      display_order: ci,
-      is_active: true,
-    }))
+    const restaurantId = restRow.id
 
-    const { data: insertedCats, error: catErr } = await supabase
-      .from("categories")
-      .upsert(categoryRows, { onConflict: "restaurant_id,name" })
-      .select("id, external_id, name")
-
-    if (catErr) results.errors.push(`categories: ${catErr.message}`)
-
-    // Map both by external_id AND by name (since upsert conflict is on name)
-    const categoryIdByExtId = new Map<string, string>()
-    const categoryIdByName = new Map<string, string>()
-    for (const c of insertedCats ?? []) {
-      categoryIdByExtId.set(c.external_id, c.id)
-      categoryIdByName.set(c.name, c.id)
-    }
-    results.categories = insertedCats?.length ?? 0
-
-    // Debug: count items in source JSON
-    let totalSourceItems = 0
-    for (const cat of categories) {
-      totalSourceItems += (cat.items || []).length
-    }
-
-    // ── Collect all items ─────────────────────────────────────────────────────
-    type ItemMeta = { extId: string; options: any[] }
-    const itemRows: any[] = []
-    const itemMetas: ItemMeta[] = []
-    let skippedItemsNoCategory = 0
-
+    // ── Sequential import: category → items → options → choices ───────────────
     for (let ci = 0; ci < categories.length; ci++) {
       const cat = categories[ci]
-      const catExtId = String(cat.external_id || cat.id || ci)
-      // Try external_id first, fall back to name lookup
-      const categoryId = categoryIdByExtId.get(catExtId) || categoryIdByName.get(cat.name)
-      if (!categoryId) {
-        skippedItemsNoCategory += (cat.items || []).length
+
+      // 1. Upsert category, get its ID
+      const { data: catRow, error: catErr } = await supabase
+        .from("categories")
+        .upsert(
+          {
+            restaurant_id: restaurantId,
+            name: cat.name,
+            description: cat.description || null,
+            external_id: String(cat.external_id || cat.id || ci),
+            display_order: ci,
+            is_active: true,
+          },
+          { onConflict: "restaurant_id,name" }
+        )
+        .select("id")
+        .single()
+
+      if (catErr || !catRow) {
+        results.errors.push(`Category "${cat.name}": ${catErr?.message}`)
         continue
       }
-      const items: any[] = cat.items || []
+
+      results.categories++
+      const categoryId = catRow.id
+
+      // 2. For each item in this category
+      const items = cat.items || []
       for (let ii = 0; ii < items.length; ii++) {
         const item = items[ii]
-        const extId = String(item.external_id || item.id || `${catExtId}-${ii}`)
-        itemRows.push({
-          restaurant_id: restaurantId,
-          category_id: categoryId,
-          name: item.name,
-          description: item.description || null,
-          price: item.price || 0,
-          image_url: item.image_url || null,
-          external_id: extId,
-          display_order: ii,
-          is_active: true,
-        })
-        itemMetas.push({ extId, options: item.options || [] })
+
+        const { data: itemRow, error: itemErr } = await supabase
+          .from("menu_items")
+          .upsert(
+            {
+              restaurant_id: restaurantId,
+              category_id: categoryId,
+              name: item.name,
+              description: item.description || null,
+              price: item.price || 0,
+              image_url: item.image_url || null,
+              external_id: String(item.external_id || item.id || `${ci}-${ii}`),
+              display_order: ii,
+              is_active: true,
+            },
+            { onConflict: "category_id,name" }
+          )
+          .select("id")
+          .single()
+
+        if (itemErr || !itemRow) {
+          results.errors.push(`Item "${item.name}": ${itemErr?.message}`)
+          continue
+        }
+
+        results.items++
+        const itemId = itemRow.id
+
+        // 3. For each option group
+        const optionGroups = item.options || []
+        for (let oi = 0; oi < optionGroups.length; oi++) {
+          const opt = optionGroups[oi]
+
+          const { data: optRow, error: optErr } = await supabase
+            .from("item_options")
+            .upsert(
+              {
+                menu_item_id: itemId,
+                category: opt.group_name || opt.name || `Option ${oi + 1}`,
+                prompt: opt.prompt || opt.group_name || null,
+                is_required: opt.required || false,
+                min_selection: opt.min_select || 0,
+                max_selection: opt.max_select || 10,
+                external_id: String(opt.id || `${itemId}-opt-${oi}`),
+                display_order: oi,
+              },
+              { onConflict: "menu_item_id,category" }
+            )
+            .select("id")
+            .single()
+
+          if (optErr || !optRow) {
+            results.errors.push(`Option "${opt.group_name}": ${optErr?.message}`)
+            continue
+          }
+
+          results.options++
+          const optionId = optRow.id
+
+          // 4. Bulk upsert choices (no IDs needed back)
+          const choices = opt.choices || []
+          if (choices.length > 0) {
+            const choiceRows = choices.map((choice: any, chi: number) => ({
+              item_option_id: optionId,
+              name: choice.name,
+              price_modifier: choice.price_delta || 0,
+              external_id: String(choice.id || `${optionId}-choice-${chi}`),
+              display_order: chi,
+            }))
+
+            const { error: choiceErr } = await supabase
+              .from("item_option_choices")
+              .upsert(choiceRows, { onConflict: "item_option_id,name" })
+
+            if (choiceErr) {
+              results.errors.push(`Choices for "${opt.group_name}": ${choiceErr.message}`)
+            } else {
+              results.choices += choices.length
+            }
+          }
+        }
       }
     }
-
-    const { data: insertedItems, error: itemErr } = await supabase
-      .from("menu_items")
-      .upsert(itemRows, { onConflict: "category_id,name" })
-      .select("id, external_id")
-
-    if (itemErr) results.errors.push(`menu_items: ${itemErr.message}`)
-
-    const itemIdMap = new Map<string, string>()
-    for (const i of insertedItems ?? []) itemIdMap.set(i.external_id, i.id)
-    results.items = insertedItems?.length ?? 0
-
-    // ── Collect all option groups ─────────────────────────────────────────────
-    type OptMeta = { extId: string; choices: any[] }
-    const optionRows: any[] = []
-    const optMetas: OptMeta[] = []
-
-    for (const meta of itemMetas) {
-      const itemId = itemIdMap.get(meta.extId)
-      if (!itemId) continue
-      for (let oi = 0; oi < meta.options.length; oi++) {
-        const opt = meta.options[oi]
-        const extId = String(opt.id || `${meta.extId}-opt-${oi}`)
-        optionRows.push({
-          menu_item_id: itemId,
-          category: opt.group_name || opt.name || `Option ${oi + 1}`,
-          prompt: opt.prompt || opt.group_name || null,
-          is_required: opt.required || false,
-          min_selection: opt.min_select || 0,
-          max_selection: opt.max_select || 10,
-          external_id: extId,
-          display_order: oi,
-        })
-        optMetas.push({ extId, choices: opt.choices || [] })
-      }
-    }
-
-    const { data: insertedOpts, error: optErr } = await supabase
-      .from("item_options")
-      .upsert(optionRows, { onConflict: "menu_item_id,category" })
-      .select("id, external_id")
-
-    if (optErr) results.errors.push(`item_options: ${optErr.message}`)
-
-    const optionIdMap = new Map<string, string>()
-    for (const o of insertedOpts ?? []) optionIdMap.set(o.external_id, o.id)
-    results.options = insertedOpts?.length ?? 0
-
-    // ── Collect all choices ───────────────────────────────────────────────────
-    const choiceRows: any[] = []
-    for (const meta of optMetas) {
-      const optionId = optionIdMap.get(meta.extId)
-      if (!optionId) continue
-      for (let ci = 0; ci < meta.choices.length; ci++) {
-        const choice = meta.choices[ci]
-        choiceRows.push({
-          item_option_id: optionId,
-          name: choice.name,
-          price_modifier: choice.price_delta || 0,
-          external_id: String(choice.id || `${meta.extId}-choice-${ci}`),
-          display_order: ci,
-        })
-      }
-    }
-
-    const { error: choiceErr } = await supabase
-      .from("item_option_choices")
-      .upsert(choiceRows, { onConflict: "item_option_id,name" })
-
-    if (choiceErr) results.errors.push(`item_option_choices: ${choiceErr.message}`)
-    results.choices = choiceRows.length
-
-    // Debug logging
-    console.log(`[v0] Import ${restaurant.name}: source items=${totalSourceItems}, categories=${categoryRows.length}, items inserted=${results.items}, skipped (no cat)=${skippedItemsNoCategory}, options=${results.options}, choices=${results.choices}`)
 
     return NextResponse.json({
       success: true,
       results,
-      debug: {
-        sourceItems: totalSourceItems,
-        skippedItemsNoCategory,
-        categoryRowsBuilt: categoryRows.length,
-        itemRowsBuilt: itemRows.length,
-        optionRowsBuilt: optionRows.length,
-        choiceRowsBuilt: choiceRows.length,
-      }
     })
-
   } catch (error: any) {
-    console.error("[v0] Import: Error -", error.message)
+    console.error("[v0] Import error:", error.message)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
