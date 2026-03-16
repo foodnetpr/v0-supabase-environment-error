@@ -254,11 +254,12 @@ function PromoBar() {
   const promos = [
     {
       id: "1",
-      image: "/images/slide-catering-1.jpg",
-      badge: "Oferta Especial",
-      title: "Catering para tu Evento",
-      subtitle: "Ordena hoy",
-      badgeColor: "bg-red-500",
+      image: "/images/slide-shop.jpg",
+      badge: "Nuevo",
+      title: "Bebidas & Extras",
+      subtitle: "Agrega a tu orden",
+      badgeColor: "bg-blue-500",
+      href: "/shop",
     },
     {
       id: "2",
@@ -350,7 +351,7 @@ function PromoBar() {
           {promos.map((promo) => (
             <Link
               key={promo.id}
-              href="#"
+              href={"href" in promo ? (promo as any).href : "#"}
               className="flex-shrink-0 w-[240px] sm:w-[300px] group"
             >
               <div className="relative aspect-[5/2] rounded-lg overflow-hidden bg-slate-100">
