@@ -409,7 +409,7 @@ export default function RestaurantAdminClient({
   const [marketplaceSettings, setMarketplaceSettings] = useState({
   show_in_marketplace: restaurant.show_in_marketplace || false,
   marketplace_tagline: restaurant.marketplace_tagline || "",
-  cuisine_type: restaurant.cuisine_type || "",
+  cuisine_types: (restaurant.cuisine_types as string[] | null) || (restaurant.cuisine_type ? [restaurant.cuisine_type] : []),
   is_featured: restaurant.is_featured || false,
   area: restaurant.area || "",
   })
@@ -2116,7 +2116,7 @@ export default function RestaurantAdminClient({
   restaurant.id, // Use restaurant.id from props
   marketplaceSettings.show_in_marketplace,
   marketplaceSettings.marketplace_tagline,
-  marketplaceSettings.cuisine_type,
+  marketplaceSettings.cuisine_types,
   marketplaceSettings.is_featured,
   marketplaceSettings.area,
   )
@@ -4547,21 +4547,35 @@ const pickupOrders = orders.filter((o: any) => o.order_type === "pickup" || o.de
 
                 <div>
                   <Label>Tipo de Cocina</Label>
-                  <Select
-                    onValueChange={(value) => setMarketplaceSettings((prev) => ({ ...prev, cuisine_type: value }))}
-                    value={marketplaceSettings.cuisine_type}
-                  >
-                    <SelectTrigger className="w-full mt-1">
-                      <SelectValue placeholder="Seleccionar tipo de cocina" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {cuisineTypes.map((ct) => (
-                        <SelectItem key={ct.id} value={ct.name}>
-                          {ct.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <p className="text-xs text-muted-foreground mt-0.5 mb-2">
+                    Selecciona todos los tipos de cocina que apliquen. El restaurante aparecerá bajo cada icono seleccionado.
+                  </p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 border rounded-lg p-3 bg-slate-50 mt-1">
+                    {cuisineTypes.map((ct) => {
+                      const checked = marketplaceSettings.cuisine_types.includes(ct.name)
+                      return (
+                        <label key={ct.id} className="flex items-center gap-2 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => {
+                              const next = checked
+                                ? marketplaceSettings.cuisine_types.filter((c) => c !== ct.name)
+                                : [...marketplaceSettings.cuisine_types, ct.name]
+                              setMarketplaceSettings((prev) => ({ ...prev, cuisine_types: next }))
+                            }}
+                            className="rounded border-slate-300 text-black focus:ring-black"
+                          />
+                          <span className="text-sm">{ct.name}</span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                  {marketplaceSettings.cuisine_types.length > 0 && (
+                    <p className="text-xs text-green-700 mt-1.5">
+                      {marketplaceSettings.cuisine_types.join(", ")}
+                    </p>
+                  )}
                 </div>
 
                 <div>

@@ -21,6 +21,7 @@ type Restaurant = {
   city: string | null
   state: string | null
   cuisine_type: string | null
+  cuisine_types: string[] | null
   latitude?: string | null
   longitude?: string | null
   delivery_radius_miles?: number | null
@@ -119,9 +120,12 @@ export function MarketplaceHome({
 
   const filteredRestaurants = useMemo((): RestaurantWithDistance[] => {
     const filtered = restaurantsWithDistance.filter((restaurant) => {
+      const cuisineList = restaurant.cuisine_types?.length
+        ? restaurant.cuisine_types
+        : restaurant.cuisine_type ? [restaurant.cuisine_type] : []
       const matchesCuisine =
         cuisineFilter === "all" ||
-        restaurant.cuisine_type?.toLowerCase() === cuisineFilter.toLowerCase()
+        cuisineList.some((c) => c.toLowerCase() === cuisineFilter.toLowerCase())
       const matchesLocation = locationFilter === "all" || (restaurant as any).area === locationFilter
       return matchesCuisine && matchesLocation
     })
@@ -150,7 +154,9 @@ export function MarketplaceHome({
         selectedCuisine={cuisineFilter}
         onCuisineChange={setCuisineFilter}
         cuisineTypes={cuisineTypes}
-        restaurantCuisines={restaurants.map(r => r.cuisine_type).filter(Boolean) as string[]}
+        restaurantCuisines={restaurants.flatMap(r =>
+          r.cuisine_types?.length ? r.cuisine_types : (r.cuisine_type ? [r.cuisine_type] : [])
+        )}
       />
 
       {/* Hero - Full-width banner matching partners style */}
@@ -387,7 +393,9 @@ function RestaurantCard({
   inDeliveryZone: boolean
   hasLocation: boolean
 }) {
-  const cuisineLabel = restaurant.cuisine_type || "Catering"
+  const cuisineLabel = restaurant.cuisine_types?.length
+    ? restaurant.cuisine_types.join(" · ")
+    : restaurant.cuisine_type || "Catering"
   const featuredImage = restaurant.marketplace_image_url
   const logoImage = restaurant.logo_url
   const unavailable = hasLocation && !inDeliveryZone

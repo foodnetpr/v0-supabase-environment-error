@@ -933,21 +933,22 @@ export async function updateRestaurantMarketplaceSettings(
   restaurantId: string,
   showInMarketplace: boolean,
   tagline: string,
-  cuisineType: string,
+  cuisineTypes: string[],
   isFeatured: boolean,
   area?: string,
 ) {
   const supabase = getAdminClient()
-
+  
   const { data, error } = await supabase
-    .from("restaurants")
-    .update({
-      show_in_marketplace: showInMarketplace,
-      marketplace_tagline: tagline,
-      cuisine_type: cuisineType,
-      is_featured: isFeatured,
-      area: area || null,
-    })
+  .from("restaurants")
+  .update({
+  show_in_marketplace: showInMarketplace,
+  marketplace_tagline: tagline,
+  cuisine_type: cuisineTypes[0] || null,
+  cuisine_types: cuisineTypes.length > 0 ? cuisineTypes : null,
+  is_featured: isFeatured,
+  area: area || null,
+  })
     .eq("id", restaurantId)
     .select()
     .single()
