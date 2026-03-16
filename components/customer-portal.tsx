@@ -388,6 +388,8 @@ export default function CustomerPortal({
       packages_section_title: b.packages_section_title || restaurant.packages_section_title,
       email: b.email || restaurant.email,
       phone: b.phone || restaurant.phone,
+      dispatch_fee: (b as any).dispatch_fee ?? (restaurant as any).dispatch_fee ?? 0,
+      cart_disclaimer: (b as any).cart_disclaimer ?? (restaurant as any).cart_disclaimer ?? "",
     }
   })()
 
@@ -631,8 +633,8 @@ export default function CustomerPortal({
     isCalculating: boolean
     error?: string
   }>({
-    fee: effectiveRestaurant.delivery_fee || 25,
-    displayedFee: effectiveRestaurant.delivery_fee || 25,
+    fee: 0,
+    displayedFee: 0,
     distance: 0,
     zoneName: "Entrega Estandar",
     itemSurcharge: 0,
@@ -728,59 +730,12 @@ export default function CustomerPortal({
     return { fee: Math.round((baseFee + extraFee) * 100) / 100, totalContainers, breakdown }
   }
 
-  // Delivery fee effect
+  // Delivery fee is now calculated from delivery_zones (distance-based) and shown
+  // as a line item in the cart footer — NOT injected as a cart item.
+  // Clean up any legacy delivery_fee items that may exist in cart state.
   useEffect(() => {
-    if (deliveryMethod === "delivery") {
-      setCart((prevCart) => {
-        const hasServicePackage = prevCart.some(
-          (item) => item.type === "package" && !item.name?.toLowerCase().includes("drop-off"),
-        )
-
-        // Calculate container-based fee
-        const { fee, totalContainers, breakdown } = calculateContainerDeliveryFee(prevCart)
-
-        // Build a simple order summary listing item names
-        const itemNames: string[] = []
-        for (const item of prevCart) {
-          if (item.type === "delivery_fee" || item.type === "package") continue
-          if (item.name && !itemNames.includes(item.name)) {
-            itemNames.push(item.name)
-          }
-        }
-
-        // Remove old delivery fee
-        const cartWithoutFee = prevCart.filter((item) => item.type !== "delivery_fee")
-
-        // Only add delivery fee if no service packages cover delivery
-        if (!hasServicePackage) {
-          // Simple order summary: "Mini Mofongos, Paella Valenciana"
-          const breakdownText = itemNames.length > 0
-            ? ` (${itemNames.join(", ")})`
-            : ""
-          // Get the base delivery service package image (cheapest active package)
-          const baseDeliveryPkg = effectiveServicePackages
-            .filter((p) => p.is_active)
-            .sort((a, b) => (a.base_price ?? 0) - (b.base_price ?? 0))[0]
-
-          return [
-            ...cartWithoutFee,
-            {
-              type: "delivery_fee",
-              name: `Entrega a Domicilio${breakdownText}`,
-              totalPrice: fee,
-              isAutomatic: true,
-              containerBreakdown: breakdown,
-              image_url: baseDeliveryPkg?.image_url || null,
-            },
-          ]
-        }
-
-        return cartWithoutFee
-      })
-    } else {
-      setCart((prevCart) => prevCart.filter((item) => item.type !== "delivery_fee"))
-    }
-  }, [deliveryMethod, effectiveRestaurant.delivery_fee, effectiveRestaurant.delivery_base_fee, effectiveRestaurant.delivery_included_containers, cartVersion])
+    setCart((prevCart) => prevCart.filter((item) => item.type !== "delivery_fee"))
+  }, [deliveryMethod])
 
   // Delivery form state
   const [deliveryForm, setDeliveryForm] = useState({
@@ -3809,11 +3764,12 @@ const orderData = {
               const menuSubtotal = cart
                 .filter((i) => i.type !== "delivery_fee")
                 .reduce((s, i) => s + (i.totalPrice || 0), 0)
+              const dispatchFee = deliveryMethod === "delivery" ? Number((effectiveRestaurant as any).dispatch_fee || 0) : 0
               const ivuAmount = menuSubtotal * taxRate
               const tipAmount = deliveryForm.tipPercentage > 0
                 ? (menuSubtotal * deliveryForm.tipPercentage) / 100
                 : Number(deliveryForm.customTip || 0)
-              const orderTotal = menuSubtotal + deliveryFee + ivuAmount + tipAmount
+              const orderTotal = menuSubtotal + deliveryFee + dispatchFee + ivuAmount + tipAmount
               const tipPresets = [10, 15, 18, 20]
 
               return (
@@ -3829,7 +3785,7 @@ const orderData = {
 
                   {/* Order total section */}
                   <div className="px-5 pt-4 pb-2 space-y-2">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Total de la Orden</p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Detalles de la Orden</p>
 
                     {/* Subtotal */}
                     <div className="flex justify-between text-sm text-gray-700">
@@ -3851,10 +3807,10 @@ const orderData = {
                     )}
 
                     {/* Dispatch Fee */}
-                    {deliveryMethod === "delivery" && (effectiveRestaurant as any).dispatch_fee > 0 && (
+                    {dispatchFee > 0 && (
                       <div className="flex justify-between text-sm text-gray-700">
                         <span>Dispatch Fee</span>
-                        <span>${Number((effectiveRestaurant as any).dispatch_fee).toFixed(2)}</span>
+                        <span>${dispatchFee.toFixed(2)}</span>
                       </div>
                     )}
 
@@ -3931,13 +3887,13 @@ const orderData = {
                   </div>
 
                   {/* Legal disclaimer — set per-restaurant in super-admin */}
-                  {(effectiveRestaurant as any).cart_disclaimer && (
+                  {(effectiveRestaurant as any).cart_disclaimer ? (
                     <div className="px-5 pt-1 pb-4">
                       <p className="text-[11px] text-gray-400 leading-relaxed">
                         {(effectiveRestaurant as any).cart_disclaimer}
                       </p>
                     </div>
-                  )}
+                  ) : null}
                 </div>
               )
             })()}
