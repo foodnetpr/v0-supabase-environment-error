@@ -350,20 +350,14 @@ export function MenuItemCard({ item, template, onSelect, primaryColor }: MenuIte
         className={`group flex items-center gap-3 p-3 cursor-pointer ${styles.card} ${styles.cardHover}`}
         onClick={onSelect}
       >
-        {imageOnLeft && (
+        {imageOnLeft && item.image_url && (
           <div className={`${styles.imageWrapper}`}>
-            {item.image_url ? (
-              <Image
-                src={item.image_url}
-                alt={item.name}
-                fill
-                className={styles.image}
-              />
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: `${primaryColor || 'hsl(var(--primary))'}15` }}>
-                <AvocadoIcon className="w-6 h-6" style={{ color: `${primaryColor || 'hsl(var(--primary))'}60` }} />
-              </div>
-            )}
+            <Image
+              src={item.image_url}
+              alt={item.name}
+              fill
+              className={styles.image}
+            />
           </div>
         )}
         <div className="flex-1 min-w-0">
@@ -402,20 +396,14 @@ export function MenuItemCard({ item, template, onSelect, primaryColor }: MenuIte
         >
           <Plus className="w-4 h-4" />
         </button>
-        {!imageOnLeft && (
+        {!imageOnLeft && item.image_url && (
           <div className={`${styles.imageWrapper}`}>
-            {item.image_url ? (
-              <Image
-                src={item.image_url}
-                alt={item.name}
-                fill
-                className={styles.image}
-              />
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: `${primaryColor || 'hsl(var(--primary))'}15` }}>
-                <AvocadoIcon className="w-6 h-6" style={{ color: `${primaryColor || 'hsl(var(--primary))'}60` }} />
-              </div>
-            )}
+            <Image
+              src={item.image_url}
+              alt={item.name}
+              fill
+              className={styles.image}
+            />
           </div>
         )}
       </div>
