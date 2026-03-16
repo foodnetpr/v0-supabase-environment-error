@@ -35,10 +35,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ predictions: [] })
     }
 
-    // Transform to simpler format
+    // Return shape that location-bar.tsx expects: { place_id, description }
     const predictions = (data.predictions || []).map((prediction: any) => ({
-      placeId: prediction.place_id,
-      text: prediction.description,
+      place_id: prediction.place_id,
+      description: prediction.description,
       mainText: prediction.structured_formatting?.main_text || prediction.description,
       secondaryText: prediction.structured_formatting?.secondary_text || "",
     }))

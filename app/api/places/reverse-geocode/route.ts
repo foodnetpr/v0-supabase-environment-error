@@ -9,7 +9,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "lat and lng are required" }, { status: 400 })
   }
 
-  const apiKey = process.env.GOOGLE_MAPS_API_KEY
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
   if (!apiKey) {
     return NextResponse.json({ error: "Google Maps API key not configured" }, { status: 500 })
   }

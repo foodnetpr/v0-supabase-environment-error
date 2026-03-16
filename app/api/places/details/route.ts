@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
-  const placeId = searchParams.get("placeId")
+  const placeId = searchParams.get("place_id") || searchParams.get("placeId")
 
   if (!placeId) {
     return NextResponse.json({ error: "Place ID required" }, { status: 400 })
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     const url = new URL("https://maps.googleapis.com/maps/api/place/details/json")
     url.searchParams.set("place_id", placeId)
     url.searchParams.set("key", apiKey)
-    url.searchParams.set("fields", "address_components,formatted_address")
+    url.searchParams.set("fields", "geometry,address_components,formatted_address")
     url.searchParams.set("language", "es")
 
     const response = await fetch(url.toString())
@@ -98,7 +98,13 @@ export async function GET(request: NextRequest) {
 
     const streetAddress = `${streetNumber} ${route}`.trim()
 
+    const lat = result.geometry?.location?.lat ?? null
+    const lng = result.geometry?.location?.lng ?? null
+
     return NextResponse.json({
+      lat,
+      lng,
+      address: formattedAddress,
       addressComponents: result.address_components,
       formattedAddress,
       streetAddress,
