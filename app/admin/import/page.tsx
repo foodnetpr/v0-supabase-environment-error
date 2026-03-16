@@ -23,40 +23,51 @@ export default function ImportPage() {
   const [isRunning, setIsRunning] = useState(false)
   const [progress, setProgress] = useState(0)
   const [summary, setSummary] = useState<{ done: number; errors: number; total: number } | null>(null)
-  const fileRef = useRef<HTMLInputElement>(null)
+  const [fileLabel, setFileLabel] = useState<string | null>(null)
+  // Parsed data lives in a ref so re-renders never lose it
+  const parsedDataRef = useRef<any[] | null>(null)
   const abortRef = useRef(false)
 
   function updateRow(i: number, patch: Partial<RestaurantRow>) {
     setRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, ...patch } : r)))
   }
 
+  // Parse the file as soon as it's selected — don't wait for submit
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setFileLabel(null)
+    parsedDataRef.current = null
+    try {
+      const text = await file.text()
+      const parsed = JSON.parse(text)
+      if (!Array.isArray(parsed)) {
+        alert("JSON must be a top-level array of restaurant entries.")
+        return
+      }
+      parsedDataRef.current = parsed
+      setFileLabel(`${file.name} — ${parsed.length} restaurants ready`)
+      console.log("[v0] data length:", parsed.length, "first entry keys:", Object.keys(parsed[0] ?? {}))
+    } catch {
+      alert("Invalid JSON — could not parse file.")
+    }
+  }
+
   async function handleImport(e: React.FormEvent) {
     e.preventDefault()
-    const file = fileRef.current?.files?.[0]
-    if (!file) return
+    const data = parsedDataRef.current
+    if (!data || data.length === 0) {
+      alert("No data loaded — please select a valid JSON file first.")
+      return
+    }
+
+    console.log("[v0] Starting import, data length:", data.length)
 
     abortRef.current = false
     setSummary(null)
     setProgress(0)
-    setRows([])
+    setRows(data.map((entry: any) => ({ name: entry?.restaurant?.name ?? "Unknown", status: "pending" })))
     setIsRunning(true)
-
-    let data: any[]
-    try {
-      data = JSON.parse(await file.text())
-    } catch {
-      alert("Invalid JSON — could not parse file.")
-      setIsRunning(false)
-      return
-    }
-
-    if (!Array.isArray(data)) {
-      alert("JSON must be a top-level array of restaurant entries.")
-      setIsRunning(false)
-      return
-    }
-
-    setRows(data.map((entry) => ({ name: entry?.restaurant?.name ?? "Unknown", status: "pending" })))
 
     let done = 0
     let errors = 0
@@ -67,6 +78,7 @@ export default function ImportPage() {
       updateRow(i, { status: "running" })
 
       try {
+        // POST single restaurant entry to /api/import-restaurant
         const res = await fetch("/api/import-restaurant", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -124,13 +136,13 @@ export default function ImportPage() {
           <CardContent>
             <form onSubmit={handleImport} className="flex flex-wrap items-center gap-3">
               <input
-                ref={fileRef}
                 type="file"
                 accept=".json,application/json"
                 disabled={isRunning}
+                onChange={handleFileChange}
                 className="text-sm text-foreground file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-muted file:text-foreground hover:file:bg-muted/70 cursor-pointer disabled:opacity-50"
               />
-              <Button type="submit" disabled={isRunning} className="gap-2">
+              <Button type="submit" disabled={isRunning || !parsedDataRef.current} className="gap-2">
                 {isRunning ? <><Loader2 className="h-4 w-4 animate-spin" /> Importing...</> : <><Upload className="h-4 w-4" /> Start Import</>}
               </Button>
               {isRunning && (
@@ -139,6 +151,9 @@ export default function ImportPage() {
                 </Button>
               )}
             </form>
+            {fileLabel && (
+              <p className="mt-2 text-xs text-green-700 font-medium">{fileLabel}</p>
+            )}
           </CardContent>
         </Card>
 
