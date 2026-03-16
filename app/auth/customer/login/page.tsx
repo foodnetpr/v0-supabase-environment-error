@@ -52,9 +52,12 @@ export default function CustomerLoginPage() {
         (window as any).Capacitor?.isNativePlatform?.()
 
       if (isNative) {
-        // Native iOS flow: use the @capacitor-community/apple-sign-in plugin
-        // which calls ASAuthorizationAppleIDProvider and returns a token Supabase can consume.
-        const { SignInWithApple } = await import("@capacitor-community/apple-sign-in")
+        // Native iOS flow: use the @capacitor-community/apple-sign-in plugin.
+        // The package is NOT in package.json (would break the web lockfile) — it must be
+        // installed separately in the ios/ project. We use Function() to prevent
+        // webpack from statically analysing or bundling this import.
+        // eslint-disable-next-line no-new-func
+        const { SignInWithApple } = await new Function('pkg', 'return import(pkg)')("@capacitor-community/apple-sign-in")
         const result = await SignInWithApple.authorize({
           clientId: "ca.salecalle.marketplace.app",
           redirectURI: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/callback`,
