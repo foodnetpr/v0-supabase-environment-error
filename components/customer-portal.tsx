@@ -130,6 +130,14 @@ interface ServicePackage {
   included_items?: string[] // Added for included items
 }
 
+interface OperatingHour {
+  day_of_week: number // 0=Sunday, 1=Monday, ..., 6=Saturday
+  is_open: boolean
+  open_time: string | null
+  close_time: string | null
+  branch_id: string | null
+}
+
 interface RestaurantHour {
   day_of_week: number // 0=Sunday, 1=Monday, ..., 6=Saturday
   breakfast_open: string | null
@@ -272,6 +280,7 @@ interface CustomerPortalProps {
   branches?: Branch[]
   branchMenuOverrides?: BranchMenuOverride[]
   containerRates?: any[]
+  operatingHours?: OperatingHour[]
   restaurantHours?: RestaurantHour[]
   customer?: Customer | null
   customerAddresses?: CustomerAddress[]
@@ -303,6 +312,7 @@ export default function CustomerPortal({
   branches = [],
   branchMenuOverrides = [],
   containerRates = [],
+  operatingHours = [],
   restaurantHours = [],
   customer,
   customerAddresses = [],
