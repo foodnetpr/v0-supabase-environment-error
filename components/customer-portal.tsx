@@ -2265,7 +2265,7 @@ const orderData = {
       >
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-2 overflow-x-auto">
-            <DropdownMenu>
+            <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
                 <Button variant="default" size="sm" className="shrink-0" style={{ backgroundColor: primaryColor }}>
                   <List className="w-4 h-4 mr-2" />
