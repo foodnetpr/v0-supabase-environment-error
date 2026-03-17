@@ -336,7 +336,7 @@ export function LocationBar({
   if (isMobile) {
     return (
       <div className="flex flex-col gap-2">
-        {/* Row 1: Delivery badge + Use Location Button */}
+        {/* Row 1: Delivery badge + Use Location Button + Zip Dropdown */}
         <div className="flex items-center gap-2">
           <span className="flex-shrink-0 bg-black text-white text-sm font-medium px-3 py-1.5 rounded-full">
             Delivery
@@ -356,6 +356,35 @@ export function LocationBar({
               {isLoadingGeo ? "..." : "Mi ubicación"}
             </span>
           </button>
+          {/* Zip Code Dropdown */}
+          <Select
+            value={location?.zip || ""}
+            onValueChange={(zip) => {
+              const zipData = PUERTO_RICO_ZIP_CODES.find((z) => z.zip === zip)
+              if (zipData) {
+                handleLocationSet({
+                  address: `${zipData.area}, PR ${zip}`,
+                  lat: 18.4655,
+                  lng: -66.1057,
+                  zip: zip,
+                  city: zipData.area,
+                  state: "PR",
+                })
+              }
+            }}
+          >
+            <SelectTrigger className="w-auto min-w-[80px] h-9 px-3 border-slate-300 rounded-full text-sm">
+              <Keyboard className="w-4 h-4 mr-1.5" />
+              <SelectValue placeholder="Zip" />
+            </SelectTrigger>
+            <SelectContent className="z-[60]">
+              {PUERTO_RICO_ZIP_CODES.map((zipCode) => (
+                <SelectItem key={zipCode.zip} value={zipCode.zip}>
+                  {zipCode.zip} - {zipCode.area}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Row 2: Address Input (Full Width) */}
@@ -367,7 +396,7 @@ export function LocationBar({
             <Input
               ref={inputRef}
               type="text"
-              placeholder="Buscar dirección o código postal..."
+              placeholder="Buscar dirección"
               value={addressInput}
               onChange={(e) => handleAddressInputChange(e.target.value)}
               onKeyDown={(e) => {
