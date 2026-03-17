@@ -21,7 +21,6 @@ export default async function HomePage() {
   // Get open/closed status for all restaurants
   const restaurantIds = restaurants?.map(r => r.id) || []
   const openStatusMap = await getRestaurantsOpenStatus(restaurantIds)
-  console.log("[v0] Open status map:", Object.fromEntries(openStatusMap))
   
   // Merge open status into restaurant data
   const restaurantsWithStatus = restaurants?.map(r => {
