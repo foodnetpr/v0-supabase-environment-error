@@ -33,6 +33,8 @@ import { BulkOrderModal } from "@/components/bulk-order-modal"
 import { BranchSelector } from "@/components/branch-selector"
 import { useToast } from "@/components/ui/use-toast" // Import useToast
 import { InternalShopExtras } from "@/components/internal-shop-extras"
+import { ShopUpsellBanner } from "@/components/shop-upsell-banner"
+import { useInternalShopCart } from "@/hooks/use-internal-shop-cart"
 
 import { createBrowserClient } from "@/lib/supabase/client"
 import { GlobalNavbar } from "@/components/global-navbar"
@@ -752,6 +754,14 @@ export default function CustomerPortal({
 
   const [showCheckoutForm, setShowCheckoutForm] = useState(false) // This is now controlled by checkoutStep
   const [showStripeCheckout, setShowStripeCheckout] = useState(false)
+  
+  // Internal shop cart (persisted separately, tax calculated separately)
+  const { 
+    items: internalShopItems, 
+    subtotal: internalShopSubtotal, 
+    tax: internalShopTax,
+    clearCart: clearInternalShopCart,
+  } = useInternalShopCart()
   const [showSquareCheckout, setShowSquareCheckout] = useState(false)
   const [showATHMovilCheckout, setShowATHMovilCheckout] = useState(false)
   const [showPaymentSelector, setShowPaymentSelector] = useState(false) // For "both" payment provider option
@@ -1612,7 +1622,10 @@ export default function CustomerPortal({
 
     const tax = calculateTax()
     const dynamicDeliveryFee = deliveryMethod === "delivery" ? deliveryFeeCalculation.fee : 0
-    const total = subtotal + tax + dynamicDeliveryFee + tipAmount
+    
+    // Include internal shop items in total (with their own tax)
+    const internalShopTotal = internalShopSubtotal + internalShopTax
+    const total = subtotal + tax + dynamicDeliveryFee + tipAmount + internalShopTotal
 
 const orderData = {
   restaurantId: restaurant.id,
@@ -1629,17 +1642,34 @@ const orderData = {
       squareEnvironment: (selectedBranch as any)?.square_environment || (restaurant as any)?.square_environment || "production",
       athmovilPublicToken: (selectedBranch as any)?.athmovil_public_token || (restaurant as any)?.athmovil_public_token || null,
       athmovilEcommerceId: (selectedBranch as any)?.athmovil_ecommerce_id || (restaurant as any)?.athmovil_ecommerce_id || null,
-      cart: cart.map((item) => ({
-        ...item,
-        // Ensure correct structure for selected options and addons if they exist
-        selectedOptions: item.selectedOptions || {},
-        selectedAddons: item.selectedAddons || [],
-        // Remove nested item/package objects to avoid duplication
-        item: undefined,
-        package: undefined,
-      })),
+      cart: [
+        // Restaurant items
+        ...cart.map((item) => ({
+          ...item,
+          is_internal_shop: false,
+          // Ensure correct structure for selected options and addons if they exist
+          selectedOptions: item.selectedOptions || {},
+          selectedAddons: item.selectedAddons || [],
+          // Remove nested item/package objects to avoid duplication
+          item: undefined,
+          package: undefined,
+        })),
+        // Internal shop items (separate accounting)
+        ...internalShopItems.map((item) => ({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          image_url: item.image_url,
+          is_internal_shop: true,
+        })),
+      ],
+      // Restaurant subtotal (for restaurant accounting)
       subtotal: subtotal,
       tax,
+      // Internal shop subtotal (separate accounting from restaurant)
+      internalShopSubtotal: internalShopSubtotal,
+      internalShopTax: internalShopTax,
       deliveryFee: dynamicDeliveryFee, // Use the calculated delivery fee
       tip: tipAmount, // Use calculated tip amount
       total,
@@ -1712,6 +1742,7 @@ const orderData = {
     setShowSquareCheckout(false)
     setShowATHMovilCheckout(false)
     setCart([])
+    clearInternalShopCart() // Clear internal shop cart on successful order
     setDeliveryForm({
       fullName: "", // Changed from fullName to name
       email: "",
@@ -4120,6 +4151,11 @@ const orderData = {
                         style={{ "--tw-ring-color": `${primaryColor}40` } as React.CSSProperties}
                       />
                     )}
+                  </div>
+
+                  {/* Shop Upsell Banner */}
+                  <div className="px-5 pb-3">
+                    <ShopUpsellBanner variant="compact" />
                   </div>
 
                   {/* Grand total + CTA */}

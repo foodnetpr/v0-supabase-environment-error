@@ -6,6 +6,7 @@ import { Plus, Minus, ShoppingCart, Package, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { GlobalNavbar } from "@/components/global-navbar"
+import { useInternalShopCart } from "@/hooks/use-internal-shop-cart"
 
 interface ShopItem {
   id: string
@@ -19,17 +20,24 @@ interface ShopItem {
   sku: string | null
 }
 
-interface CartEntry {
-  item: ShopItem
-  quantity: number
-}
-
 interface ShopClientProps {
   initialItems: ShopItem[]
 }
 
 export function ShopClient({ initialItems }: ShopClientProps) {
-  const [cart, setCart] = useState<Record<string, CartEntry>>({})
+  // Use persistent cart hook instead of local state
+  const { 
+    items: cartItems, 
+    totalItems, 
+    subtotal, 
+    tax,
+    total,
+    addItem, 
+    updateQuantity, 
+    getQuantity,
+    isLoaded 
+  } = useInternalShopCart()
+  
   const [showCart, setShowCart] = useState(false)
   const [activeCategory, setActiveCategory] = useState<string>("all")
 
@@ -58,25 +66,26 @@ export function ShopClient({ initialItems }: ShopClientProps) {
     )
   }, [filteredItems])
 
-  const totalItems = Object.values(cart).reduce((s, e) => s + e.quantity, 0)
-  const subtotal = Object.values(cart).reduce(
-    (s, e) => s + e.quantity * Number(e.item.price),
-    0
-  )
-
-  const updateQty = (item: ShopItem, delta: number) => {
-    setCart((prev) => {
-      const current = prev[item.id]?.quantity || 0
-      const next = Math.max(0, current + delta)
-      if (next === 0) {
-        const { [item.id]: _removed, ...rest } = prev
-        return rest
-      }
-      return { ...prev, [item.id]: { item, quantity: next } }
-    })
+  // Helper to add/update item in persistent cart
+  const handleUpdateQty = (item: ShopItem, delta: number) => {
+    const currentQty = getQuantity(item.id)
+    if (currentQty === 0 && delta > 0) {
+      // Adding new item
+      addItem({
+        id: item.id,
+        name: item.name,
+        price: Number(item.price),
+        image_url: item.image_url,
+        category: item.category,
+        description: item.description,
+      }, delta)
+    } else {
+      // Update existing item quantity
+      updateQuantity(item.id, delta)
+    }
   }
 
-  const getQty = (id: string) => cart[id]?.quantity || 0
+  const getQty = (id: string) => getQuantity(id)
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
@@ -199,7 +208,7 @@ export function ShopClient({ initialItems }: ShopClientProps) {
                           </span>
                           {qty === 0 ? (
                             <button
-                              onClick={() => updateQty(item, 1)}
+                              onClick={() => handleUpdateQty(item, 1)}
                               className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-900 text-white hover:bg-gray-700 transition-colors"
                               aria-label={`Agregar ${item.name}`}
                             >
@@ -208,7 +217,7 @@ export function ShopClient({ initialItems }: ShopClientProps) {
                           ) : (
                             <div className="flex items-center gap-2">
                               <button
-                                onClick={() => updateQty(item, -1)}
+                                onClick={() => handleUpdateQty(item, -1)}
                                 className="flex items-center justify-center w-7 h-7 rounded-full border-2 border-gray-300 text-gray-700 hover:border-gray-500 transition-colors"
                                 aria-label="Reducir cantidad"
                               >
@@ -218,7 +227,7 @@ export function ShopClient({ initialItems }: ShopClientProps) {
                                 {qty}
                               </span>
                               <button
-                                onClick={() => updateQty(item, 1)}
+                                onClick={() => handleUpdateQty(item, 1)}
                                 className="flex items-center justify-center w-7 h-7 rounded-full bg-gray-900 text-white hover:bg-gray-700 transition-colors"
                                 aria-label="Aumentar cantidad"
                               >
@@ -259,13 +268,13 @@ export function ShopClient({ initialItems }: ShopClientProps) {
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {Object.values(cart).length === 0 ? (
+              {cartItems.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-3">
                   <ShoppingCart className="h-10 w-10 opacity-40" />
                   <p className="text-sm">Tu carrito está vacío</p>
                 </div>
               ) : (
-                Object.values(cart).map(({ item, quantity }) => (
+                cartItems.map((item) => (
                   <div
                     key={item.id}
                     className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-white"
@@ -294,37 +303,45 @@ export function ShopClient({ initialItems }: ShopClientProps) {
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
                       <button
-                        onClick={() => updateQty(item, -1)}
+                        onClick={() => updateQuantity(item.id, -1)}
                         className="w-6 h-6 rounded-full border border-gray-300 flex items-center justify-center hover:border-gray-500 transition-colors"
                       >
                         <Minus className="h-3 w-3 text-gray-600" />
                       </button>
                       <span className="w-5 text-center text-sm font-bold tabular-nums">
-                        {quantity}
+                        {item.quantity}
                       </span>
                       <button
-                        onClick={() => updateQty(item, 1)}
+                        onClick={() => updateQuantity(item.id, 1)}
                         className="w-6 h-6 rounded-full bg-gray-900 flex items-center justify-center hover:bg-gray-700 transition-colors"
                       >
                         <Plus className="h-3 w-3 text-white" />
                       </button>
                     </div>
                     <span className="text-sm font-semibold text-gray-900 tabular-nums w-14 text-right shrink-0">
-                      ${(Number(item.price) * quantity).toFixed(2)}
+                      ${(Number(item.price) * item.quantity).toFixed(2)}
                     </span>
                   </div>
                 ))
               )}
             </div>
 
-            {Object.values(cart).length > 0 && (
+            {cartItems.length > 0 && (
               <div className="p-4 border-t border-gray-200 space-y-3">
                 <div className="flex justify-between text-sm text-gray-600">
                   <span>Subtotal ({totalItems} artículo{totalItems !== 1 ? "s" : ""})</span>
-                  <span className="font-bold text-gray-900">${subtotal.toFixed(2)}</span>
+                  <span className="font-semibold text-gray-900">${subtotal.toFixed(2)}</span>
                 </div>
-                <p className="text-xs text-gray-400 text-center">
-                  Los artículos del shop se agregan automáticamente al hacer tu pedido en el restaurante.
+                <div className="flex justify-between text-sm text-gray-600">
+                  <span>IVU (11.5%)</span>
+                  <span className="text-gray-900">${tax.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-base font-bold text-gray-900 pt-2 border-t border-gray-100">
+                  <span>Total</span>
+                  <span>${total.toFixed(2)}</span>
+                </div>
+                <p className="text-xs text-gray-400 text-center pt-2">
+                  Los artículos se guardan por 24 horas. Se agregan a tu pedido cuando ordenes en un restaurante.
                 </p>
               </div>
             )}
