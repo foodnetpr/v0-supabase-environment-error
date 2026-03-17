@@ -16,7 +16,7 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu"
 import { Label } from "@/components/ui/label"
-import { Truck, Package, ShoppingCart, Filter, Check, Minus, Plus, MapPin, Pencil, Trash2, PlusCircle, MinusCircle, X, ChevronDown, ChevronLeft, List } from "lucide-react"
+import { Truck, Package, ShoppingCart, Filter, Check, Minus, Plus, MapPin, Pencil, Trash2, PlusCircle, MinusCircle, X, ChevronDown, ChevronLeft, List, Coffee } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import StripeCheckout from "./stripe-checkout"
@@ -2214,12 +2214,11 @@ const orderData = {
             <div className="flex items-center justify-center gap-2 md:gap-4 md:justify-end">
               {/* Bebidas y Extras - FoodNet Shop button */}
               <Button
-                variant="ghost"
                 size="sm"
                 onClick={() => setShowInternalShopModal(true)}
-                className="gap-1.5 text-cyan-600 hover:text-cyan-700 hover:bg-cyan-50"
+                className="gap-1.5 bg-cyan-600 hover:bg-cyan-700 text-white"
               >
-                <Package className="w-4 h-4" />
+                <Coffee className="w-4 h-4" />
                 <span className="hidden sm:inline text-xs font-medium">Bebidas y Extras</span>
               </Button>
 
