@@ -11,9 +11,12 @@ import {
   DropdownMenuContent,
   DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu"
 import { Label } from "@/components/ui/label"
-import { Truck, Package, ShoppingCart, Filter, Check, Minus, Plus, MapPin, Pencil, Trash2, PlusCircle, MinusCircle, X } from "lucide-react"
+import { Truck, Package, ShoppingCart, Filter, Check, Minus, Plus, MapPin, Pencil, Trash2, PlusCircle, MinusCircle, X, ChevronDown, List } from "lucide-react"
 import Image from "next/image"
 import StripeCheckout from "./stripe-checkout"
 import SquareCheckout from "./square-checkout"
@@ -2209,25 +2212,32 @@ const orderData = {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="default" size="sm" className="shrink-0" style={{ backgroundColor: primaryColor }}>
-                  <Filter className="w-4 h-4 mr-2" />
-                  Filtrar
-                  {dietaryFilters.length > 0 && (
-                    <Badge variant="secondary" className="ml-2">
-                      {dietaryFilters.length}
-                    </Badge>
-                  )}
+                  <List className="w-4 h-4 mr-2" />
+                  Menu
+                  <ChevronDown className="w-4 h-4 ml-1" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-56">
-                {["Vegetariano", "Vegano", "Sin Gluten", "Sin Lacteos", "Sin Nueces"].map((filter) => (
-                  <DropdownMenuCheckboxItem
-                    key={filter}
-                    checked={dietaryFilters.includes(filter)}
-                    onCheckedChange={() => toggleDietaryFilter(filter)}
-                  >
-                    {filter}
-                  </DropdownMenuCheckboxItem>
-                ))}
+              <DropdownMenuContent align="start" className="w-56 max-h-80 overflow-y-auto">
+                <DropdownMenuLabel className="text-xs text-muted-foreground">Ir a categoria</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {categories
+                  .filter((cat) => cat.is_active)
+                  .sort((a, b) => a.display_order - b.display_order)
+                  .filter((category) => {
+                    const categoryItems = effectiveMenuItems.filter(
+                      (item) => item.category === category.name && !isExternalDeliveryItem(item.name)
+                    )
+                    return categoryItems.length > 0
+                  })
+                  .map((category) => (
+                    <DropdownMenuItem
+                      key={category.id}
+                      onClick={() => scrollToCategory(category.name)}
+                      className="cursor-pointer"
+                    >
+                      {category.name}
+                    </DropdownMenuItem>
+                  ))}
               </DropdownMenuContent>
             </DropdownMenu>
 
