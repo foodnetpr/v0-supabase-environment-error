@@ -2020,34 +2020,25 @@ const orderData = {
             {/* Top row: Logo, name, cart */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3 min-w-0">
-                {!restaurant.white_label && (
+                {/* Restaurant logo icon */}
+                {restaurant.logo_url && (
                   <>
                     <Image
-                      src="/foodnet-delivery-logo.jpg"
-                      alt="FoodNetDelivery"
-                      width={140}
+                      src={restaurant.logo_url}
+                      alt={restaurant.name}
+                      width={48}
                       height={48}
-                      className="h-10 md:h-8 w-auto flex-shrink-0"
+                      className="h-10 w-10 md:h-8 md:w-8 object-contain flex-shrink-0 rounded"
                     />
-                    <div className="w-px h-8 bg-current opacity-20 flex-shrink-0" />
+                    <div className="w-px h-8 bg-gray-300 flex-shrink-0" />
                   </>
                 )}
-                {(restaurant as any).banner_logo_url ? (
-                  <Image
-                    src={(restaurant as any).banner_logo_url}
-                    alt={restaurant.name}
-                    width={400}
-                    height={100}
-                    className="h-12 md:h-10 max-w-[200px] md:max-w-[260px] w-auto object-contain flex-shrink-0"
-                  />
-                ) : (
-                  <span
-                    className="text-xl md:text-2xl font-extrabold tracking-tight flex-shrink-0 truncate max-w-[320px] md:max-w-[420px] uppercase"
-                    style={{ color: primaryColor }}
-                  >
-                    {restaurant.name}
-                  </span>
-                )}
+                {/* Restaurant name - always black */}
+                <span
+                  className="text-xl md:text-2xl font-extrabold tracking-tight flex-shrink-0 truncate max-w-[320px] md:max-w-[420px] uppercase text-black"
+                >
+                  {restaurant.name}
+                </span>
                 {isChain && selectedBranch && (
                   <button
                     onClick={() => { setSelectedBranch(null); setShowBranchSelector(true); }}
