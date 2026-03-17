@@ -52,36 +52,12 @@ export default async function TenantAdminPage({
     redirect("/auth/login")
   }
 
-  // Hardcoded cuisine types (no database table exists yet)
-  const cuisineTypes = [
-    { id: "boricua", name: "Boricua" },
-    { id: "americana", name: "Americana" },
-    { id: "espanola", name: "Española" },
-    { id: "colombiana", name: "Colombiana" },
-    { id: "coreana", name: "Coreana" },
-    { id: "hamburguesas", name: "Hamburguesas" },
-    { id: "alitas", name: "Alitas" },
-    { id: "cafe", name: "Café" },
-    { id: "criolla", name: "Criolla" },
-    { id: "pizzas", name: "Pizzas" },
-    { id: "china", name: "China" },
-    { id: "argentina", name: "Argentina" },
-    { id: "dominicana", name: "Dominicana" },
-    { id: "bbq", name: "BBQ" },
-    { id: "sandwiches", name: "Sandwiches" },
-    { id: "mariscos", name: "Mariscos" },
-    { id: "cheesecakes", name: "Cheesecakes" },
-    { id: "helado-yogurt", name: "Helado/Yogurt" },
-    { id: "italiana", name: "Italiana" },
-    { id: "japonesa", name: "Japonesa" },
-    { id: "peruana", name: "Peruana" },
-    { id: "india", name: "India" },
-    { id: "pizza", name: "Pizza" },
-    { id: "pollo", name: "Pollo" },
-    { id: "vegano", name: "Vegano" },
-    { id: "mejicana", name: "Mejicana" },
-    { id: "arabe", name: "Arabe" },
-  ]
+  // Fetch cuisine types from database
+  const { data: cuisineTypes } = await supabase
+    .from("cuisine_types")
+    .select("id, name")
+    .eq("is_active", true)
+    .order("display_order", { ascending: true })
 
   // Hardcoded marketplace areas (no database table exists yet)
   const marketplaceAreas = [
