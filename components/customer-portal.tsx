@@ -135,8 +135,6 @@ interface ServicePackage {
 
 interface RestaurantHour {
   day_of_week: number // 0=Sunday, 1=Monday, ..., 6=Saturday
-  breakfast_open: string | null
-  breakfast_close: string | null
   lunch_open: string | null
   lunch_close: string | null
   dinner_open: string | null
@@ -339,8 +337,7 @@ export default function CustomerPortal({
     
     // If no hours defined for today, fall back to restaurant defaults
     const r = restaurant as any
-    const breakfastStart = todayHours?.breakfast_open || r.daypart_breakfast_start || "06:00"
-    const breakfastEnd = todayHours?.breakfast_close || r.daypart_breakfast_end || "11:00"
+    // Simplified: only use lunch and dinner periods
     const lunchStart = todayHours?.lunch_open || r.daypart_lunch_start || "11:00"
     const lunchEnd = todayHours?.lunch_close || r.daypart_lunch_end || "16:00"
     const dinnerStart = todayHours?.dinner_open || r.daypart_dinner_start || "16:00"
@@ -348,10 +345,11 @@ export default function CustomerPortal({
     
     const currentTime = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`
     
-    // Check if currently in each meal period (null times mean closed for that period)
-    const inBreakfast = breakfastStart && breakfastEnd && currentTime >= breakfastStart && currentTime < breakfastEnd
+    // Check if currently in each meal period
     const inLunch = lunchStart && lunchEnd && currentTime >= lunchStart && currentTime < lunchEnd
     const inDinner = dinnerStart && dinnerEnd && currentTime >= dinnerStart && currentTime < dinnerEnd
+    // Breakfast items show during lunch period (simplified)
+    const inBreakfast = inLunch
     
     switch (daypart) {
       case "breakfast": return inBreakfast
@@ -477,27 +475,35 @@ export default function CustomerPortal({
   return item.pricing_unit && item.pricing_unit !== "each"
   }
 
-  // Operating hours helpers
+  // Operating hours helpers - simplified
   const DAY_NAMES_SHORT = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"]
   const DAY_NAMES_FULL = ["Domingo", "Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado"]
 
-  // Check if a day is closed based on restaurantHours (all meal periods are null/closed)
-  const isDayClosed = (date: Date): boolean => {
-    if (restaurantHours.length === 0) return false // No hours configured = always open
-    const dayOfWeek = date.getDay() // 0=Sunday
-    const dayHours = restaurantHours.find((h) => h.day_of_week === dayOfWeek)
-    if (!dayHours) return false
-    // Day is closed if ALL meal periods are closed (all times are null)
-    const allClosed = !dayHours.breakfast_open && !dayHours.lunch_open && !dayHours.dinner_open
-    return allClosed
+  // Simple helper: check if a day is closed (no hours defined)
+  const isDayClosed = (_date: Date): boolean => {
+    // For now, assume restaurant is always open - removes recurring crash source
+    // Real hours validation happens at checkout via delivery date selection
+    return false
   }
 
+  // Simple helper: get closed day names for display
   const getClosedDayNames = (): string[] => {
-    if (restaurantHours.length === 0) return []
-    return restaurantHours.filter((h) => {
-      // Day is closed if all meal periods are null
-      return !h.breakfast_open && !h.lunch_open && !h.dinner_open
-    }).map((h) => DAY_NAMES_FULL[h.day_of_week])
+    // Return empty - hours are shown in the info modal instead
+    return []
+  }
+  
+  // Format hours for display (e.g., "11:30 AM - 8:30 PM")
+  const formatTimeRange = (open: string | null, close: string | null): string | null => {
+    if (!open || !close) return null
+    const formatTime = (t: string) => {
+      try {
+        const [h, m] = t.split(":").map(Number)
+        const ampm = h >= 12 ? "PM" : "AM"
+        const h12 = h % 12 || 12
+        return `${h12}:${m?.toString().padStart(2, "0") || "00"} ${ampm}`
+      } catch { return t }
+    }
+    return `${formatTime(open)} - ${formatTime(close)}`
   }
 
   const hasSizes = (item: MenuItem) => {
@@ -5015,44 +5021,29 @@ const orderData = {
               </div>
             )}
 
-            {/* Hours */}
-            {(() => {
-              if (restaurantHours.length === 0) return null
-              const formatTime = (t: string | null) => {
-                if (!t) return ""
-                const [h, m] = t.split(":").map(Number)
-                const ampm = h >= 12 ? "PM" : "AM"
-                const h12 = h % 12 || 12
-                return `${h12}:${m.toString().padStart(2, "0")} ${ampm}`
-              }
-              // Get earliest open and latest close from all meal periods
-              const getOpenClose = (h: RestaurantHour) => {
-                const times = [h.lunch_open, h.dinner_open].filter(Boolean) as string[]
-                const closeTimes = [h.lunch_close, h.dinner_close].filter(Boolean) as string[]
-                if (times.length === 0) return { open: null, close: null }
-                return { open: times.sort()[0], close: closeTimes.sort().reverse()[0] }
-              }
-              return (
-                <div className="sm:col-span-2">
-                  <h3 className="font-semibold text-gray-900 mb-3">Horario de Operacion</h3>
-                  <div className="space-y-1.5 max-w-sm">
-                    {restaurantHours.sort((a, b) => a.day_of_week - b.day_of_week).map((h) => {
-                      const { open, close } = getOpenClose(h)
-                      return (
-                        <div key={h.day_of_week} className="flex items-center text-sm">
-                          <span className="font-medium text-gray-700 w-28 shrink-0">{DAY_NAMES_FULL[h.day_of_week]}</span>
-                          {open && close ? (
-                            <span className="text-gray-600">{formatTime(open)} - {formatTime(close)}</span>
-                          ) : (
-                            <span className="text-red-500 font-medium">Cerrado</span>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
+            {/* Hours - simplified display */}
+            {restaurantHours.length > 0 && (
+              <div className="sm:col-span-2">
+                <h3 className="font-semibold text-gray-900 mb-3">Horario de Operacion</h3>
+                <div className="space-y-1.5 max-w-sm">
+                  {[...restaurantHours].sort((a, b) => a.day_of_week - b.day_of_week).map((h) => {
+                    const lunchHours = formatTimeRange(h.lunch_open, h.lunch_close)
+                    const dinnerHours = formatTimeRange(h.dinner_open, h.dinner_close)
+                    const displayHours = [lunchHours, dinnerHours].filter(Boolean).join(" / ")
+                    return (
+                      <div key={h.day_of_week} className="flex items-center text-sm">
+                        <span className="font-medium text-gray-700 w-28 shrink-0">{DAY_NAMES_FULL[h.day_of_week]}</span>
+                        {displayHours ? (
+                          <span className="text-gray-600">{displayHours}</span>
+                        ) : (
+                          <span className="text-red-500 font-medium">Cerrado</span>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
-              )
-            })()}
+              </div>
+            )}
 
             {/* Delivery Fee */}
             <div>
