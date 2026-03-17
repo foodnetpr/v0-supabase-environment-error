@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { createPaymentLink } from "@/app/actions/stripe"
-import { Phone, Copy, CheckCircle, Plus, Minus, Trash2, Link2, ArrowLeft, CreditCard, Smartphone } from "lucide-react"
+import { Phone, Copy, CheckCircle, Plus, Minus, Trash2, Link2, ArrowLeft, CreditCard, Smartphone, Search, User, MapPin, Clock, RotateCcw } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface PhoneOrderFormProps {
   restaurantId: string
@@ -40,6 +41,16 @@ export default function PhoneOrderForm({
   })
   const [athMovilPhone, setAthMovilPhone] = useState("")
   const [paymentProcessed, setPaymentProcessed] = useState(false)
+  
+  // Customer lookup state
+  const [lookingUpCustomer, setLookingUpCustomer] = useState(false)
+  const [foundCustomer, setFoundCustomer] = useState<any>(null)
+  const [savedAddresses, setSavedAddresses] = useState<any[]>([])
+  const [savedPaymentMethods, setSavedPaymentMethods] = useState<any[]>([])
+  const [recentOrders, setRecentOrders] = useState<any[]>([])
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null)
+  const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<string | null>(null)
+  const [saveCustomerData, setSaveCustomerData] = useState(true)
 
   // Calculate default date (today) and time (45 min from now) in Puerto Rico timezone
   const getDefaultDateTime = () => {
@@ -99,6 +110,106 @@ export default function PhoneOrderForm({
   // Cart
   const [cart, setCart] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState("")
+
+  // Customer lookup function
+  const handleCustomerLookup = async () => {
+    if (!customerInfo.phone && !customerInfo.email) {
+      toast({ title: "Informacion requerida", description: "Ingresa telefono o email para buscar cliente.", variant: "destructive" })
+      return
+    }
+    
+    setLookingUpCustomer(true)
+    try {
+      const params = new URLSearchParams()
+      if (customerInfo.phone) params.set("phone", customerInfo.phone)
+      if (customerInfo.email) params.set("email", customerInfo.email)
+      params.set("restaurantId", restaurantId)
+      
+      const response = await fetch(`/api/csr/customer-lookup?${params}`)
+      const data = await response.json()
+      
+      if (data.customer) {
+        setFoundCustomer(data.customer)
+        setSavedAddresses(data.addresses || [])
+        setSavedPaymentMethods(data.paymentMethods || [])
+        setRecentOrders(data.recentOrders || [])
+        
+        // Auto-fill customer info
+        setCustomerInfo(prev => ({
+          ...prev,
+          name: data.customer.name || prev.name,
+          email: data.customer.email || prev.email,
+          phone: data.customer.phone || prev.phone,
+        }))
+        
+        // Auto-select default address if available
+        if (data.addresses?.length > 0) {
+          const defaultAddress = data.addresses.find((a: any) => a.is_default) || data.addresses[0]
+          setSelectedAddressId(defaultAddress.id)
+          setCustomerInfo(prev => ({
+            ...prev,
+            streetAddress: defaultAddress.street_address || "",
+            streetAddress2: defaultAddress.street_address_2 || "",
+            city: defaultAddress.city || "",
+            state: defaultAddress.state || "PR",
+            zip: defaultAddress.zip || "",
+          }))
+        }
+        
+        // Auto-select default payment method if available
+        if (data.paymentMethods?.length > 0) {
+          const defaultPM = data.paymentMethods.find((pm: any) => pm.is_default) || data.paymentMethods[0]
+          setSelectedPaymentMethodId(defaultPM.id)
+        }
+        
+        toast({ title: "Cliente encontrado", description: `${data.customer.name} - ${data.recentOrders?.length || 0} ordenes previas` })
+      } else {
+        setFoundCustomer(null)
+        setSavedAddresses([])
+        setSavedPaymentMethods([])
+        setRecentOrders([])
+        toast({ title: "Cliente nuevo", description: "No se encontro cliente con esa informacion. Se creara uno nuevo." })
+      }
+    } catch (error) {
+      console.error("Customer lookup error:", error)
+      toast({ title: "Error", description: "No se pudo buscar el cliente.", variant: "destructive" })
+    } finally {
+      setLookingUpCustomer(false)
+    }
+  }
+
+  // Handle reorder from past order
+  const handleReorder = (order: any) => {
+    if (order.items && Array.isArray(order.items)) {
+      const reorderCart = order.items.map((item: any) => ({
+        id: item.id || item.menuItemId,
+        name: item.name,
+        price: Number(item.price) || 0,
+        quantity: item.quantity || 1,
+        description: item.description || "",
+        selectedOptions: item.selectedOptions || [],
+      }))
+      setCart(reorderCart)
+      setStep("review")
+      toast({ title: "Orden cargada", description: `Se cargaron ${reorderCart.length} items de la orden anterior.` })
+    }
+  }
+
+  // Handle address selection
+  const handleAddressSelect = (addressId: string) => {
+    setSelectedAddressId(addressId)
+    const address = savedAddresses.find(a => a.id === addressId)
+    if (address) {
+      setCustomerInfo(prev => ({
+        ...prev,
+        streetAddress: address.street_address || "",
+        streetAddress2: address.street_address_2 || "",
+        city: address.city || "",
+        state: address.state || "PR",
+        zip: address.zip || "",
+      }))
+    }
+  }
 
   // Filter menu items by search
   const filteredItems = menuItems.filter(
@@ -239,6 +350,10 @@ export default function PhoneOrderForm({
           cvc: cardDetails.cvc,
           name: cardDetails.name,
         },
+        // Customer management
+        customerId: foundCustomer?.id || null,
+        customerAddressId: selectedAddressId || null,
+        saveCustomerData: !foundCustomer && saveCustomerData,
       }
 
       const response = await fetch("/api/csr/process-card-payment", {
@@ -297,6 +412,10 @@ export default function PhoneOrderForm({
         branchId: customerInfo.branchId || undefined,
         paymentMethod: "athmovil",
         athMovilPhone,
+        // Customer management
+        customerId: foundCustomer?.id || null,
+        customerAddressId: selectedAddressId || null,
+        saveCustomerData: !foundCustomer && saveCustomerData,
       }
 
       const response = await fetch("/api/csr/process-card-payment", {
@@ -430,11 +549,51 @@ export default function PhoneOrderForm({
 
       {/* STEP 1: Customer Info */}
       {step === "info" && (
+        <div className="space-y-4">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Informacion del Cliente</CardTitle>
+            <CardTitle className="text-base flex items-center gap-2">
+              <User className="w-4 h-4" />
+              Informacion del Cliente
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Phone lookup row */}
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <Label>Telefono *</Label>
+                <Input
+                  value={customerInfo.phone}
+                  onChange={(e) => setCustomerInfo({ ...customerInfo, phone: e.target.value })}
+                  placeholder="787-555-1234"
+                  className="mt-1"
+                />
+              </div>
+              <div className="flex items-end">
+                <Button 
+                  type="button"
+                  variant="outline"
+                  onClick={handleCustomerLookup}
+                  disabled={lookingUpCustomer}
+                  className="gap-2"
+                >
+                  <Search className="w-4 h-4" />
+                  {lookingUpCustomer ? "Buscando..." : "Buscar"}
+                </Button>
+              </div>
+            </div>
+
+            {/* Found customer indicator */}
+            {foundCustomer && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-3">
+                <CheckCircle className="w-5 h-5 text-green-600" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-green-800">Cliente encontrado: {foundCustomer.name}</p>
+                  <p className="text-xs text-green-600">{savedAddresses.length} direcciones guardadas · {recentOrders.length} ordenes previas</p>
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Nombre *</Label>
@@ -446,24 +605,14 @@ export default function PhoneOrderForm({
                 />
               </div>
               <div>
-                <Label>Telefono *</Label>
+                <Label>Email (para el link de pago)</Label>
                 <Input
-                  value={customerInfo.phone}
-                  onChange={(e) => setCustomerInfo({ ...customerInfo, phone: e.target.value })}
-                  placeholder="787-555-1234"
+                  value={customerInfo.email}
+                  onChange={(e) => setCustomerInfo({ ...customerInfo, email: e.target.value })}
+                  placeholder="cliente@email.com"
                   className="mt-1"
                 />
               </div>
-            </div>
-
-            <div>
-              <Label>Email (para el link de pago)</Label>
-              <Input
-                value={customerInfo.email}
-                onChange={(e) => setCustomerInfo({ ...customerInfo, email: e.target.value })}
-                placeholder="cliente@email.com"
-                className="mt-1"
-              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -497,7 +646,26 @@ export default function PhoneOrderForm({
 
             {customerInfo.orderType === "delivery" && (
               <div className="space-y-3 pt-2 border-t">
-                <Label className="text-sm font-semibold text-gray-700">Direccion de Entrega</Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    Direccion de Entrega
+                  </Label>
+                  {savedAddresses.length > 0 && (
+                    <Select value={selectedAddressId || ""} onValueChange={handleAddressSelect}>
+                      <SelectTrigger className="w-48 h-8 text-xs">
+                        <SelectValue placeholder="Direccion guardada..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {savedAddresses.map((addr) => (
+                          <SelectItem key={addr.id} value={addr.id}>
+                            {addr.label || addr.street_address.substring(0, 25)}...
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
                 <div>
                   <Label className="text-xs text-gray-500">Direccion Linea 1 *</Label>
                   <Input
@@ -595,6 +763,22 @@ export default function PhoneOrderForm({
               />
             </div>
 
+            {/* Save customer data checkbox */}
+            {!foundCustomer && (
+              <div className="flex items-center gap-2 pt-2">
+                <input
+                  type="checkbox"
+                  id="saveCustomer"
+                  checked={saveCustomerData}
+                  onChange={(e) => setSaveCustomerData(e.target.checked)}
+                  className="rounded border-gray-300"
+                />
+                <Label htmlFor="saveCustomer" className="text-sm text-gray-600 cursor-pointer">
+                  Guardar informacion del cliente para futuras ordenes
+                </Label>
+              </div>
+            )}
+
             <Button
               onClick={() => {
                 if (!customerInfo.name || !customerInfo.phone) {
@@ -625,6 +809,44 @@ export default function PhoneOrderForm({
             </Button>
           </CardContent>
         </Card>
+
+        {/* Recent Orders Section */}
+        {recentOrders.length > 0 && (
+          <Card>
+            <CardHeader className="py-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                Ordenes Recientes
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {recentOrders.slice(0, 5).map((order) => (
+                  <div key={order.id} className="flex items-center justify-between p-2 border rounded-lg hover:bg-gray-50">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">
+                        #{order.order_number} - ${Number(order.total).toFixed(2)}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(order.created_at).toLocaleDateString('es-PR')} · {order.items?.length || 0} items
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleReorder(order)}
+                      className="gap-1 text-xs"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      Reordenar
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        </div>
       )}
 
       {/* STEP 2: Menu Selection */}

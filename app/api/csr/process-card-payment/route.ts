@@ -116,6 +116,91 @@ async function insertCSROrder(
 ) {
   const restaurantId = orderData.restaurantId
   const branchId = orderData.branchId
+  
+  // Save/update customer data
+  let customerId: string | null = orderData.customerId || null
+  let customerAddressId: string | null = orderData.customerAddressId || null
+  
+  if (orderData.saveCustomerData !== false && orderData.eventDetails?.phone) {
+    const phone = orderData.eventDetails.phone.replace(/\D/g, "")
+    
+    // Check if customer exists
+    const { data: existingCustomer } = await supabase
+      .from("customers")
+      .select("id")
+      .or(`phone.ilike.%${phone}%`)
+      .single()
+    
+    if (existingCustomer) {
+      customerId = existingCustomer.id
+      // Update customer info
+      await supabase
+        .from("customers")
+        .update({
+          name: orderData.eventDetails.name,
+          email: orderData.eventDetails.email,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", customerId)
+    } else {
+      // Create new customer
+      const { data: newCustomer } = await supabase
+        .from("customers")
+        .insert({
+          name: orderData.eventDetails.name,
+          email: orderData.eventDetails.email,
+          phone: phone,
+        })
+        .select("id")
+        .single()
+      
+      if (newCustomer) {
+        customerId = newCustomer.id
+      }
+    }
+    
+    // Save address if delivery order
+    if (customerId && orderData.orderType === "delivery" && orderData.eventDetails?.address) {
+      // Check if this address already exists for the customer
+      const { data: existingAddress } = await supabase
+        .from("customer_addresses")
+        .select("id")
+        .eq("customer_id", customerId)
+        .eq("street_address", orderData.eventDetails.address)
+        .eq("city", orderData.eventDetails.city || "")
+        .single()
+      
+      if (existingAddress) {
+        customerAddressId = existingAddress.id
+      } else {
+        // Create new address
+        const { data: newAddress } = await supabase
+          .from("customer_addresses")
+          .insert({
+            customer_id: customerId,
+            label: "Home",
+            street_address: orderData.eventDetails.address,
+            street_address_2: orderData.eventDetails.address2 || null,
+            city: orderData.eventDetails.city,
+            state: orderData.eventDetails.state || "PR",
+            zip: orderData.eventDetails.zip,
+            delivery_instructions: orderData.eventDetails.specialInstructions || null,
+            is_default: true,
+          })
+          .select("id")
+          .single()
+        
+        if (newAddress) {
+          customerAddressId = newAddress.id
+          // Set as default address for customer
+          await supabase
+            .from("customers")
+            .update({ default_address_id: customerAddressId })
+            .eq("id", customerId)
+        }
+      }
+    }
+  }
 
   // Calculate subtotals from cart
   let foodSubtotal = 0
@@ -207,6 +292,8 @@ async function insertCSROrder(
     status,
     delivery_type: orderData.orderType || "pickup",
     delivery_date: orderData.eventDetails?.eventDate || new Date().toISOString().split('T')[0],
+    customer_id: customerId,
+    customer_address_id: customerAddressId,
     customer_name: orderData.eventDetails?.name || null,
     customer_email: orderData.eventDetails?.email || null,
     customer_phone: orderData.eventDetails?.phone || null,
