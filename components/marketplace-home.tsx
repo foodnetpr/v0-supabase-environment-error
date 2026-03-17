@@ -27,11 +27,15 @@ type Restaurant = {
   delivery_radius_miles?: number | null
   delivery_zip_codes?: string[] | null
   delivery_enabled?: boolean
+  isOpen?: boolean
+  nextOpenTime?: string | null
 }
 
 type RestaurantWithDistance = Restaurant & {
   calculatedDistance: number | null
   inDeliveryZone: boolean
+  isOpen?: boolean
+  nextOpenTime?: string | null
 }
 
 type MarketplaceSettings = {
@@ -426,6 +430,9 @@ function RestaurantCard({
   const featuredImage = restaurant.marketplace_image_url
   const logoImage = restaurant.logo_url
   const unavailable = hasLocation && !inDeliveryZone
+  const isOpen = restaurant.isOpen !== false // Default to open if not specified
+  const nextOpenTime = restaurant.nextOpenTime
+  const canPreOrder = !isOpen && inDeliveryZone && nextOpenTime
 
   const distanceLabel =
     distance !== null
@@ -436,7 +443,7 @@ function RestaurantCard({
 
   return (
     <Link
-      href={unavailable ? "#" : `/${restaurant.slug}`}
+      href={unavailable ? "#" : `/${restaurant.slug}${canPreOrder ? "?preorder=true" : ""}`}
       className="block h-full"
       onClick={unavailable ? (e) => e.preventDefault() : undefined}
       aria-disabled={unavailable}
@@ -445,6 +452,8 @@ function RestaurantCard({
         className={`group overflow-hidden rounded-xl sm:rounded-2xl border bg-white transition-all duration-300 h-full flex flex-col ${
           unavailable
             ? "border-slate-100 opacity-50 cursor-not-allowed grayscale"
+            : canPreOrder
+            ? "border-slate-200 hover:border-pink-200 hover:shadow-lg hover:shadow-pink-600/5"
             : "border-slate-200 hover:border-amber-200 hover:shadow-lg hover:shadow-amber-600/5"
         }`}
       >
@@ -455,18 +464,37 @@ function RestaurantCard({
               src={featuredImage}
               alt={restaurant.name}
               fill
-              className={`object-cover ${!unavailable ? "group-hover:scale-105 transition-transform duration-500" : ""}`}
+              className={`object-cover ${canPreOrder ? "brightness-75" : ""} ${!unavailable && !canPreOrder ? "group-hover:scale-105 transition-transform duration-500" : ""}`}
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
+            <div className={`w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 ${canPreOrder ? "brightness-75" : ""}`}>
               <span className="text-2xl sm:text-4xl font-bold text-slate-300">{restaurant.name.charAt(0)}</span>
             </div>
           )}
 
+          {/* PRE-ORDER ribbon badge - top right corner */}
+          {canPreOrder && (
+            <div className="absolute -top-1 -right-1 z-10">
+              <div className="bg-pink-500 text-white text-[8px] sm:text-[10px] font-bold px-2 py-1 transform rotate-12 shadow-md">
+                PRE-ORDER
+              </div>
+            </div>
+          )}
+
           {/* Distance badge */}
-          {distanceLabel && (
+          {distanceLabel && !canPreOrder && (
             <div className="absolute top-2 right-2 bg-black/60 text-white text-[10px] font-medium px-1.5 py-0.5 rounded-full backdrop-blur-sm">
               {distanceLabel}
+            </div>
+          )}
+
+          {/* Pre-order delivery time overlay */}
+          {canPreOrder && nextOpenTime && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="bg-black/70 text-white px-4 py-2 rounded-lg backdrop-blur-sm text-center">
+                <p className="text-[10px] sm:text-xs opacity-80">Delivery at</p>
+                <p className="text-sm sm:text-lg font-bold">{nextOpenTime}</p>
+              </div>
             </div>
           )}
 
