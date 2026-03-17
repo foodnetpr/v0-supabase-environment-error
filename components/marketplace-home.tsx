@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import Link from "next/link"
 import Image from "next/image"
 import { useState, useMemo, useEffect, useRef } from "react"
-import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, ArrowRight, Search } from "lucide-react"
 import { type UserLocation, type OrderMode } from "./location-bar"
 import { CuisineBar } from "./cuisine-bar"
 import { GlobalNavbar } from "./global-navbar"
@@ -295,42 +295,20 @@ function PromoBar() {
         {/* Section header */}
         <div className="flex items-center justify-between mb-3 sm:mb-4">
           <h2 className="text-base sm:text-lg font-bold text-slate-900">Ofertas y Promociones</h2>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => scroll("left")}
-              disabled={!showLeftArrow}
-              className={`p-1.5 rounded-full transition-colors ${
-                showLeftArrow ? "bg-slate-100 hover:bg-slate-200 text-slate-700" : "text-slate-300 cursor-not-allowed"
-              }`}
-              aria-label="Scroll left"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => scroll("right")}
-              disabled={!showRightArrow}
-              className={`p-1.5 rounded-full transition-colors ${
-                showRightArrow ? "bg-slate-100 hover:bg-slate-200 text-slate-700" : "text-slate-300 cursor-not-allowed"
-              }`}
-              aria-label="Scroll right"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
+          {/* Restaurant search input */}
+          <div className="flex items-center gap-2 px-3 py-1.5 border border-slate-200 rounded-lg bg-white hover:border-slate-300 transition-colors cursor-pointer min-w-[200px] sm:min-w-[280px]">
+            <Search className="w-4 h-4 text-slate-400 flex-shrink-0" />
+            <span className="text-sm text-slate-400 truncate">Busqueda de Restaurantes</span>
           </div>
         </div>
 
-        {/* Scrollable promo cards */}
-        <div
-          ref={scrollRef}
-          onScroll={handleScroll}
-          className="flex gap-3 sm:gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-3 px-3 sm:mx-0 sm:px-0"
-          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-        >
-          {promos.map((promo) => (
+        {/* Promo cards - show 4 cards in a grid, no scroll */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {promos.slice(0, 4).map((promo) => (
             <Link
               key={promo.id}
               href={promo.href ?? "#"}
-              className="flex-shrink-0 w-[240px] sm:w-[300px] group"
+              className="group"
             >
               <div className="relative aspect-[5/2] rounded-lg overflow-hidden bg-slate-100">
                 {promo.image_url && (
