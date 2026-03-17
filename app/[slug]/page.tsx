@@ -68,10 +68,30 @@ export default async function TenantPortalPage({
 
     const { data: menuItems } = await supabase
       .from("menu_items")
-      .select("*, item_options(*, item_option_choices(*))")
+      .select("*")
       .eq("restaurant_id", restaurant.id)
       .eq("is_active", true)
       .order("display_order", { ascending: true, nullsFirst: false })
+    
+    // Fetch item_options separately to avoid Supabase nested query limits
+    const menuItemIds = (menuItems || []).map((item) => item.id)
+    const { data: itemOptions } = menuItemIds.length > 0 
+      ? await supabase
+          .from("item_options")
+          .select("*")
+          .in("menu_item_id", menuItemIds)
+          .order("display_order", { ascending: true })
+      : { data: [] }
+    
+    // Fetch item_option_choices separately
+    const optionIds = (itemOptions || []).map((opt) => opt.id)
+    const { data: optionChoices } = optionIds.length > 0
+      ? await supabase
+          .from("item_option_choices")
+          .select("*")
+          .in("item_option_id", optionIds)
+          .order("display_order", { ascending: true })
+      : { data: [] }
 
     let servicePackages = []
     let packageAddons = []
@@ -148,27 +168,19 @@ export default async function TenantPortalPage({
             .order("display_order", { ascending: true })
         : { data: [] }
 
-    // item_options and item_option_choices are already nested on each menuItem via the select above
-    console.log('[v0] Raw menuItems sample:', JSON.stringify(menuItems?.slice(0, 3).map((item: any) => ({
-      id: item.id,
-      name: item.name,
-      item_options_count: item.item_options?.length,
-      item_options_sample: item.item_options?.slice(0, 2).map((opt: any) => ({
-        id: opt.id,
-        category: opt.category,
-        choices_count: opt.item_option_choices?.length
-      }))
-    }))))
+    // Assemble item_options with their choices (fetched separately to avoid Supabase limits)
+    const optionsWithChoices = (itemOptions || []).map((opt: any) => ({
+      ...opt,
+      item_option_choices: (optionChoices || [])
+        .filter((choice: any) => choice.item_option_id === opt.id)
+        .sort((a: any, b: any) => (a.display_order ?? 0) - (b.display_order ?? 0)),
+    }))
+    
     const menuItemsWithOptions = (menuItems || []).map((item) => ({
       ...item,
       base_price: Number(item.price) || 0,
       category: categories?.find((cat) => cat.id === item.category_id)?.name || "",
-      item_options: (item.item_options || []).map((opt: any) => ({
-        ...opt,
-        item_option_choices: (opt.item_option_choices || []).sort(
-          (a: any, b: any) => (a.display_order ?? 0) - (b.display_order ?? 0)
-        ),
-      })),
+      item_options: optionsWithChoices.filter((opt: any) => opt.menu_item_id === item.id),
       sizes: (itemSizes || []).filter((size) => size.menu_item_id === item.id),
     }))
 
