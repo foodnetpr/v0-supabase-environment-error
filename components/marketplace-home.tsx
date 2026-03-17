@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import Link from "next/link"
 import Image from "next/image"
 import { useState, useMemo, useEffect, useRef } from "react"
-import { ChevronLeft, ChevronRight, ArrowRight, Search } from "lucide-react"
+import { ChevronLeft, ChevronRight, ArrowRight, Search, X } from "lucide-react"
 import { type UserLocation, type OrderMode } from "./location-bar"
 import { CuisineBar } from "./cuisine-bar"
 import { GlobalNavbar } from "./global-navbar"
@@ -85,6 +85,7 @@ export function MarketplaceHome({
   const [orderMode, setOrderMode] = useState<OrderMode>("delivery")
   const [cuisineFilter, setCuisineFilter] = useState<string>("all")
   const [locationFilter, setLocationFilter] = useState<string>("all")
+  const [searchQuery, setSearchQuery] = useState<string>("")
 
   const AREAS = [
     "Hato Rey", "Condado", "Miramar", "Isla Verde", "Puerto Nuevo",
@@ -120,14 +121,21 @@ export function MarketplaceHome({
 
   const filteredRestaurants = useMemo((): RestaurantWithDistance[] => {
     const filtered = restaurantsWithDistance.filter((restaurant) => {
+      // Search filter - match name or cuisine
+      const query = searchQuery.toLowerCase().trim()
       const cuisineList = restaurant.cuisine_types?.length
         ? restaurant.cuisine_types
         : restaurant.cuisine_type ? [restaurant.cuisine_type] : []
+      
+      const matchesSearch = query === "" || 
+        restaurant.name.toLowerCase().includes(query) ||
+        cuisineList.some((c) => c.toLowerCase().includes(query))
+      
       const matchesCuisine =
         cuisineFilter === "all" ||
         cuisineList.some((c) => c.toLowerCase() === cuisineFilter.toLowerCase())
       const matchesLocation = locationFilter === "all" || (restaurant as any).area === locationFilter
-      return matchesCuisine && matchesLocation
+      return matchesSearch && matchesCuisine && matchesLocation
     })
 
     // Sort: available (in zone) first by distance, then out-of-zone last
@@ -138,7 +146,7 @@ export function MarketplaceHome({
       const dB = b.calculatedDistance ?? Infinity
       return dA - dB
     })
-  }, [restaurantsWithDistance, cuisineFilter, locationFilter])
+  }, [restaurantsWithDistance, cuisineFilter, locationFilter, searchQuery])
 
   return (
     <div className="flex flex-col min-h-screen bg-white font-sans">
@@ -160,7 +168,11 @@ export function MarketplaceHome({
       />
 
       {/* Hero - Full-width banner matching partners style */}
-      <PromoBar />
+      <PromoBar 
+        searchQuery={searchQuery} 
+        onSearchChange={setSearchQuery}
+        resultCount={filteredRestaurants.length}
+      />
 
       {/* Blocked zip code banner */}
       {userLocation?.zip && blockedZipCodes.includes(userLocation.zip) && (
@@ -214,19 +226,25 @@ export function MarketplaceHome({
       {filteredRestaurants.length === 0 && restaurants.length > 0 && (
         <div className="px-4 py-12 sm:py-20 text-center">
           <Card className="p-6 sm:p-12 max-w-2xl mx-auto border-slate-200">
-            <h3 className="text-lg sm:text-2xl font-bold mb-3 sm:mb-4 text-slate-900">No Se Encontraron Restaurantes</h3>
+            <h3 className="text-lg sm:text-2xl font-bold mb-3 sm:mb-4 text-slate-900">
+              {searchQuery ? "No encontramos restaurantes" : "No Se Encontraron Restaurantes"}
+            </h3>
             <p className="text-sm sm:text-base text-slate-600 mb-4 sm:mb-6">
-              No hay restaurantes que coincidan con los filtros seleccionados.
+              {searchQuery 
+                ? `No encontramos restaurantes con "${searchQuery}". Intenta con otra busqueda.`
+                : "No hay restaurantes que coincidan con los filtros seleccionados."
+              }
             </p>
             <Button
               onClick={() => {
+                setSearchQuery("")
                 setCuisineFilter("all")
                 setLocationFilter("all")
               }}
               variant="outline"
               className="border-slate-300"
             >
-              Limpiar Filtros
+              {searchQuery ? "Limpiar Busqueda" : "Limpiar Filtros"}
             </Button>
           </Card>
         </div>
@@ -258,7 +276,15 @@ interface PromoCardData {
   is_active: boolean
 }
 
-function PromoBar() {
+function PromoBar({ 
+  searchQuery, 
+  onSearchChange,
+  resultCount
+}: { 
+  searchQuery: string
+  onSearchChange: (query: string) => void
+  resultCount: number
+}) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [showLeftArrow, setShowLeftArrow] = useState(false)
   const [showRightArrow, setShowRightArrow] = useState(true)
@@ -296,9 +322,31 @@ function PromoBar() {
         <div className="flex items-center justify-between mb-3 sm:mb-4">
           <h2 className="text-base sm:text-lg font-bold text-slate-900">Ofertas y Promociones</h2>
           {/* Restaurant search input */}
-          <div className="flex items-center gap-2 px-3 py-1.5 border border-slate-200 rounded-lg bg-white hover:border-slate-300 transition-colors cursor-pointer min-w-[200px] sm:min-w-[280px]">
-            <Search className="w-4 h-4 text-slate-400 flex-shrink-0" />
-            <span className="text-sm text-slate-400 truncate">Busqueda de Restaurantes</span>
+          <div className="flex flex-col items-end gap-1">
+            <div className="flex items-center gap-2 px-3 py-1.5 border border-slate-200 rounded-lg bg-white hover:border-slate-300 focus-within:border-slate-400 focus-within:ring-1 focus-within:ring-slate-200 transition-colors min-w-[200px] sm:min-w-[280px]">
+              <Search className="w-4 h-4 text-slate-400 flex-shrink-0" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => onSearchChange(e.target.value)}
+                placeholder="Busqueda de Restaurantes"
+                className="flex-1 text-sm text-slate-700 placeholder:text-slate-400 bg-transparent border-none outline-none"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => onSearchChange("")}
+                  className="p-0.5 hover:bg-slate-100 rounded-full transition-colors"
+                  aria-label="Limpiar busqueda"
+                >
+                  <X className="w-4 h-4 text-slate-400" />
+                </button>
+              )}
+            </div>
+            {searchQuery && (
+              <span className="text-xs text-slate-500">
+                {resultCount} restaurante{resultCount !== 1 ? "s" : ""} encontrado{resultCount !== 1 ? "s" : ""}
+              </span>
+            )}
           </div>
         </div>
 
