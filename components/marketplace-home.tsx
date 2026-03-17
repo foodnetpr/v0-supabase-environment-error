@@ -334,7 +334,6 @@ function PromoBar({
           {/* Restaurant search and filter controls */}
           <div className="flex items-center gap-2">
             {/* Ver Todos button - shows when filters are active */}
-            {console.log("[v0] cuisineFilter:", cuisineFilter, "searchQuery:", searchQuery)}
             {(cuisineFilter !== "all" || searchQuery) && (
               <button
                 onClick={onResetFilters}
