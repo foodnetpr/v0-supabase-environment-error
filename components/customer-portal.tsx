@@ -5068,8 +5068,9 @@ const orderData = {
                           for (let h = startH; h < endH; h++) {
                             for (const m of ['00', '30']) {
                               const slotMinutes = h * 60 + parseInt(m)
-                              // Only show times >= next opening time
-                              if (slotMinutes >= nextOpenMinutes) {
+                              // Only show times >= next opening time + 45 minutes buffer
+                              const minAllowedTime = nextOpenMinutes + 45
+                              if (slotMinutes >= minAllowedTime) {
                                 const hour = h > 12 ? h - 12 : (h === 0 ? 12 : h)
                                 const ampm = h >= 12 ? 'PM' : 'AM'
                                 const timeStr = `${hour}:${m} ${ampm}`
