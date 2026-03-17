@@ -237,9 +237,26 @@ export async function getNextOpenTime(restaurantId: string, now: Date): Promise<
 // Batch check open status for multiple restaurants (efficient for marketplace)
 export async function getRestaurantsOpenStatus(restaurantIds: string[]): Promise<Map<string, { isOpen: boolean; nextOpenTime: string | null }>> {
   const supabase = await createClient()
+  
+  // Use Puerto Rico timezone (AST = UTC-4)
   const now = new Date()
-  const dayOfWeek = now.getDay()
-  const currentTime = formatTimeForComparison(now)
+  const prFormatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Puerto_Rico',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+    weekday: 'short'
+  })
+  const prParts = prFormatter.formatToParts(now)
+  const prHour = prParts.find(p => p.type === 'hour')?.value || '00'
+  const prMinute = prParts.find(p => p.type === 'minute')?.value || '00'
+  const prSecond = prParts.find(p => p.type === 'second')?.value || '00'
+  const currentTime = `${prHour}:${prMinute}:${prSecond}`
+  
+  // Get day of week in Puerto Rico timezone
+  const prDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Puerto_Rico' }))
+  const dayOfWeek = prDate.getDay()
   
   // Fetch all hours for these restaurants for today
   const { data: allHours } = await supabase
