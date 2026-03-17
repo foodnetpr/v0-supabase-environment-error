@@ -4984,8 +4984,7 @@ const orderData = {
 
             {/* Hours */}
             {(() => {
-              const hours = getEffectiveHours()
-              if (hours.length === 0) return null
+              if (restaurantHours.length === 0) return null
               const formatTime = (t: string | null) => {
                 if (!t) return ""
                 const [h, m] = t.split(":").map(Number)
@@ -4993,20 +4992,30 @@ const orderData = {
                 const h12 = h % 12 || 12
                 return `${h12}:${m.toString().padStart(2, "0")} ${ampm}`
               }
+              // Get earliest open and latest close from all meal periods
+              const getOpenClose = (h: RestaurantHour) => {
+                const times = [h.lunch_open, h.dinner_open].filter(Boolean) as string[]
+                const closeTimes = [h.lunch_close, h.dinner_close].filter(Boolean) as string[]
+                if (times.length === 0) return { open: null, close: null }
+                return { open: times.sort()[0], close: closeTimes.sort().reverse()[0] }
+              }
               return (
                 <div className="sm:col-span-2">
                   <h3 className="font-semibold text-gray-900 mb-3">Horario de Operacion</h3>
                   <div className="space-y-1.5 max-w-sm">
-                    {hours.sort((a, b) => a.day_of_week - b.day_of_week).map((h) => (
-                      <div key={h.day_of_week} className="flex items-center text-sm">
-                        <span className="font-medium text-gray-700 w-28 shrink-0">{DAY_NAMES_FULL[h.day_of_week]}</span>
-                        {h.is_open ? (
-                          <span className="text-gray-600">{formatTime(h.open_time)} - {formatTime(h.close_time)}</span>
-                        ) : (
-                          <span className="text-red-500 font-medium">Cerrado</span>
-                        )}
-                      </div>
-                    ))}
+                    {restaurantHours.sort((a, b) => a.day_of_week - b.day_of_week).map((h) => {
+                      const { open, close } = getOpenClose(h)
+                      return (
+                        <div key={h.day_of_week} className="flex items-center text-sm">
+                          <span className="font-medium text-gray-700 w-28 shrink-0">{DAY_NAMES_FULL[h.day_of_week]}</span>
+                          {open && close ? (
+                            <span className="text-gray-600">{formatTime(open)} - {formatTime(close)}</span>
+                          ) : (
+                            <span className="text-red-500 font-medium">Cerrado</span>
+                          )}
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               )
