@@ -212,9 +212,9 @@ export default async function TenantPortalPage({
       .select("*")
       .eq("restaurant_id", restaurant.id)
 
-    // Fetch operating hours for this restaurant
-    const { data: operatingHours } = await supabase
-      .from("operating_hours")
+    // Fetch restaurant meal period hours (breakfast, lunch, dinner)
+    const { data: restaurantHours } = await supabase
+      .from("restaurant_hours")
       .select("*")
       .eq("restaurant_id", restaurant.id)
       .order("day_of_week", { ascending: true })
@@ -248,7 +248,7 @@ export default async function TenantPortalPage({
         branches={branches}
         branchMenuOverrides={branchMenuOverrides}
         containerRates={containerRates || []}
-        operatingHours={operatingHours || []}
+        restaurantHours={restaurantHours || []}
         customer={customer}
         customerAddresses={customerAddresses}
       />

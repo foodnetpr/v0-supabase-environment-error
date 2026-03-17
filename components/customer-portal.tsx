@@ -130,12 +130,14 @@ interface ServicePackage {
   included_items?: string[] // Added for included items
 }
 
-interface OperatingHour {
+interface RestaurantHour {
   day_of_week: number // 0=Sunday, 1=Monday, ..., 6=Saturday
-  is_open: boolean
-  open_time: string | null
-  close_time: string | null
-  branch_id: string | null
+  breakfast_open: string | null
+  breakfast_close: string | null
+  lunch_open: string | null
+  lunch_close: string | null
+  dinner_open: string | null
+  dinner_close: string | null
 }
 
 interface Category {
@@ -270,7 +272,7 @@ interface CustomerPortalProps {
   branches?: Branch[]
   branchMenuOverrides?: BranchMenuOverride[]
   containerRates?: any[]
-  operatingHours?: OperatingHour[]
+  restaurantHours?: RestaurantHour[]
   customer?: Customer | null
   customerAddresses?: CustomerAddress[]
   }
@@ -301,7 +303,7 @@ export default function CustomerPortal({
   branches = [],
   branchMenuOverrides = [],
   containerRates = [],
-  operatingHours = [],
+  restaurantHours = [],
   customer,
   customerAddresses = [],
   }: CustomerPortalProps) {
@@ -313,13 +315,14 @@ export default function CustomerPortal({
   )
   const [showBranchSelector, setShowBranchSelector] = useState(isChain)
 
-  // Helper to check if item is available now (day + daypart)
+  // Helper to check if item is available now (day + daypart using restaurant_hours)
   const isAvailableNow = (item: MenuItem) => {
     const now = new Date()
+    const dayOfWeek = now.getDay() // 0=Sunday, 1=Monday, etc.
     const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const
-    const today = days[now.getDay()]
+    const today = days[dayOfWeek]
     
-    // Check day availability
+    // Check day availability from item's available_days
     const availableDays = item.available_days as Record<string, boolean> | null
     if (availableDays && availableDays[today] === false) return false
     
@@ -327,20 +330,24 @@ export default function CustomerPortal({
     const daypart = (item as any).availability_daypart || "all"
     if (daypart === "all") return true
     
-    // Get restaurant daypart times (with defaults)
+    // Get today's meal period hours from restaurant_hours
+    const todayHours = restaurantHours.find(h => h.day_of_week === dayOfWeek)
+    
+    // If no hours defined for today, fall back to restaurant defaults
     const r = restaurant as any
-    const breakfastStart = r.breakfast_start || "06:00"
-    const breakfastEnd = r.breakfast_end || "11:00"
-    const lunchStart = r.lunch_start || "11:00"
-    const lunchEnd = r.lunch_end || "16:00"
-    const dinnerStart = r.dinner_start || "16:00"
-    const dinnerEnd = r.dinner_end || "22:00"
+    const breakfastStart = todayHours?.breakfast_open || r.daypart_breakfast_start || "06:00"
+    const breakfastEnd = todayHours?.breakfast_close || r.daypart_breakfast_end || "11:00"
+    const lunchStart = todayHours?.lunch_open || r.daypart_lunch_start || "11:00"
+    const lunchEnd = todayHours?.lunch_close || r.daypart_lunch_end || "16:00"
+    const dinnerStart = todayHours?.dinner_open || r.daypart_dinner_start || "16:00"
+    const dinnerEnd = todayHours?.dinner_close || r.daypart_dinner_end || "22:00"
     
     const currentTime = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`
     
-    const inBreakfast = currentTime >= breakfastStart && currentTime < breakfastEnd
-    const inLunch = currentTime >= lunchStart && currentTime < lunchEnd
-    const inDinner = currentTime >= dinnerStart && currentTime < dinnerEnd
+    // Check if currently in each meal period (null times mean closed for that period)
+    const inBreakfast = breakfastStart && breakfastEnd && currentTime >= breakfastStart && currentTime < breakfastEnd
+    const inLunch = lunchStart && lunchEnd && currentTime >= lunchStart && currentTime < lunchEnd
+    const inDinner = dinnerStart && dinnerEnd && currentTime >= dinnerStart && currentTime < dinnerEnd
     
     switch (daypart) {
       case "breakfast": return inBreakfast
