@@ -5015,12 +5015,44 @@ const orderData = {
                 >
                   <option value="">Seleccionar hora...</option>
                   {(() => {
-                    // Generate time slots based on restaurant hours
+                    // Generate time slots based on restaurant hours, starting from next opening time
                     const options: JSX.Element[] = []
                     const now = new Date()
+                    const prFormatter = new Intl.DateTimeFormat('en-US', {
+                      timeZone: 'America/Puerto_Rico',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      hour12: false,
+                    })
+                    const prParts = prFormatter.formatToParts(now)
+                    const prHour = prParts.find(p => p.type === 'hour')?.value || '00'
+                    const prMinute = prParts.find(p => p.type === 'minute')?.value || '00'
+                    const currentTimeMinutes = parseInt(prHour) * 60 + parseInt(prMinute)
+                    
                     const prDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Puerto_Rico' }))
                     const dayOfWeek = prDate.getDay()
                     const todayHours = restaurantHours.find(h => h.day_of_week === dayOfWeek)
+                    
+                    // Find the next opening time
+                    let nextOpenMinutes = 0
+                    if (todayHours) {
+                      const openTimes = [
+                        todayHours.breakfast_open,
+                        todayHours.lunch_open,
+                        todayHours.dinner_open,
+                      ].filter(Boolean)
+                      
+                      for (const openTime of openTimes) {
+                        if (openTime) {
+                          const [h, m] = openTime.split(':').map(Number)
+                          const openMinutes = h * 60 + (m || 0)
+                          if (openMinutes > currentTimeMinutes) {
+                            nextOpenMinutes = openMinutes
+                            break
+                          }
+                        }
+                      }
+                    }
                     
                     if (todayHours) {
                       const shifts = [
@@ -5035,13 +5067,17 @@ const orderData = {
                           
                           for (let h = startH; h < endH; h++) {
                             for (const m of ['00', '30']) {
-                              const hour = h > 12 ? h - 12 : (h === 0 ? 12 : h)
-                              const ampm = h >= 12 ? 'PM' : 'AM'
-                              const timeStr = `${hour}:${m} ${ampm}`
-                              const value = `${h.toString().padStart(2, '0')}:${m}`
-                              options.push(
-                                <option key={value} value={value}>{timeStr}</option>
-                              )
+                              const slotMinutes = h * 60 + parseInt(m)
+                              // Only show times >= next opening time
+                              if (slotMinutes >= nextOpenMinutes) {
+                                const hour = h > 12 ? h - 12 : (h === 0 ? 12 : h)
+                                const ampm = h >= 12 ? 'PM' : 'AM'
+                                const timeStr = `${hour}:${m} ${ampm}`
+                                const value = `${h.toString().padStart(2, '0')}:${m}`
+                                options.push(
+                                  <option key={value} value={value}>{timeStr}</option>
+                                )
+                              }
                             }
                           }
                         }
