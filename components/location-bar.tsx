@@ -380,7 +380,7 @@ export function LocationBar({
             <SelectContent className="z-[60]">
               {PUERTO_RICO_ZIP_CODES.map((zipCode) => (
                 <SelectItem key={zipCode.zip} value={zipCode.zip}>
-                  {zipCode.zip} - {zipCode.area}
+                  {zipCode.zip}
                 </SelectItem>
               ))}
             </SelectContent>
