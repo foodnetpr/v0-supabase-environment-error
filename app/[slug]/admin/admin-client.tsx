@@ -4773,9 +4773,13 @@ const pickupOrders = orders.filter((o: any) => o.order_type === "pickup" || o.de
                                   </SelectTrigger>
                                   <SelectContent>
                                     <SelectItem value="closed">Cerrado</SelectItem>
-                                    {Array.from({ length: 24 }, (_, h) => [`${h.toString().padStart(2, "0")}:00`, `${h.toString().padStart(2, "0")}:30`]).flat().map((t) => (
-                                      <SelectItem key={`bo-${t}`} value={t}>{t.replace(":", ":")} {parseInt(t) < 12 ? "AM" : "PM"}</SelectItem>
-                                    ))}
+                                    {Array.from({ length: 24 }, (_, h) => [`${h.toString().padStart(2, "0")}:00`, `${h.toString().padStart(2, "0")}:30`]).flat().map((t) => {
+                                      const hour = parseInt(t.split(":")[0])
+                                      const min = t.split(":")[1]
+                                      const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour
+                                      const ampm = hour < 12 ? "AM" : "PM"
+                                      return <SelectItem key={`bo-${t}`} value={t}>{displayHour}:{min} {ampm}</SelectItem>
+                                    })}
                                   </SelectContent>
                                 </Select>
                               </td>
@@ -4794,9 +4798,13 @@ const pickupOrders = orders.filter((o: any) => o.order_type === "pickup" || o.de
                                   </SelectTrigger>
                                   <SelectContent>
                                     <SelectItem value="closed">Cerrado</SelectItem>
-                                    {Array.from({ length: 24 }, (_, h) => [`${h.toString().padStart(2, "0")}:00`, `${h.toString().padStart(2, "0")}:30`]).flat().map((t) => (
-                                      <SelectItem key={`bc-${t}`} value={t}>{t.replace(":", ":")} {parseInt(t) < 12 ? "AM" : "PM"}</SelectItem>
-                                    ))}
+                                    {Array.from({ length: 24 }, (_, h) => [`${h.toString().padStart(2, "0")}:00`, `${h.toString().padStart(2, "0")}:30`]).flat().map((t) => {
+                                      const hour = parseInt(t.split(":")[0])
+                                      const min = t.split(":")[1]
+                                      const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour
+                                      const ampm = hour < 12 ? "AM" : "PM"
+                                      return <SelectItem key={`bc-${t}`} value={t}>{displayHour}:{min} {ampm}</SelectItem>
+                                    })}
                                   </SelectContent>
                                 </Select>
                               </td>
@@ -4816,9 +4824,13 @@ const pickupOrders = orders.filter((o: any) => o.order_type === "pickup" || o.de
                                   </SelectTrigger>
                                   <SelectContent>
                                     <SelectItem value="closed">Cerrado</SelectItem>
-                                    {Array.from({ length: 24 }, (_, h) => [`${h.toString().padStart(2, "0")}:00`, `${h.toString().padStart(2, "0")}:30`]).flat().map((t) => (
-                                      <SelectItem key={`lo-${t}`} value={t}>{t.replace(":", ":")} {parseInt(t) < 12 ? "AM" : "PM"}</SelectItem>
-                                    ))}
+                                    {Array.from({ length: 24 }, (_, h) => [`${h.toString().padStart(2, "0")}:00`, `${h.toString().padStart(2, "0")}:30`]).flat().map((t) => {
+                                      const hour = parseInt(t.split(":")[0])
+                                      const min = t.split(":")[1]
+                                      const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour
+                                      const ampm = hour < 12 ? "AM" : "PM"
+                                      return <SelectItem key={`lo-${t}`} value={t}>{displayHour}:{min} {ampm}</SelectItem>
+                                    })}
                                   </SelectContent>
                                 </Select>
                               </td>
@@ -4837,9 +4849,13 @@ const pickupOrders = orders.filter((o: any) => o.order_type === "pickup" || o.de
                                   </SelectTrigger>
                                   <SelectContent>
                                     <SelectItem value="closed">Cerrado</SelectItem>
-                                    {Array.from({ length: 24 }, (_, h) => [`${h.toString().padStart(2, "0")}:00`, `${h.toString().padStart(2, "0")}:30`]).flat().map((t) => (
-                                      <SelectItem key={`lc-${t}`} value={t}>{t.replace(":", ":")} {parseInt(t) < 12 ? "AM" : "PM"}</SelectItem>
-                                    ))}
+                                    {Array.from({ length: 24 }, (_, h) => [`${h.toString().padStart(2, "0")}:00`, `${h.toString().padStart(2, "0")}:30`]).flat().map((t) => {
+                                      const hour = parseInt(t.split(":")[0])
+                                      const min = t.split(":")[1]
+                                      const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour
+                                      const ampm = hour < 12 ? "AM" : "PM"
+                                      return <SelectItem key={`lc-${t}`} value={t}>{displayHour}:{min} {ampm}</SelectItem>
+                                    })}
                                   </SelectContent>
                                 </Select>
                               </td>
@@ -4859,9 +4875,13 @@ const pickupOrders = orders.filter((o: any) => o.order_type === "pickup" || o.de
                                   </SelectTrigger>
                                   <SelectContent>
                                     <SelectItem value="closed">Cerrado</SelectItem>
-                                    {Array.from({ length: 24 }, (_, h) => [`${h.toString().padStart(2, "0")}:00`, `${h.toString().padStart(2, "0")}:30`]).flat().map((t) => (
-                                      <SelectItem key={`do-${t}`} value={t}>{t.replace(":", ":")} {parseInt(t) < 12 ? "AM" : "PM"}</SelectItem>
-                                    ))}
+                                    {Array.from({ length: 24 }, (_, h) => [`${h.toString().padStart(2, "0")}:00`, `${h.toString().padStart(2, "0")}:30`]).flat().map((t) => {
+                                      const hour = parseInt(t.split(":")[0])
+                                      const min = t.split(":")[1]
+                                      const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour
+                                      const ampm = hour < 12 ? "AM" : "PM"
+                                      return <SelectItem key={`do-${t}`} value={t}>{displayHour}:{min} {ampm}</SelectItem>
+                                    })}
                                   </SelectContent>
                                 </Select>
                               </td>
@@ -4880,9 +4900,13 @@ const pickupOrders = orders.filter((o: any) => o.order_type === "pickup" || o.de
                                   </SelectTrigger>
                                   <SelectContent>
                                     <SelectItem value="closed">Cerrado</SelectItem>
-                                    {Array.from({ length: 24 }, (_, h) => [`${h.toString().padStart(2, "0")}:00`, `${h.toString().padStart(2, "0")}:30`]).flat().map((t) => (
-                                      <SelectItem key={`dc-${t}`} value={t}>{t.replace(":", ":")} {parseInt(t) < 12 ? "AM" : "PM"}</SelectItem>
-                                    ))}
+                                    {Array.from({ length: 24 }, (_, h) => [`${h.toString().padStart(2, "0")}:00`, `${h.toString().padStart(2, "0")}:30`]).flat().map((t) => {
+                                      const hour = parseInt(t.split(":")[0])
+                                      const min = t.split(":")[1]
+                                      const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour
+                                      const ampm = hour < 12 ? "AM" : "PM"
+                                      return <SelectItem key={`dc-${t}`} value={t}>{displayHour}:{min} {ampm}</SelectItem>
+                                    })}
                                   </SelectContent>
                                 </Select>
                               </td>
