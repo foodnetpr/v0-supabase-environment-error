@@ -5064,8 +5064,12 @@ const orderData = {
             <button
               onClick={() => {
                 if (scheduledDeliveryTime) {
+                  // Update the delivery form with the scheduled time
+                  setDeliveryForm(prev => ({
+                    ...prev,
+                    eventTime: scheduledDeliveryTime
+                  }))
                   setShowPreorderDialog(false)
-                  // Continue to menu with scheduled time
                 }
               }}
               disabled={!scheduledDeliveryTime}
