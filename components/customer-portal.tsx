@@ -34,6 +34,7 @@ import { BranchSelector } from "@/components/branch-selector"
 import { useToast } from "@/components/ui/use-toast" // Import useToast
 import { InternalShopExtras } from "@/components/internal-shop-extras"
 import { ShopUpsellBanner } from "@/components/shop-upsell-banner"
+import { InternalShopModal } from "@/components/internal-shop-modal"
 import { useInternalShopCart } from "@/hooks/use-internal-shop-cart"
 
 import { createBrowserClient } from "@/lib/supabase/client"
@@ -764,6 +765,9 @@ export default function CustomerPortal({
     updateQuantity: updateShopItemQuantity,
     removeItem: removeShopItem,
   } = useInternalShopCart()
+  
+  // Internal shop modal state
+  const [showInternalShopModal, setShowInternalShopModal] = useState(false)
   const [showSquareCheckout, setShowSquareCheckout] = useState(false)
   const [showATHMovilCheckout, setShowATHMovilCheckout] = useState(false)
   const [showPaymentSelector, setShowPaymentSelector] = useState(false) // For "both" payment provider option
@@ -2207,7 +2211,18 @@ const orderData = {
             </Button>
             </div>
             {/* Bottom row on mobile: Delivery/Pickup toggle + Account + Cart (desktop only cart here) */}
-            <div className="flex items-center justify-center gap-4 md:justify-end">
+            <div className="flex items-center justify-center gap-2 md:gap-4 md:justify-end">
+              {/* Bebidas y Extras - FoodNet Shop button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowInternalShopModal(true)}
+                className="gap-1.5 text-cyan-600 hover:text-cyan-700 hover:bg-cyan-50"
+              >
+                <Package className="w-4 h-4" />
+                <span className="hidden sm:inline text-xs font-medium">Bebidas y Extras</span>
+              </Button>
+
               {/* Delivery/Pickup toggle - hidden until we have pickup restaurants */}
               {user ? (
                 <Button
@@ -5572,6 +5587,12 @@ const orderData = {
           </span>
         </button>
       </div>
+
+      {/* Internal Shop Modal */}
+      <InternalShopModal
+        isOpen={showInternalShopModal}
+        onClose={() => setShowInternalShopModal(false)}
+      />
     </div>
   )
 }
