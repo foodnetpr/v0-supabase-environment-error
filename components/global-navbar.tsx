@@ -59,7 +59,7 @@ export function GlobalNavbar({
   }
 
   return (
-    <>
+    <div id="global-navbar">
       {/* Thin spacer bar for breathing room - hidden on mobile */}
       <div className="h-2 bg-slate-100 hidden sm:block" />
       
@@ -174,6 +174,6 @@ export function GlobalNavbar({
           )}
         </div>
       </nav>
-    </>
+    </div>
   )
 }

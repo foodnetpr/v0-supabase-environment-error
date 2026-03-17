@@ -452,6 +452,21 @@ export default function CustomerPortal({
   
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [dietaryFilters, setDietaryFilters] = useState<string[]>([])
+  
+  // Measure GlobalNavbar height at runtime for sticky category nav positioning
+  useEffect(() => {
+    const measureNavbar = () => {
+      const navbar = document.getElementById('global-navbar')
+      if (navbar) {
+        const height = navbar.getBoundingClientRect().height
+        document.documentElement.style.setProperty('--navbar-height', `${height}px`)
+      }
+    }
+    measureNavbar()
+    window.addEventListener('resize', measureNavbar)
+    return () => window.removeEventListener('resize', measureNavbar)
+  }, [])
+  
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null)
   const [loadedItemOptions, setLoadedItemOptions] = useState<any[] | null>(null)
   const [loadingItemOptions, setLoadingItemOptions] = useState(false)
@@ -2243,8 +2258,11 @@ const orderData = {
         </div>
       </div>
 
-      {/* Navigation - sticky floating menu (sticks below GlobalNavbar: mobile ~96px, desktop ~52px) */}
-      <nav className="sticky top-[96px] sm:top-[52px] z-40 bg-background border-b shadow-sm">
+      {/* Navigation - sticky floating menu (sticks below GlobalNavbar using measured height) */}
+      <nav 
+        className="sticky z-40 bg-background border-b shadow-sm"
+        style={{ top: 'var(--navbar-height, 64px)' }}
+      >
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-2 overflow-x-auto">
             <DropdownMenu>
