@@ -1,5 +1,6 @@
 import { createServerClient } from "@/lib/supabase/server"
 import { MarketplaceHome } from "@/components/marketplace-home"
+import { getRestaurantsOpenStatus } from "@/lib/availability"
 
 export default async function HomePage() {
   const supabase = await createServerClient()
@@ -16,6 +17,21 @@ export default async function HomePage() {
     console.error("Error fetching marketplace restaurants:", error)
     return <MarketplaceHome restaurants={[]} cuisineTypes={[]} />
   }
+
+  // Get open/closed status for all restaurants
+  const restaurantIds = restaurants?.map(r => r.id) || []
+  const openStatusMap = await getRestaurantsOpenStatus(restaurantIds)
+  console.log("[v0] Open status map:", Object.fromEntries(openStatusMap))
+  
+  // Merge open status into restaurant data
+  const restaurantsWithStatus = restaurants?.map(r => {
+    const status = openStatusMap.get(r.id)
+    return {
+      ...r,
+      isOpen: status?.isOpen ?? true,
+      nextOpenTime: status?.nextOpenTime ?? null,
+    }
+  }) || []
 
   // Fetch cuisine types from database
   const { data: cuisineTypes } = await supabase
@@ -34,7 +50,7 @@ export default async function HomePage() {
 
   return (
     <MarketplaceHome 
-      restaurants={restaurants || []} 
+      restaurants={restaurantsWithStatus} 
       marketplaceSettings={marketplaceSettings || undefined}
       cuisineTypes={cuisineTypes || []}
       blockedZipCodes={platformSettings?.blocked_zip_codes || []}

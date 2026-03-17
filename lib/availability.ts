@@ -178,4 +178,138 @@ export async function isRestaurantAvailable(restaurant: Restaurant): Promise<{
   return { available: true }
 }
 
+// Get the next opening time for a restaurant
+export async function getNextOpenTime(restaurantId: string, now: Date): Promise<string | null> {
+  const supabase = await createClient()
+  const currentTime = formatTimeForComparison(now)
+  const dayOfWeek = now.getDay()
+  
+  // First check today's remaining hours
+  const todayHours = await getRestaurantHours(restaurantId, dayOfWeek)
+  if (todayHours) {
+    const shifts = [
+      { name: 'breakfast', open: todayHours.breakfast_open, close: todayHours.breakfast_close },
+      { name: 'lunch', open: todayHours.lunch_open, close: todayHours.lunch_close },
+      { name: 'dinner', open: todayHours.dinner_open, close: todayHours.dinner_close },
+    ]
+    
+    // Find next shift that opens today
+    for (const shift of shifts) {
+      if (shift.open && shift.close && currentTime < shift.open) {
+        // Format time for display (e.g., "11:30AM")
+        const [hours, minutes] = shift.open.split(':')
+        const hour = parseInt(hours)
+        const ampm = hour >= 12 ? 'PM' : 'AM'
+        const displayHour = hour > 12 ? hour - 12 : (hour === 0 ? 12 : hour)
+        return `${displayHour}:${minutes}${ampm}`
+      }
+    }
+  }
+  
+  // Check tomorrow and the next 6 days
+  for (let i = 1; i <= 7; i++) {
+    const nextDay = (dayOfWeek + i) % 7
+    const nextHours = await getRestaurantHours(restaurantId, nextDay)
+    if (nextHours) {
+      const shifts = [
+        { open: nextHours.breakfast_open },
+        { open: nextHours.lunch_open },
+        { open: nextHours.dinner_open },
+      ]
+      
+      // Find first open shift
+      for (const shift of shifts) {
+        if (shift.open) {
+          const [hours, minutes] = shift.open.split(':')
+          const hour = parseInt(hours)
+          const ampm = hour >= 12 ? 'PM' : 'AM'
+          const displayHour = hour > 12 ? hour - 12 : (hour === 0 ? 12 : hour)
+          const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+          return i === 1 ? `Mañana ${displayHour}:${minutes}${ampm}` : `${dayNames[nextDay]} ${displayHour}:${minutes}${ampm}`
+        }
+      }
+    }
+  }
+  
+  return null
+}
+
+// Batch check open status for multiple restaurants (efficient for marketplace)
+export async function getRestaurantsOpenStatus(restaurantIds: string[]): Promise<Map<string, { isOpen: boolean; nextOpenTime: string | null }>> {
+  const supabase = await createClient()
+  const now = new Date()
+  const dayOfWeek = now.getDay()
+  const currentTime = formatTimeForComparison(now)
+  
+  // Fetch all hours for these restaurants for today
+  const { data: allHours } = await supabase
+    .from("restaurant_hours")
+    .select("*")
+    .in("restaurant_id", restaurantIds)
+    .eq("day_of_week", dayOfWeek)
+  
+  const hoursMap = new Map<string, any>()
+  allHours?.forEach(h => hoursMap.set(h.restaurant_id, h))
+  
+  const results = new Map<string, { isOpen: boolean; nextOpenTime: string | null }>()
+  
+  for (const id of restaurantIds) {
+    const hours = hoursMap.get(id)
+    
+    if (!hours) {
+      // No hours set = always open
+      results.set(id, { isOpen: true, nextOpenTime: null })
+      continue
+    }
+    
+    const shifts = [
+      { open: hours.breakfast_open, close: hours.breakfast_close },
+      { open: hours.lunch_open, close: hours.lunch_close },
+      { open: hours.dinner_open, close: hours.dinner_close },
+    ]
+    
+    let isOpen = false
+    let nextOpenTime: string | null = null
+    
+    // Check if currently open
+    for (const shift of shifts) {
+      if (shift.open && shift.close) {
+        if (currentTime >= shift.open && currentTime <= shift.close) {
+          isOpen = true
+          break
+        }
+      }
+    }
+    
+    // If all shifts are null, assume always open
+    const hasAnyShift = shifts.some(s => s.open && s.close)
+    if (!hasAnyShift) {
+      isOpen = true
+    }
+    
+    // If not open, find next opening time today
+    if (!isOpen) {
+      for (const shift of shifts) {
+        if (shift.open && shift.close && currentTime < shift.open) {
+          const [h, m] = shift.open.split(':')
+          const hour = parseInt(h)
+          const ampm = hour >= 12 ? 'PM' : 'AM'
+          const displayHour = hour > 12 ? hour - 12 : (hour === 0 ? 12 : hour)
+          nextOpenTime = `${displayHour}:${m}${ampm}`
+          break
+        }
+      }
+      
+      // If no more shifts today, show "Mañana"
+      if (!nextOpenTime) {
+        nextOpenTime = "Mañana"
+      }
+    }
+    
+    results.set(id, { isOpen, nextOpenTime })
+  }
+  
+  return results
+}
+
 export type { PlatformSettings, Restaurant }
