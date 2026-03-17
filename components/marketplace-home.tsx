@@ -135,13 +135,13 @@ export function MarketplaceHome({
         cuisineFilter === "all" ||
         cuisineList.some((c) => c.toLowerCase() === cuisineFilter.toLowerCase())
       const matchesLocation = locationFilter === "all" || (restaurant as any).area === locationFilter
-      return matchesSearch && matchesCuisine && matchesLocation
+      // Only show restaurants that are in the delivery zone
+      const isInZone = restaurant.inDeliveryZone !== false
+      return matchesSearch && matchesCuisine && matchesLocation && isInZone
     })
 
-    // Sort: available (in zone) first by distance, then out-of-zone last
+    // Sort by distance
     return [...filtered].sort((a, b) => {
-      if (a.inDeliveryZone && !b.inDeliveryZone) return -1
-      if (!a.inDeliveryZone && b.inDeliveryZone) return 1
       const dA = a.calculatedDistance ?? Infinity
       const dB = b.calculatedDistance ?? Infinity
       return dA - dB
