@@ -365,26 +365,17 @@ export function MenuItemCard({ item, template, onSelect, primaryColor }: MenuIte
           <h3 className={styles.title}>{item.name}</h3>
           {item.description && <p className={styles.description}>{item.description}</p>}
           {showPrice && (
-            hasUnit ? (
-              <div>
-                <p className={`${styles.price} text-muted-foreground/90`}>
-                  ${unitPrice.toFixed(2)} / {getUnitLabelCard(item.pricing_unit, 1)}
-                </p>
-                {item.serves && item.pricing_unit !== "person" && (
-                  <p className="text-xs text-muted-foreground/70">Sirve {item.serves}</p>
-                )}
-                {item.min_quantity && item.min_quantity > 1 && (
-                  <p className="text-xs text-muted-foreground/70">Min. {item.min_quantity} {getMinQtyLabel(item.pricing_unit, item.min_quantity)}</p>
-                )}
-              </div>
-            ) : (
-              <div>
-                <p className={`${styles.price} text-muted-foreground/90`}>${item.base_price.toFixed(2)}</p>
-                {item.serves && (
-                  <p className="text-xs text-muted-foreground/70">Sirve {item.serves}</p>
-                )}
-              </div>
-            )
+            <div>
+              <p className={`${styles.price} text-muted-foreground/90`}>
+                ${unitPrice.toFixed(2)}{getUnitLabelCard(item.pricing_unit, 1) ? ` / ${getUnitLabelCard(item.pricing_unit, 1)}` : ""}
+              </p>
+              {item.serves && item.pricing_unit !== "person" && (
+                <p className="text-xs text-muted-foreground/70">Sirve {item.serves}</p>
+              )}
+              {item.min_quantity && item.min_quantity > 1 && (
+                <p className="text-xs text-muted-foreground/70">Min. {item.min_quantity} {getMinQtyLabel(item.pricing_unit, item.min_quantity)}</p>
+              )}
+            </div>
           )}
         </div>
         {!imageOnLeft && item.image_url && (
@@ -434,26 +425,17 @@ export function MenuItemCard({ item, template, onSelect, primaryColor }: MenuIte
           <h3 className={styles.title}>{item.name}</h3>
           <p className={styles.description}>{item.description}</p>
           {showPrice && (
-            hasUnit ? (
-              <div>
-                <p className={`${styles.price} text-muted-foreground/90`}>
-                  ${unitPrice.toFixed(2)} / {getUnitLabelCard(item.pricing_unit, 1)}
-                </p>
-                {item.serves && item.pricing_unit !== "person" && (
-                  <p className="text-xs text-muted-foreground/70">Sirve {item.serves}</p>
-                )}
-                {item.min_quantity && item.min_quantity > 1 && (
-                  <p className="text-xs text-muted-foreground/70">Min. {item.min_quantity} {getMinQtyLabel(item.pricing_unit, item.min_quantity)}</p>
-                )}
-              </div>
-            ) : (
-              <div>
-                <p className={`${styles.price} text-muted-foreground/90`}>${item.base_price.toFixed(2)}</p>
-                {item.serves && (
-                  <p className="text-xs text-muted-foreground/70">Sirve {item.serves}</p>
-                )}
-              </div>
-            )
+            <div>
+              <p className={`${styles.price} text-muted-foreground/90`}>
+                ${unitPrice.toFixed(2)}{getUnitLabelCard(item.pricing_unit, 1) ? ` / ${getUnitLabelCard(item.pricing_unit, 1)}` : ""}
+              </p>
+              {item.serves && item.pricing_unit !== "person" && (
+                <p className="text-xs text-muted-foreground/70">Sirve {item.serves}</p>
+              )}
+              {item.min_quantity && item.min_quantity > 1 && (
+                <p className="text-xs text-muted-foreground/70">Min. {item.min_quantity} {getMinQtyLabel(item.pricing_unit, item.min_quantity)}</p>
+              )}
+            </div>
           )}
         </div>
         <button

@@ -37,12 +37,12 @@ export const SELLING_UNITS: SellingUnit[] = [
   {
     key: "each",
     adminLabel: "Each (standard item)",
-    priceSingular: "por unidad",
-    pricePlural: "por unidad",
+    priceSingular: "",
+    pricePlural: "",
     qtySingular: "Unidad",
     qtyPlural: "Unidades",
-    cardSingular: "por unidad",
-    cardPlural: "por unidad",
+    cardSingular: "",
+    cardPlural: "",
     quantityUnit: "",
   },
   {
