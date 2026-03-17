@@ -16,7 +16,7 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu"
 import { Label } from "@/components/ui/label"
-import { Truck, Package, ShoppingCart, Filter, Check, Minus, Plus, MapPin, Pencil, Trash2, PlusCircle, MinusCircle, X, ChevronDown, List } from "lucide-react"
+import { Truck, Package, ShoppingCart, Filter, Check, Minus, Plus, MapPin, Pencil, Trash2, PlusCircle, MinusCircle, X, ChevronDown, ChevronLeft, List } from "lucide-react"
 import Image from "next/image"
 import StripeCheckout from "./stripe-checkout"
 import SquareCheckout from "./square-checkout"
@@ -2003,6 +2003,14 @@ const orderData = {
             {/* Top row: Logo, name, cart */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3 min-w-0">
+                {/* Back to homepage button */}
+                <Link
+                  href="/"
+                  className="flex items-center justify-center w-9 h-9 bg-black rounded-lg hover:bg-gray-800 transition-colors flex-shrink-0"
+                  aria-label="Volver al inicio"
+                >
+                  <ChevronLeft className="w-5 h-5 text-white" />
+                </Link>
                 {/* Restaurant logo icon */}
                 {restaurant.logo_url && (
                   <>
