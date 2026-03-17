@@ -60,6 +60,14 @@ export async function updateCategory(
   return { success: true }
 }
 
+export async function deleteCategory(categoryId: string) {
+  const supabase = getAdminClient()
+  const { error } = await supabase.from("categories").delete().eq("id", categoryId)
+
+  if (error) throw new Error(error.message)
+  return { success: true }
+}
+
 // Restaurant Meal Period Hours (Breakfast/Lunch/Dinner)
 export type RestaurantHourEntry = {
   day_of_week: number
