@@ -133,14 +133,6 @@ interface ServicePackage {
   included_items?: string[] // Added for included items
 }
 
-interface OperatingHour {
-  day_of_week: number // 0=Sunday, 1=Monday, ..., 6=Saturday
-  is_open: boolean
-  open_time: string | null
-  close_time: string | null
-  branch_id: string | null
-}
-
 interface RestaurantHour {
   day_of_week: number // 0=Sunday, 1=Monday, ..., 6=Saturday
   breakfast_open: string | null
@@ -283,7 +275,6 @@ interface CustomerPortalProps {
   branches?: Branch[]
   branchMenuOverrides?: BranchMenuOverride[]
   containerRates?: any[]
-  operatingHours?: OperatingHour[]
   restaurantHours?: RestaurantHour[]
   customer?: Customer | null
   customerAddresses?: CustomerAddress[]
@@ -315,7 +306,6 @@ export default function CustomerPortal({
   branches = [],
   branchMenuOverrides = [],
   containerRates = [],
-  operatingHours = [],
   restaurantHours = [],
   customer,
   customerAddresses = [],
@@ -491,22 +481,15 @@ export default function CustomerPortal({
   const DAY_NAMES_SHORT = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"]
   const DAY_NAMES_FULL = ["Domingo", "Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado"]
 
-  const getEffectiveHours = (): OperatingHour[] => {
-    if (operatingHours.length === 0) return []
-    const branchId = selectedBranch?.id || null
-    // Check for branch-specific hours first
-    const branchHours = branchId ? operatingHours.filter((h) => h.branch_id === branchId) : []
-    if (branchHours.length > 0) return branchHours
-    // Fall back to restaurant-level hours (branch_id is null)
-    return operatingHours.filter((h) => !h.branch_id)
-  }
-
+  // Check if a day is closed based on restaurantHours (all meal periods are null/closed)
   const isDayClosed = (date: Date): boolean => {
-    const hours = getEffectiveHours()
-    if (hours.length === 0) return false // No hours configured = always open
+    if (restaurantHours.length === 0) return false // No hours configured = always open
     const dayOfWeek = date.getDay() // 0=Sunday
-    const dayHours = hours.find((h) => h.day_of_week === dayOfWeek)
-    return dayHours ? !dayHours.is_open : false
+    const dayHours = restaurantHours.find((h) => h.day_of_week === dayOfWeek)
+    if (!dayHours) return false
+    // Day is closed if ALL meal periods are closed (all times are null)
+    const allClosed = !dayHours.breakfast_open && !dayHours.lunch_open && !dayHours.dinner_open
+    return allClosed
   }
 
   const getClosedDayNames = (): string[] => {
