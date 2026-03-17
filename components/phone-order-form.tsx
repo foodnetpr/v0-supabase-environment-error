@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { createPaymentLink } from "@/app/actions/stripe"
-import { Phone, Copy, CheckCircle, Plus, Minus, Trash2, Link2, ArrowLeft } from "lucide-react"
+import { Phone, Copy, CheckCircle, Plus, Minus, Trash2, Link2, ArrowLeft, CreditCard, Smartphone } from "lucide-react"
 
 interface PhoneOrderFormProps {
   restaurantId: string
@@ -29,6 +29,17 @@ export default function PhoneOrderForm({
   const [generating, setGenerating] = useState(false)
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  
+  // Payment method state
+  const [paymentMethod, setPaymentMethod] = useState<"link" | "card" | "athmovil">("link")
+  const [cardDetails, setCardDetails] = useState({
+    number: "",
+    expiry: "",
+    cvc: "",
+    name: "",
+  })
+  const [athMovilPhone, setAthMovilPhone] = useState("")
+  const [paymentProcessed, setPaymentProcessed] = useState(false)
 
   // Customer info
   const [customerInfo, setCustomerInfo] = useState({
@@ -144,20 +155,165 @@ export default function PhoneOrderForm({
     }
   }
 
-  // If payment link is generated, show the result
-  if (paymentUrl) {
+  // Process credit card payment directly
+  const handleProcessCard = async () => {
+    if (!cardDetails.number || !cardDetails.expiry || !cardDetails.cvc || !cardDetails.name) {
+      toast({ title: "Datos incompletos", description: "Completa todos los campos de la tarjeta.", variant: "destructive" })
+      return
+    }
+    
+    setGenerating(true)
+    try {
+      const [expMonth, expYear] = cardDetails.expiry.split("/").map(s => s.trim())
+      
+      const orderData = {
+        cart,
+        subtotal,
+        tax,
+        deliveryFee: 0,
+        tip: 0,
+        total,
+        orderType: customerInfo.orderType,
+        eventDetails: {
+          name: customerInfo.name,
+          phone: customerInfo.phone,
+          email: customerInfo.email,
+          eventDate: customerInfo.eventDate,
+          eventTime: customerInfo.eventTime,
+          address: customerInfo.streetAddress,
+          address2: customerInfo.streetAddress2,
+          city: customerInfo.city,
+          state: customerInfo.state,
+          zip: customerInfo.zip,
+          specialInstructions: customerInfo.specialInstructions,
+        },
+        includeUtensils: false,
+        restaurantId,
+        branchId: customerInfo.branchId || undefined,
+        stripeAccountId: customerInfo.branchId 
+          ? branches.find((b: any) => b.id === customerInfo.branchId)?.stripe_account_id || null
+          : branches.length === 1 ? branches[0]?.stripe_account_id || null : null,
+        paymentMethod: "card",
+        cardDetails: {
+          number: cardDetails.number.replace(/\s/g, ""),
+          expMonth: parseInt(expMonth),
+          expYear: parseInt(expYear.length === 2 ? `20${expYear}` : expYear),
+          cvc: cardDetails.cvc,
+          name: cardDetails.name,
+        },
+      }
+
+      const response = await fetch("/api/csr/process-card-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(orderData),
+      })
+
+      const result = await response.json()
+      
+      if (result.success) {
+        setPaymentProcessed(true)
+        toast({ title: "Pago procesado", description: "El pago fue procesado exitosamente." })
+      } else {
+        toast({ title: "Error", description: result.error || "No se pudo procesar el pago.", variant: "destructive" })
+      }
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "No se pudo procesar el pago.", variant: "destructive" })
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  // Process ATH Movil payment
+  const handleAthMovil = async () => {
+    if (!athMovilPhone) {
+      toast({ title: "Telefono requerido", description: "Ingresa el telefono ATH Movil del cliente.", variant: "destructive" })
+      return
+    }
+    
+    setGenerating(true)
+    try {
+      const orderData = {
+        cart,
+        subtotal,
+        tax,
+        deliveryFee: 0,
+        tip: 0,
+        total,
+        orderType: customerInfo.orderType,
+        eventDetails: {
+          name: customerInfo.name,
+          phone: customerInfo.phone,
+          email: customerInfo.email,
+          eventDate: customerInfo.eventDate,
+          eventTime: customerInfo.eventTime,
+          address: customerInfo.streetAddress,
+          address2: customerInfo.streetAddress2,
+          city: customerInfo.city,
+          state: customerInfo.state,
+          zip: customerInfo.zip,
+          specialInstructions: customerInfo.specialInstructions,
+        },
+        includeUtensils: false,
+        restaurantId,
+        branchId: customerInfo.branchId || undefined,
+        paymentMethod: "athmovil",
+        athMovilPhone,
+      }
+
+      const response = await fetch("/api/csr/process-card-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(orderData),
+      })
+
+      const result = await response.json()
+      
+      if (result.success) {
+        setPaymentProcessed(true)
+        toast({ title: "Orden creada", description: "Se envio la solicitud de pago ATH Movil al cliente." })
+      } else {
+        toast({ title: "Error", description: result.error || "No se pudo crear la orden.", variant: "destructive" })
+      }
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "No se pudo crear la orden.", variant: "destructive" })
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  // Format card number with spaces
+  const formatCardNumber = (value: string) => {
+    const v = value.replace(/\s+/g, "").replace(/[^0-9]/gi, "")
+    const matches = v.match(/\d{4,16}/g)
+    const match = (matches && matches[0]) || ""
+    const parts = []
+    for (let i = 0, len = match.length; i < len; i += 4) {
+      parts.push(match.substring(i, i + 4))
+    }
+    return parts.length ? parts.join(" ") : value
+  }
+
+  // If payment was processed or link generated, show the result
+  if (paymentUrl || paymentProcessed) {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-3">
           <Phone className="w-6 h-6 text-blue-600" />
-          <h2 className="text-xl font-bold">Link de Pago Generado</h2>
+          <h2 className="text-xl font-bold">
+            {paymentProcessed ? "Orden Completada" : "Link de Pago Generado"}
+          </h2>
         </div>
 
         <Card className="border-green-200 bg-green-50">
           <CardContent className="p-6 space-y-4">
             <div className="flex items-center gap-2 text-green-700">
               <CheckCircle className="w-5 h-5" />
-              <span className="font-semibold">Listo para enviar al cliente</span>
+              <span className="font-semibold">
+                {paymentProcessed 
+                  ? (paymentMethod === "card" ? "Pago procesado exitosamente" : "Solicitud ATH Movil enviada")
+                  : "Listo para enviar al cliente"}
+              </span>
             </div>
 
             <div className="space-y-2">
@@ -170,21 +326,32 @@ export default function PhoneOrderForm({
               <p className="text-2xl font-bold">${total.toFixed(2)}</p>
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-sm text-gray-600">Link de Pago</Label>
-              <div className="flex gap-2">
-                <Input value={paymentUrl} readOnly className="bg-white text-sm" />
-                <Button onClick={handleCopy} variant="outline" size="sm">
-                  {copied ? <CheckCircle className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
-                </Button>
+            {paymentUrl && (
+              <div className="space-y-2">
+                <Label className="text-sm text-gray-600">Link de Pago</Label>
+                <div className="flex gap-2">
+                  <Input value={paymentUrl} readOnly className="bg-white text-sm" />
+                  <Button onClick={handleCopy} variant="outline" size="sm">
+                    {copied ? <CheckCircle className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                  </Button>
+                </div>
+                <p className="text-xs text-gray-500">Este link expira en 24 horas.</p>
               </div>
-              <p className="text-xs text-gray-500">Este link expira en 24 horas.</p>
-            </div>
+            )}
           </CardContent>
         </Card>
 
         <div className="flex gap-3">
-          <Button variant="outline" onClick={() => { setPaymentUrl(null); setCart([]); setStep("info"); setCustomerInfo({ ...customerInfo, name: "", phone: "", email: "", streetAddress: "", streetAddress2: "", city: "", zip: "", eventDate: "", eventTime: "", specialInstructions: "" }) }}>
+          <Button variant="outline" onClick={() => { 
+            setPaymentUrl(null)
+            setPaymentProcessed(false)
+            setCart([])
+            setStep("info")
+            setPaymentMethod("link")
+            setCardDetails({ number: "", expiry: "", cvc: "", name: "" })
+            setAthMovilPhone("")
+            setCustomerInfo({ ...customerInfo, name: "", phone: "", email: "", streetAddress: "", streetAddress2: "", city: "", zip: "", eventDate: "", eventTime: "", specialInstructions: "" }) 
+          }}>
             Nueva Orden
           </Button>
           <Button variant="outline" onClick={onClose}>
@@ -564,14 +731,143 @@ export default function PhoneOrderForm({
             </CardContent>
           </Card>
 
-          {/* Generate link button */}
-          <Button onClick={handleGenerateLink} disabled={generating} className="w-full gap-2" size="lg">
-            <Link2 className="w-5 h-5" />
-            {generating ? "Generando..." : "Generar Link de Pago"}
-          </Button>
-          <p className="text-xs text-center text-gray-500">
-            Se generara un link de Stripe que puedes enviar al cliente por texto o email. El link expira en 24 horas.
-          </p>
+          {/* Payment Method Selector */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Metodo de Pago</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Payment method options */}
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  onClick={() => setPaymentMethod("link")}
+                  className={`p-3 rounded-lg border-2 text-center transition-all ${
+                    paymentMethod === "link" 
+                      ? "border-blue-500 bg-blue-50 text-blue-700" 
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <Link2 className="w-5 h-5 mx-auto mb-1" />
+                  <span className="text-xs font-medium">Enviar Link</span>
+                </button>
+                <button
+                  onClick={() => setPaymentMethod("card")}
+                  className={`p-3 rounded-lg border-2 text-center transition-all ${
+                    paymentMethod === "card" 
+                      ? "border-blue-500 bg-blue-50 text-blue-700" 
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <CreditCard className="w-5 h-5 mx-auto mb-1" />
+                  <span className="text-xs font-medium">Tarjeta</span>
+                </button>
+                <button
+                  onClick={() => setPaymentMethod("athmovil")}
+                  className={`p-3 rounded-lg border-2 text-center transition-all ${
+                    paymentMethod === "athmovil" 
+                      ? "border-blue-500 bg-blue-50 text-blue-700" 
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <Smartphone className="w-5 h-5 mx-auto mb-1" />
+                  <span className="text-xs font-medium">ATH Movil</span>
+                </button>
+              </div>
+
+              {/* Payment Link Option */}
+              {paymentMethod === "link" && (
+                <div className="space-y-3 pt-2">
+                  <p className="text-sm text-gray-600">
+                    Se generara un link de Stripe que puedes enviar al cliente por texto o email. El link expira en 24 horas.
+                  </p>
+                  <Button onClick={handleGenerateLink} disabled={generating} className="w-full gap-2" size="lg">
+                    <Link2 className="w-5 h-5" />
+                    {generating ? "Generando..." : "Generar Link de Pago"}
+                  </Button>
+                </div>
+              )}
+
+              {/* Credit Card Option */}
+              {paymentMethod === "card" && (
+                <div className="space-y-3 pt-2">
+                  <div>
+                    <Label className="text-sm">Numero de Tarjeta</Label>
+                    <Input
+                      value={cardDetails.number}
+                      onChange={(e) => setCardDetails({ ...cardDetails, number: formatCardNumber(e.target.value) })}
+                      placeholder="4242 4242 4242 4242"
+                      maxLength={19}
+                      className="mt-1 font-mono"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-sm">Expiracion</Label>
+                      <Input
+                        value={cardDetails.expiry}
+                        onChange={(e) => {
+                          let v = e.target.value.replace(/[^0-9]/g, "")
+                          if (v.length >= 2) v = v.slice(0, 2) + "/" + v.slice(2)
+                          setCardDetails({ ...cardDetails, expiry: v.slice(0, 5) })
+                        }}
+                        placeholder="MM/YY"
+                        maxLength={5}
+                        className="mt-1 font-mono"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm">CVC</Label>
+                      <Input
+                        value={cardDetails.cvc}
+                        onChange={(e) => setCardDetails({ ...cardDetails, cvc: e.target.value.replace(/[^0-9]/g, "").slice(0, 4) })}
+                        placeholder="123"
+                        maxLength={4}
+                        className="mt-1 font-mono"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-sm">Nombre en Tarjeta</Label>
+                    <Input
+                      value={cardDetails.name}
+                      onChange={(e) => setCardDetails({ ...cardDetails, name: e.target.value })}
+                      placeholder="John Doe"
+                      className="mt-1"
+                    />
+                  </div>
+                  <Button onClick={handleProcessCard} disabled={generating} className="w-full gap-2" size="lg">
+                    <CreditCard className="w-5 h-5" />
+                    {generating ? "Procesando..." : `Procesar Pago $${total.toFixed(2)}`}
+                  </Button>
+                  <p className="text-xs text-center text-gray-500">
+                    El pago se procesara inmediatamente via Stripe.
+                  </p>
+                </div>
+              )}
+
+              {/* ATH Movil Option */}
+              {paymentMethod === "athmovil" && (
+                <div className="space-y-3 pt-2">
+                  <div>
+                    <Label className="text-sm">Telefono ATH Movil del Cliente</Label>
+                    <Input
+                      value={athMovilPhone}
+                      onChange={(e) => setAthMovilPhone(e.target.value)}
+                      placeholder="(787) 555-1234"
+                      className="mt-1"
+                    />
+                  </div>
+                  <Button onClick={handleAthMovil} disabled={generating} className="w-full gap-2 bg-orange-500 hover:bg-orange-600" size="lg">
+                    <Smartphone className="w-5 h-5" />
+                    {generating ? "Enviando..." : `Enviar Solicitud ATH Movil $${total.toFixed(2)}`}
+                  </Button>
+                  <p className="text-xs text-center text-gray-500">
+                    Se enviara una solicitud de pago ATH Movil al numero indicado.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>

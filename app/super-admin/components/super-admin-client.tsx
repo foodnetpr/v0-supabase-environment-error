@@ -37,7 +37,7 @@ import {
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { createRestaurant, updateRestaurant, deleteRestaurant, fetchCuisineTypes, createCuisineType, deleteCuisineType, updateCuisineType, fetchMarketplaceAreas, createMarketplaceArea, deleteMarketplaceArea, updateMarketplaceArea } from "../actions"
-import { Trash2, Shield, Megaphone, Globe, Copy, ArrowUpRight, MapPin, Clock, AlertTriangle, Users, ImageIcon, RefreshCw } from "lucide-react"
+import { Trash2, Shield, Megaphone, Globe, Copy, ArrowUpRight, MapPin, Clock, AlertTriangle, Users, ImageIcon, RefreshCw, Phone } from "lucide-react"
 import { OperationsTab } from "./operations-tab"
 import { AdminUsersTab } from "./admin-users-tab"
 import { CuisineTypesTab } from "./cuisine-types-tab"
@@ -520,6 +520,13 @@ export function SuperAdminClient({
             >
               <ShoppingCart className="h-4 w-4" />
               Internal Shop
+            </Link>
+            <Link
+              href="/csr"
+              className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-lg border-b-2 border-transparent text-rose-600 hover:text-rose-700 hover:border-rose-300 hover:bg-rose-50 transition-colors"
+            >
+              <Phone className="h-4 w-4" />
+              CSR Portal
             </Link>
             <button
               onClick={() => setActiveTab("reports")}
