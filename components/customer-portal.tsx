@@ -493,9 +493,11 @@ export default function CustomerPortal({
   }
 
   const getClosedDayNames = (): string[] => {
-    const hours = getEffectiveHours()
-    if (hours.length === 0) return []
-    return hours.filter((h) => !h.is_open).map((h) => DAY_NAMES_FULL[h.day_of_week])
+    if (restaurantHours.length === 0) return []
+    return restaurantHours.filter((h) => {
+      // Day is closed if all meal periods are null
+      return !h.breakfast_open && !h.lunch_open && !h.dinner_open
+    }).map((h) => DAY_NAMES_FULL[h.day_of_week])
   }
 
   const hasSizes = (item: MenuItem) => {
