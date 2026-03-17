@@ -1040,28 +1040,33 @@ export async function updateRestaurantMarketplaceSettings(
   isFeatured: boolean,
   area?: string,
 ) {
-  const supabase = getAdminClient()
-  
-  const { data, error } = await supabase
-  .from("restaurants")
-  .update({
-  show_in_marketplace: showInMarketplace,
-  marketplace_tagline: tagline,
-  cuisine_type: cuisineTypes[0] || null,
-  cuisine_types: cuisineTypes.length > 0 ? cuisineTypes : null,
-  is_featured: isFeatured,
-  area: area || null,
-  })
-    .eq("id", restaurantId)
-    .select()
-    .single()
+  try {
+    const supabase = getAdminClient()
+    
+    // Only update columns that exist in the restaurants table
+    const { data, error } = await supabase
+      .from("restaurants")
+      .update({
+        show_in_marketplace: showInMarketplace,
+        marketplace_description: tagline || null, // Using existing column
+        cuisine_type: cuisineTypes[0] || null,
+        cuisine_types: cuisineTypes.length > 0 ? cuisineTypes : null,
+        area: area || null,
+      })
+      .eq("id", restaurantId)
+      .select()
+      .single()
 
-  if (error) {
-    console.error("Error updating marketplace settings:", error)
-    throw new Error(error.message)
+    if (error) {
+      console.error("Marketplace settings save error:", error)
+      return { error: "Failed to save: " + error.message }
+    }
+
+    return { data, error: null }
+  } catch (error) {
+    console.error("Marketplace settings save error:", error)
+    return { error: "Failed to save: " + (error as Error).message }
   }
-
-  return data
 }
 
 // Delivery Zones

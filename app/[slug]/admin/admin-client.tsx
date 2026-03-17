@@ -2318,15 +2318,23 @@ export default function RestaurantAdminClient({
 
   const handleSaveMarketplaceSettings = async () => {
     try {
-  await updateRestaurantMarketplaceSettings(
-  restaurant.id, // Use restaurant.id from props
-  marketplaceSettings.show_in_marketplace,
-  marketplaceSettings.marketplace_tagline,
-  marketplaceSettings.cuisine_types,
-  marketplaceSettings.is_featured,
-  marketplaceSettings.area,
-  )
-      toast({ title: "Marketplace settings updated successfully" })
+      const result = await updateRestaurantMarketplaceSettings(
+        restaurant.id,
+        marketplaceSettings.show_in_marketplace,
+        marketplaceSettings.marketplace_tagline,
+        marketplaceSettings.cuisine_types,
+        marketplaceSettings.is_featured,
+        marketplaceSettings.area,
+      )
+      if (result.error) {
+        toast({
+          title: "Error updating marketplace settings",
+          description: result.error,
+          variant: "destructive",
+        })
+      } else {
+        toast({ title: "Marketplace settings updated successfully" })
+      }
     } catch (error) {
       toast({
         title: "Error updating marketplace settings",
