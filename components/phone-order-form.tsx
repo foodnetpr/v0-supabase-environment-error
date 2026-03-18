@@ -10,12 +10,22 @@ import { createPaymentLink } from "@/app/actions/stripe"
 import { Phone, Copy, CheckCircle, Plus, Minus, Trash2, Link2, ArrowLeft, CreditCard, Smartphone, Search, User, MapPin, Clock, RotateCcw } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
+interface CartItem {
+  id: string
+  name: string
+  price: number
+  quantity: number
+  description?: string
+}
+
 interface PhoneOrderFormProps {
   restaurantId: string
   menuItems: any[]
   branches: any[]
   taxRate: number
   onClose: () => void
+  externalCart?: CartItem[]
+  setExternalCart?: (cart: CartItem[]) => void
 }
 
 export default function PhoneOrderForm({
@@ -24,9 +34,12 @@ export default function PhoneOrderForm({
   branches,
   taxRate,
   onClose,
+  externalCart,
+  setExternalCart,
 }: PhoneOrderFormProps) {
   const { toast } = useToast()
-  const [step, setStep] = useState<"info" | "menu" | "review">("info")
+  // If using external cart, start at info step (menu is shown separately in CSR Portal)
+  const [step, setStep] = useState<"info" | "menu" | "review">(externalCart ? "info" : "info")
   const [generating, setGenerating] = useState(false)
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
@@ -107,8 +120,10 @@ export default function PhoneOrderForm({
     specialInstructions: "",
   })
 
-  // Cart
-  const [cart, setCart] = useState<any[]>([])
+  // Cart - use external cart if provided, otherwise use internal state
+  const [internalCart, setInternalCart] = useState<CartItem[]>([])
+  const cart = externalCart ?? internalCart
+  const setCart = setExternalCart ?? setInternalCart
   const [searchTerm, setSearchTerm] = useState("")
 
   // Customer lookup function
@@ -527,9 +542,9 @@ export default function PhoneOrderForm({
         <h2 className="text-xl font-bold">Orden por Telefono</h2>
       </div>
 
-      {/* Step indicators */}
+      {/* Step indicators - hide menu step when using external cart */}
       <div className="flex gap-2">
-        {(["info", "menu", "review"] as const).map((s, i) => (
+        {(externalCart ? ["info", "review"] as const : ["info", "menu", "review"] as const).map((s, i) => (
           <button
             key={s}
             onClick={() => {
@@ -801,11 +816,12 @@ export default function PhoneOrderForm({
                   toast({ title: "Hora no disponible", description: "Selecciona una hora entre 11:30 AM y 9:00 PM.", variant: "destructive" })
                   return
                 }
-                setStep("menu")
+                // Skip to review if using external cart (menu shown separately)
+                setStep(externalCart ? "review" : "menu")
               }}
               className="w-full"
             >
-              Continuar al Menu
+              {externalCart ? "Revisar Orden" : "Continuar al Menu"}
             </Button>
           </CardContent>
         </Card>
