@@ -923,21 +923,14 @@ const line2 = customerInfo.streetAddress2 ? `, ${customerInfo.streetAddress2}` :
                       value={customerInfo.streetAddress}
                       onChange={(val) => setCustomerInfo(prev => ({...prev, streetAddress: val}))}
                       onAddressSelected={(components) => {
-                        console.log("[v0] CSR onAddressSelected CALLED with:", components)
                         // ALWAYS override city/state/zip when selecting from autocomplete
-                        // This ensures manual values get replaced with Google's data
-                        setCustomerInfo(prev => {
-                          console.log("[v0] CSR prev state:", { city: prev.city, zip: prev.zip })
-                          const newState = {
-                            ...prev,
-                            streetAddress: components.streetAddress,
-                            city: components.city, // Always use autocomplete value
-                            state: components.state || "PR",
-                            zip: components.zip, // Always use autocomplete value
-                          }
-                          console.log("[v0] CSR new state:", { city: newState.city, zip: newState.zip })
-                          return newState
-                        })
+                        setCustomerInfo(prev => ({
+                          ...prev,
+                          streetAddress: components.streetAddress,
+                          city: components.city,
+                          state: components.state || "PR",
+                          zip: components.zip,
+                        }))
                         // Uncheck manual override since user selected from Google
                         setManualAddressOverride(false)
                       }}
@@ -1736,7 +1729,7 @@ const line2 = customerInfo.streetAddress2 ? `, ${customerInfo.streetAddress2}` :
                 <p className="text-sm font-medium">
                   {paymentMethod === "cash" && "Efectivo (Pago al recibir)"}
                   {paymentMethod === "saved_card" && customerPaymentMethods.find(pm => pm.id === selectedPaymentMethodId) && (
-                    <>Tarjeta guardada: {customerPaymentMethods.find(pm => pm.id === selectedPaymentMethodId)?.card_brand?.toUpperCase()} •••• {customerPaymentMethods.find(pm => pm.id === selectedPaymentMethodId)?.card_last_four}</>
+                    <>Tarjeta guardada: {customerPaymentMethods.find(pm => pm.id === selectedPaymentMethodId)?.card_brand?.toUpperCase()} ••���• {customerPaymentMethods.find(pm => pm.id === selectedPaymentMethodId)?.card_last_four}</>
                   )}
                   {paymentMethod === "stripe" && "Tarjeta de credito"}
                   {paymentMethod === "ath_movil" && "ATH Movil"}

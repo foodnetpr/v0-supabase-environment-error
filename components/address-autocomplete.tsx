@@ -154,25 +154,20 @@ export function AddressAutocomplete({
       )
       const data = await response.json()
 
-      console.log("[v0] Places details response:", { ok: response.ok, status: response.status, data })
-
       // Handle API error - use fallback from prediction data
       if (!response.ok || !data.addressComponents) {
-        console.log("[v0] Places API failed or no addressComponents - using fallback")
         const fallbackCity = parseCityFromSecondaryText(prediction.secondaryText)
         
         setInputValue(prediction.mainText)
         onChange(prediction.mainText)
         
         if (onAddressSelected) {
-          const fallbackData = {
+          onAddressSelected({
             streetAddress: prediction.mainText,
             city: fallbackCity,
             state: "PR",
             zip: "", // User will need to enter manually
-          }
-          console.log("[v0] Calling onAddressSelected with FALLBACK:", fallbackData)
-          onAddressSelected(fallbackData)
+          })
         }
         
         if (onBlur) {
@@ -186,30 +181,20 @@ export function AddressAutocomplete({
       setInputValue(streetAddress)
       onChange(streetAddress)
 
-      console.log("[v0] AddressAutocomplete received from API:", { 
-        city: data.city, 
-        state: data.state, 
-        zip: data.zip,
-        streetAddress: data.streetAddress 
-      })
-
       if (onAddressSelected) {
-        const callbackData = {
+        onAddressSelected({
           streetAddress,
           city: data.city || "",
           state: data.state || "PR",
           zip: data.zip || "",
-        }
-        console.log("[v0] Calling onAddressSelected with:", callbackData)
-        onAddressSelected(callbackData)
+        })
       }
 
       // Trigger distance calculation after form state has updated
       if (onBlur) {
         setTimeout(onBlur, 300)
       }
-    } catch (error) {
-      console.error("[v0] Failed to fetch place details:", error)
+    } catch {
       // Fallback on catch
       const fallbackCity = parseCityFromSecondaryText(prediction.secondaryText)
       setInputValue(prediction.mainText)
