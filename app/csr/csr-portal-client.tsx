@@ -139,6 +139,7 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
   const [customerInfo, setCustomerInfo] = useState({
     phone: "",
     name: "",
+    email: "",
     address: "",
     city: "",
     zip: "",
@@ -148,6 +149,12 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
     specialInstructions: "",
     selectedBranch: "",
   })
+  
+  // Customer autocomplete state
+  const [customerSearchResults, setCustomerSearchResults] = useState<any[]>([])
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false)
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null)
+  const [isSearchingCustomers, setIsSearchingCustomers] = useState(false)
   
   // Update time when delivery type changes
   useEffect(() => {
@@ -444,6 +451,84 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
     return () => clearTimeout(timer)
   }, [selectedRestaurant, customerInfo.address, customerInfo.city, customerInfo.zip, customerInfo.deliveryType, totalItems])
 
+  // Search customers by phone or name for autocomplete
+  const searchCustomers = async (searchTerm: string) => {
+    if (searchTerm.length < 3) {
+      setCustomerSearchResults([])
+      setShowCustomerDropdown(false)
+      return
+    }
+    
+    setIsSearchingCustomers(true)
+    try {
+      // Search by phone or name
+      const { data, error } = await supabase
+        .from("customers")
+        .select(`
+          id,
+          first_name,
+          last_name,
+          phone,
+          email,
+          customer_addresses (
+            id,
+            address_line_1,
+            address_line_2,
+            city,
+            state,
+            postal_code,
+            is_default,
+            delivery_instructions
+          )
+        `)
+        .or(`phone.ilike.%${searchTerm}%,first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%`)
+        .limit(5)
+      
+      if (error) throw error
+      
+      setCustomerSearchResults(data || [])
+      setShowCustomerDropdown((data || []).length > 0)
+    } catch (error) {
+      console.error("Error searching customers:", error)
+      setCustomerSearchResults([])
+    } finally {
+      setIsSearchingCustomers(false)
+    }
+  }
+  
+  // Select a customer from autocomplete and fill in their info
+  const selectCustomer = (customer: any) => {
+    // Find default address or first address
+    const defaultAddress = customer.customer_addresses?.find((a: any) => a.is_default) || customer.customer_addresses?.[0]
+    
+    setCustomerInfo({
+      ...customerInfo,
+      phone: customer.phone || "",
+      name: `${customer.first_name || ""} ${customer.last_name || ""}`.trim(),
+      email: customer.email || "",
+      address: defaultAddress?.address_line_1 || "",
+      city: defaultAddress?.city || "",
+      zip: defaultAddress?.postal_code || "",
+      specialInstructions: defaultAddress?.delivery_instructions || customerInfo.specialInstructions,
+    })
+    setSelectedCustomerId(customer.id)
+    setShowCustomerDropdown(false)
+    setCustomerSearchResults([])
+  }
+  
+  // Debounced customer search when phone changes
+  useEffect(() => {
+    if (selectedCustomerId) return // Don't search if customer already selected
+    
+    const timer = setTimeout(() => {
+      if (customerInfo.phone.length >= 3) {
+        searchCustomers(customerInfo.phone)
+      }
+    }, 300)
+    
+    return () => clearTimeout(timer)
+  }, [customerInfo.phone, selectedCustomerId])
+
   // Filter menu items
   const filteredMenuItems = menuItems.filter((item) =>
     item.name.toLowerCase().includes(menuSearchTerm.toLowerCase()) ||
@@ -576,21 +661,79 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
               </h3>
             </div>
             <div className="p-2 space-y-2">
-              <div>
+              {/* Phone with autocomplete */}
+              <div className="relative">
                 <Label className="text-[10px] text-amber-700 font-medium">Telefono *</Label>
-                <Input
-                  value={customerInfo.phone}
-                  onChange={(e) => setCustomerInfo({...customerInfo, phone: e.target.value})}
-                  placeholder="787-XXX-XXXX"
-                  className="h-7 text-xs mt-0.5"
-                />
+                <div className="relative">
+                  <Input
+                    value={customerInfo.phone}
+                    onChange={(e) => {
+                      setSelectedCustomerId(null) // Clear selected customer when typing
+                      setCustomerInfo({...customerInfo, phone: e.target.value})
+                    }}
+                    onFocus={() => customerSearchResults.length > 0 && setShowCustomerDropdown(true)}
+                    placeholder="787-XXX-XXXX"
+                    className="h-7 text-xs mt-0.5"
+                  />
+                  {isSearchingCustomers && (
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                      <div className="w-3 h-3 border border-amber-500 border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  )}
+                </div>
+                
+                {/* Customer autocomplete dropdown */}
+                {showCustomerDropdown && customerSearchResults.length > 0 && (
+                  <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                    {customerSearchResults.map((customer) => (
+                      <button
+                        key={customer.id}
+                        onClick={() => selectCustomer(customer)}
+                        className="w-full px-2 py-1.5 text-left hover:bg-amber-50 border-b border-slate-100 last:border-b-0"
+                      >
+                        <div className="text-xs font-medium text-slate-900">
+                          {customer.first_name} {customer.last_name}
+                        </div>
+                        <div className="text-[10px] text-slate-500 flex gap-2">
+                          <span>{customer.phone}</span>
+                          {customer.email && <span>| {customer.email}</span>}
+                        </div>
+                        {customer.customer_addresses?.[0] && (
+                          <div className="text-[10px] text-slate-400 truncate">
+                            {customer.customer_addresses[0].address_line_1}, {customer.customer_addresses[0].city}
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
+              
+              {/* Name */}
               <div>
                 <Label className="text-[10px] text-amber-700 font-medium">Nombre *</Label>
                 <Input
                   value={customerInfo.name}
-                  onChange={(e) => setCustomerInfo({...customerInfo, name: e.target.value})}
+                  onChange={(e) => {
+                    setSelectedCustomerId(null) // Clear selected customer when typing
+                    setCustomerInfo({...customerInfo, name: e.target.value})
+                  }}
                   placeholder="Nombre completo"
+                  className="h-7 text-xs mt-0.5"
+                />
+                {selectedCustomerId && (
+                  <p className="text-[9px] text-green-600 mt-0.5">Cliente encontrado</p>
+                )}
+              </div>
+              
+              {/* Email (optional) */}
+              <div>
+                <Label className="text-[10px] text-amber-700 font-medium">Email</Label>
+                <Input
+                  type="email"
+                  value={customerInfo.email}
+                  onChange={(e) => setCustomerInfo({...customerInfo, email: e.target.value})}
+                  placeholder="email@ejemplo.com"
                   className="h-7 text-xs mt-0.5"
                 />
               </div>
@@ -1040,6 +1183,7 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
                     restaurantId: selectedRestaurant.id,
                     name: customerInfo.name,
                     phone: customerInfo.phone,
+                    email: customerInfo.email,
                     address: customerInfo.address,
                     city: customerInfo.city,
                     zip: customerInfo.zip,
@@ -1048,7 +1192,7 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
                     specialInstructions: customerInfo.specialInstructions,
                   },
                   includeUtensils: false,
-                  customerEmail: "",
+                  customerEmail: customerInfo.email,
                   customerPhone: customerInfo.phone,
                   smsConsent: true,
                   stripeAccountId: selectedRestaurant.stripe_account_id || null,
@@ -1062,6 +1206,7 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
                   setCustomerInfo({
                     phone: "",
                     name: "",
+                    email: "",
                     address: "",
                     city: "",
                     zip: "",
@@ -1071,6 +1216,7 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
                     specialInstructions: "",
                     selectedBranch: "",
                   })
+                  setSelectedCustomerId(null)
                   setTimeout(() => setOrderSuccess(null), 5000)
                 }}
                 onCancel={() => setShowPaymentModal(false)}
@@ -1101,11 +1247,12 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
                     return subtotal + deliveryFee + dispatchFee + ivu + tipAmount
                   })(),
                   orderType: customerInfo.deliveryType,
-                  customerEmail: "",
+                  customerEmail: customerInfo.email,
                   customerPhone: customerInfo.phone,
                   eventDetails: {
                     name: customerInfo.name,
                     phone: customerInfo.phone,
+                    email: customerInfo.email,
                     address: customerInfo.address,
                     city: customerInfo.city,
                     zip: customerInfo.zip,
@@ -1125,6 +1272,7 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
                   setCustomerInfo({
                     phone: "",
                     name: "",
+                    email: "",
                     address: "",
                     city: "",
                     zip: "",
@@ -1134,6 +1282,7 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
                     specialInstructions: "",
                     selectedBranch: "",
                   })
+                  setSelectedCustomerId(null)
                   setTimeout(() => setOrderSuccess(null), 5000)
                 }}
                 onCancel={() => setShowPaymentModal(false)}
