@@ -30,8 +30,14 @@ export async function GET(request: NextRequest) {
 
     const data = await response.json()
 
+    console.log("[v0] Google Places API response status:", data.status)
     if (data.status !== "OK") {
-      return NextResponse.json({ error: "Failed to fetch place details" }, { status: 500 })
+      console.log("[v0] Google Places API error:", data.error_message || data.status)
+      return NextResponse.json({ 
+        error: "Failed to fetch place details", 
+        googleStatus: data.status,
+        googleError: data.error_message 
+      }, { status: 500 })
     }
 
     const result = data.result || {}
@@ -111,7 +117,8 @@ export async function GET(request: NextRequest) {
       state,
       zip,
     })
-  } catch {
-    return NextResponse.json({ error: "Failed to fetch place details" }, { status: 500 })
+  } catch (error) {
+    console.log("[v0] Places API catch error:", error)
+    return NextResponse.json({ error: "Failed to fetch place details", details: String(error) }, { status: 500 })
   }
 }

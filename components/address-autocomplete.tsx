@@ -126,6 +126,14 @@ export function AddressAutocomplete({
     }, 300)
   }
 
+  // Parse city from secondary text (e.g., "San Juan, Puerto Rico" -> "San Juan")
+  const parseCityFromSecondaryText = (secondaryText: string): string => {
+    if (!secondaryText) return ""
+    const parts = secondaryText.split(",").map(p => p.trim())
+    // First part is usually the city
+    return parts[0] || ""
+  }
+
   // Handle prediction selection
   const handleSelectPrediction = async (prediction: Prediction) => {
     setShowDropdown(false)
@@ -138,44 +146,75 @@ export function AddressAutocomplete({
       )
       const data = await response.json()
 
-      if (data.addressComponents) {
-        const streetAddress = data.streetAddress || prediction.mainText
-        setInputValue(streetAddress)
-        onChange(streetAddress)
+      console.log("[v0] Places details response:", { ok: response.ok, status: response.status, data })
 
-        console.log("[v0] AddressAutocomplete received from API:", { 
-          city: data.city, 
-          state: data.state, 
-          zip: data.zip,
-          streetAddress: data.streetAddress 
-        })
-
+      // Handle API error - use fallback from prediction data
+      if (!response.ok || !data.addressComponents) {
+        console.log("[v0] Places API failed or no addressComponents - using fallback")
+        const fallbackCity = parseCityFromSecondaryText(prediction.secondaryText)
+        
+        setInputValue(prediction.mainText)
+        onChange(prediction.mainText)
+        
         if (onAddressSelected) {
-          const callbackData = {
-            streetAddress,
-            city: data.city || "",
-            state: data.state || "PR",
-            zip: data.zip || "",
+          const fallbackData = {
+            streetAddress: prediction.mainText,
+            city: fallbackCity,
+            state: "PR",
+            zip: "", // User will need to enter manually
           }
-          console.log("[v0] Calling onAddressSelected with:", callbackData)
-          onAddressSelected(callbackData)
-        } else {
-          console.log("[v0] WARNING: onAddressSelected is undefined!")
+          console.log("[v0] Calling onAddressSelected with FALLBACK:", fallbackData)
+          onAddressSelected(fallbackData)
         }
-
-        // Trigger distance calculation after form state has updated
+        
         if (onBlur) {
           setTimeout(onBlur, 300)
         }
-      } else {
-        // Fallback: use the prediction text
-        setInputValue(prediction.mainText)
-        onChange(prediction.mainText)
+        return
+      }
+
+      // Success path - use API data
+      const streetAddress = data.streetAddress || prediction.mainText
+      setInputValue(streetAddress)
+      onChange(streetAddress)
+
+      console.log("[v0] AddressAutocomplete received from API:", { 
+        city: data.city, 
+        state: data.state, 
+        zip: data.zip,
+        streetAddress: data.streetAddress 
+      })
+
+      if (onAddressSelected) {
+        const callbackData = {
+          streetAddress,
+          city: data.city || "",
+          state: data.state || "PR",
+          zip: data.zip || "",
+        }
+        console.log("[v0] Calling onAddressSelected with:", callbackData)
+        onAddressSelected(callbackData)
+      }
+
+      // Trigger distance calculation after form state has updated
+      if (onBlur) {
+        setTimeout(onBlur, 300)
       }
     } catch (error) {
-      console.error("Failed to fetch place details:", error)
+      console.error("[v0] Failed to fetch place details:", error)
+      // Fallback on catch
+      const fallbackCity = parseCityFromSecondaryText(prediction.secondaryText)
       setInputValue(prediction.mainText)
       onChange(prediction.mainText)
+      
+      if (onAddressSelected) {
+        onAddressSelected({
+          streetAddress: prediction.mainText,
+          city: fallbackCity,
+          state: "PR",
+          zip: "",
+        })
+      }
     } finally {
       setIsLoading(false)
     }
