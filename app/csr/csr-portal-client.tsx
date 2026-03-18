@@ -109,6 +109,9 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
   const [isProcessing, setIsProcessing] = useState(false)
   const [orderSuccess, setOrderSuccess] = useState<string | null>(null)
   
+  // Payment method state
+  const [paymentMethod, setPaymentMethod] = useState<"stripe" | "ath_movil" | "cash">("cash")
+  
   // Get default date/time based on delivery type
   const defaultDateTime = getDefaultDateTime("delivery")
   
@@ -395,6 +398,8 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
           total: total,
           status: "pending",
           order_source: "csr",
+          payment_method: paymentMethod,
+          payment_status: paymentMethod === "cash" ? "pending" : "pending",
         })
         .select()
         .single()
@@ -708,6 +713,54 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
                   placeholder="Notas especiales..."
                   className="w-full h-12 text-xs mt-0.5 p-1.5 border border-slate-200 rounded-md resize-none"
                 />
+              </div>
+              
+              {/* Payment Method Selection */}
+              <div>
+                <Label className="text-[10px] text-amber-700 font-medium">Metodo de Pago</Label>
+                <div className="flex flex-col gap-1.5 mt-1">
+                  <button
+                    onClick={() => setPaymentMethod("stripe")}
+                    className={`flex items-center gap-2 px-2 py-1.5 rounded border transition-colors ${
+                      paymentMethod === "stripe"
+                        ? "bg-indigo-600 text-white border-indigo-600"
+                        : "bg-white text-slate-700 border-slate-300 hover:border-indigo-400"
+                    }`}
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.591-7.305z"/>
+                    </svg>
+                    <span className="text-[10px] font-medium">Stripe (Tarjeta)</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => setPaymentMethod("ath_movil")}
+                    className={`flex items-center gap-2 px-2 py-1.5 rounded border transition-colors ${
+                      paymentMethod === "ath_movil"
+                        ? "bg-orange-500 text-white border-orange-500"
+                        : "bg-white text-slate-700 border-slate-300 hover:border-orange-400"
+                    }`}
+                  >
+                    <div className="w-4 h-4 bg-orange-500 rounded flex items-center justify-center text-white text-[8px] font-bold">
+                      ATH
+                    </div>
+                    <span className="text-[10px] font-medium">ATH Movil</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => setPaymentMethod("cash")}
+                    className={`flex items-center gap-2 px-2 py-1.5 rounded border transition-colors ${
+                      paymentMethod === "cash"
+                        ? "bg-green-600 text-white border-green-600"
+                        : "bg-white text-slate-700 border-slate-300 hover:border-green-400"
+                    }`}
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    <span className="text-[10px] font-medium">Efectivo</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
