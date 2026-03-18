@@ -120,7 +120,7 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
   const IVU_RATE = selectedRestaurant?.tax_rate ?? 0.115 // Default 11.5% IVU for Puerto Rico
   
   // Order processing state
-  const [isProcessing, setIsProcessing] = useState(false)
+  
   const [orderSuccess, setOrderSuccess] = useState<string | null>(null)
   
   // Payment method state
@@ -443,101 +443,6 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
     const timer = setTimeout(calculateFee, 500)
     return () => clearTimeout(timer)
   }, [selectedRestaurant, customerInfo.address, customerInfo.city, customerInfo.zip, customerInfo.deliveryType, totalItems])
-  
-  // Process Order
-  const processOrder = async () => {
-    if (!selectedRestaurant || cart.length === 0 || !customerInfo.name || !customerInfo.phone) return
-    
-    setIsProcessing(true)
-    
-    try {
-      // Calculate totals
-      const deliveryFee = customerInfo.deliveryType === "delivery" ? DELIVERY_FEE : 0
-      const dispatchFee = customerInfo.deliveryType === "delivery" ? DISPATCH_FEE : 0
-      const ivu = subtotal * IVU_RATE
-      const tipAmount = customTip ? parseFloat(customTip) || 0 : (subtotal * tipPercentage / 100)
-      const total = subtotal + deliveryFee + dispatchFee + ivu + tipAmount
-      
-      // Generate order number (CSR prefix + timestamp)
-      const orderNumber = `CSR-${Date.now().toString(36).toUpperCase()}`
-      
-      // Create order
-      const { data: order, error: orderError } = await supabase
-        .from("orders")
-        .insert({
-          restaurant_id: selectedRestaurant.id,
-          branch_id: customerInfo.selectedBranch || null,
-          order_number: orderNumber,
-          customer_name: customerInfo.name,
-          customer_phone: customerInfo.phone,
-          customer_email: "",
-          delivery_type: customerInfo.deliveryType,
-          delivery_address: customerInfo.deliveryType === "delivery" ? customerInfo.address : null,
-          delivery_city: customerInfo.deliveryType === "delivery" ? customerInfo.city : null,
-          delivery_zip: customerInfo.deliveryType === "delivery" ? customerInfo.zip : null,
-          delivery_date: customerInfo.eventDate,
-          special_instructions: customerInfo.specialInstructions ? `[Pago: ${paymentMethod === "stripe" ? "Tarjeta" : "ATH Movil"}] ${customerInfo.specialInstructions}` : `[Pago: ${paymentMethod === "stripe" ? "Tarjeta" : "ATH Movil"}]`,
-          subtotal: subtotal,
-          tax: ivu,
-          delivery_fee: deliveryFee + dispatchFee,
-          tip: tipAmount,
-          total: total,
-          status: "pending",
-          order_source: "csr",
-        })
-        .select()
-        .single()
-      
-      if (orderError) throw orderError
-      
-      // Create order items
-      const orderItems = cart.map((item) => ({
-        order_id: order.id,
-        menu_item_id: item.itemId,
-        item_name: item.name,
-        quantity: item.quantity,
-        unit_price: item.price,
-        total_price: item.price * item.quantity,
-        selected_options: {
-          options: item.selectedOptions || {},
-          notes: item.notes || "",
-        },
-      }))
-      
-      const { error: itemsError } = await supabase
-        .from("order_items")
-        .insert(orderItems)
-      
-      if (itemsError) throw itemsError
-      
-      // Success - reset form
-      setOrderSuccess(orderNumber)
-      setCart([])
-      setCustomerInfo({
-        phone: "",
-        name: "",
-        address: "",
-        city: "",
-        zip: "",
-        deliveryType: "delivery",
-        eventDate: getDefaultDateTime("delivery").date,
-        eventTime: getDefaultDateTime("delivery").time,
-        specialInstructions: "",
-        selectedBranch: "",
-      })
-      setTipPercentage(15)
-      setCustomTip("")
-      
-      // Clear success message after 5 seconds
-      setTimeout(() => setOrderSuccess(null), 5000)
-      
-    } catch (error) {
-      console.error("Error processing order:", error)
-      alert("Error al procesar la orden. Por favor intente nuevamente.")
-    } finally {
-      setIsProcessing(false)
-    }
-  }
 
   // Filter menu items
   const filteredMenuItems = menuItems.filter((item) =>
@@ -807,11 +712,16 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
                   <button
                     onClick={() => {
                       setPaymentMethod("stripe")
+                      // Validate branch is selected if restaurant has branches
+                      if (branches.length > 0 && !customerInfo.selectedBranch) {
+                        alert("Por favor selecciona una sucursal antes de procesar el pago")
+                        return
+                      }
                       if (cart.length > 0 && customerInfo.name && customerInfo.phone && selectedRestaurant) {
                         setShowPaymentModal(true)
                       }
                     }}
-                    disabled={cart.length === 0 || !customerInfo.name || !customerInfo.phone || !selectedRestaurant}
+                    disabled={cart.length === 0 || !customerInfo.name || !customerInfo.phone || !selectedRestaurant || (branches.length > 0 && !customerInfo.selectedBranch)}
                     className={`flex items-center gap-2 px-2 py-1.5 rounded border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                       paymentMethod === "stripe"
                         ? "bg-indigo-600 text-white border-indigo-600"
@@ -828,11 +738,16 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
                   <button
                     onClick={() => {
                       setPaymentMethod("ath_movil")
+                      // Validate branch is selected if restaurant has branches
+                      if (branches.length > 0 && !customerInfo.selectedBranch) {
+                        alert("Por favor selecciona una sucursal antes de procesar el pago")
+                        return
+                      }
                       if (cart.length > 0 && customerInfo.name && customerInfo.phone && selectedRestaurant) {
                         setShowPaymentModal(true)
                       }
                     }}
-                    disabled={cart.length === 0 || !customerInfo.name || !customerInfo.phone || !selectedRestaurant}
+                    disabled={cart.length === 0 || !customerInfo.name || !customerInfo.phone || !selectedRestaurant || (branches.length > 0 && !customerInfo.selectedBranch)}
                     className={`flex items-center gap-2 px-2 py-1.5 rounded border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                       paymentMethod === "ath_movil"
                         ? "bg-orange-500 text-white border-orange-500"
@@ -850,9 +765,15 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
                     </span>
                   </button>
                 </div>
-                {(cart.length === 0 || !customerInfo.name || !customerInfo.phone) && (
+                {(cart.length === 0 || !customerInfo.name || !customerInfo.phone || (branches.length > 0 && !customerInfo.selectedBranch)) && (
                   <p className="text-[9px] text-amber-600 mt-1">
-                    {cart.length === 0 ? "Agrega items al carrito" : "Completa nombre y telefono"}
+                    {cart.length === 0 
+                      ? "Agrega items al carrito" 
+                      : !customerInfo.name || !customerInfo.phone 
+                        ? "Completa nombre y telefono"
+                        : branches.length > 0 && !customerInfo.selectedBranch
+                          ? "Selecciona una sucursal"
+                          : ""}
                   </p>
                 )}
                 {!selectedRestaurant && (
@@ -1094,15 +1015,21 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
                   </div>
                   
                   <Button
-                    onClick={() => setShowPaymentModal(true)}
+                    onClick={() => {
+                      if (branches.length > 0 && !customerInfo.selectedBranch) {
+                        alert("Por favor selecciona una sucursal antes de procesar el pago")
+                        return
+                      }
+                      setShowPaymentModal(true)
+                    }}
                     className="w-full h-8 text-xs bg-rose-500 hover:bg-rose-600 mt-2"
-                    disabled={!customerInfo.name || !customerInfo.phone || isProcessing}
+                    disabled={cart.length === 0 || !customerInfo.name || !customerInfo.phone || !selectedRestaurant || (branches.length > 0 && !customerInfo.selectedBranch)}
                   >
                     Procesar Pago
                   </Button>
-                  {(!customerInfo.name || !customerInfo.phone) && (
+                  {(cart.length === 0 || !customerInfo.name || !customerInfo.phone || (branches.length > 0 && !customerInfo.selectedBranch)) && (
                     <p className="text-[10px] text-amber-600 text-center mt-1">
-                      Completa info del cliente
+                      {cart.length === 0 ? "Agrega items" : !customerInfo.name || !customerInfo.phone ? "Completa info del cliente" : "Selecciona sucursal"}
                     </p>
                   )}
                   {orderSuccess && (
@@ -1166,6 +1093,7 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
                   smsConsent: true,
                   stripeAccountId: selectedRestaurant.stripe_account_id || null,
                   customerId: null,
+                  order_source: "csr",
                 }}
                 onSuccess={() => {
                   setShowPaymentModal(false)
@@ -1229,6 +1157,7 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
                   branchName: "",
                   athmovilPublicToken: selectedRestaurant.athmovil_public_token,
                   athmovilEcommerceId: selectedRestaurant.athmovil_ecommerce_id,
+                  order_source: "csr",
                 }}
                 onSuccess={() => {
                   setShowPaymentModal(false)
