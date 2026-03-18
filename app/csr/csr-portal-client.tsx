@@ -105,10 +105,8 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
   const [tipPercentage, setTipPercentage] = useState<number>(15)
   const [customTip, setCustomTip] = useState<string>("")
   
-  // Fee constants (these could come from platform settings)
-  const DELIVERY_FEE = 3.99
-  const DISPATCH_FEE = 2.00
-  const IVU_RATE = 0.115 // 11.5% IVU for Puerto Rico
+  // IVU rate from selected restaurant
+  const IVU_RATE = selectedRestaurant?.tax_rate ?? 0.115 // Default 11.5% IVU for Puerto Rico
   
   // Order processing state
   const [isProcessing, setIsProcessing] = useState(false)
@@ -363,6 +361,11 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0)
+  
+  // Fee calculations from selected restaurant
+  const DELIVERY_FEE = selectedRestaurant?.delivery_fee ?? selectedRestaurant?.delivery_base_fee ?? 0
+  const DISPATCH_FEE_PERCENT = selectedRestaurant?.dispatch_fee_percent ?? 0
+  const DISPATCH_FEE = subtotal * (DISPATCH_FEE_PERCENT / 100)
   
   // Process Order
   const processOrder = async () => {
@@ -719,13 +722,19 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
                 />
               </div>
               
-              {/* Payment Method Selection */}
+              {/* Payment Method Selection - Click to select AND open payment */}
               <div>
                 <Label className="text-[10px] text-amber-700 font-medium">Metodo de Pago</Label>
                 <div className="flex flex-col gap-1.5 mt-1">
                   <button
-                    onClick={() => setPaymentMethod("stripe")}
-                    className={`flex items-center gap-2 px-2 py-1.5 rounded border transition-colors ${
+                    onClick={() => {
+                      setPaymentMethod("stripe")
+                      if (cart.length > 0 && customerInfo.name && customerInfo.phone) {
+                        setShowPaymentModal(true)
+                      }
+                    }}
+                    disabled={cart.length === 0 || !customerInfo.name || !customerInfo.phone}
+                    className={`flex items-center gap-2 px-2 py-1.5 rounded border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                       paymentMethod === "stripe"
                         ? "bg-indigo-600 text-white border-indigo-600"
                         : "bg-white text-slate-700 border-slate-300 hover:border-indigo-400"
@@ -738,8 +747,14 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
                   </button>
                   
                   <button
-                    onClick={() => setPaymentMethod("ath_movil")}
-                    className={`flex items-center gap-2 px-2 py-1.5 rounded border transition-colors ${
+                    onClick={() => {
+                      setPaymentMethod("ath_movil")
+                      if (cart.length > 0 && customerInfo.name && customerInfo.phone) {
+                        setShowPaymentModal(true)
+                      }
+                    }}
+                    disabled={cart.length === 0 || !customerInfo.name || !customerInfo.phone}
+                    className={`flex items-center gap-2 px-2 py-1.5 rounded border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                       paymentMethod === "ath_movil"
                         ? "bg-orange-500 text-white border-orange-500"
                         : "bg-white text-slate-700 border-slate-300 hover:border-orange-400"
@@ -751,6 +766,11 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
                     <span className="text-[10px] font-medium">ATH Movil</span>
                   </button>
                 </div>
+                {(cart.length === 0 || !customerInfo.name || !customerInfo.phone) && (
+                  <p className="text-[9px] text-amber-600 mt-1">
+                    {cart.length === 0 ? "Agrega items al carrito" : "Completa nombre y telefono"}
+                  </p>
+                )}
               </div>
             </div>
           </div>
