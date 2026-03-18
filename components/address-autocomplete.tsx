@@ -143,13 +143,24 @@ export function AddressAutocomplete({
         setInputValue(streetAddress)
         onChange(streetAddress)
 
+        console.log("[v0] AddressAutocomplete received from API:", { 
+          city: data.city, 
+          state: data.state, 
+          zip: data.zip,
+          streetAddress: data.streetAddress 
+        })
+
         if (onAddressSelected) {
-          onAddressSelected({
+          const callbackData = {
             streetAddress,
             city: data.city || "",
             state: data.state || "PR",
             zip: data.zip || "",
-          })
+          }
+          console.log("[v0] Calling onAddressSelected with:", callbackData)
+          onAddressSelected(callbackData)
+        } else {
+          console.log("[v0] WARNING: onAddressSelected is undefined!")
         }
 
         // Trigger distance calculation after form state has updated

@@ -923,15 +923,21 @@ const line2 = customerInfo.streetAddress2 ? `, ${customerInfo.streetAddress2}` :
                       value={customerInfo.streetAddress}
                       onChange={(val) => setCustomerInfo(prev => ({...prev, streetAddress: val}))}
                       onAddressSelected={(components) => {
+                        console.log("[v0] CSR onAddressSelected CALLED with:", components)
                         // ALWAYS override city/state/zip when selecting from autocomplete
                         // This ensures manual values get replaced with Google's data
-                        setCustomerInfo(prev => ({
-                          ...prev,
-                          streetAddress: components.streetAddress,
-                          city: components.city, // Always use autocomplete value
-                          state: components.state || "PR",
-                          zip: components.zip, // Always use autocomplete value
-                        }))
+                        setCustomerInfo(prev => {
+                          console.log("[v0] CSR prev state:", { city: prev.city, zip: prev.zip })
+                          const newState = {
+                            ...prev,
+                            streetAddress: components.streetAddress,
+                            city: components.city, // Always use autocomplete value
+                            state: components.state || "PR",
+                            zip: components.zip, // Always use autocomplete value
+                          }
+                          console.log("[v0] CSR new state:", { city: newState.city, zip: newState.zip })
+                          return newState
+                        })
                         // Uncheck manual override since user selected from Google
                         setManualAddressOverride(false)
                       }}

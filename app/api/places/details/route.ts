@@ -97,6 +97,9 @@ export async function GET(request: NextRequest) {
     const lat = result.geometry?.location?.lat ?? null
     const lng = result.geometry?.location?.lng ?? null
 
+    // Debug logging
+    console.log("[v0] Places API parsed:", { streetAddress, city, state, zip, formattedAddress })
+
     return NextResponse.json({
       lat,
       lng,
