@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import dynamic from "next/dynamic"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,6 +11,10 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Phone, Search, Building2, X, ShoppingCart, Minus, Plus, Trash2, ChevronRight, ChevronLeft, LogOut, Menu, User, MapPin, Clock, CalendarIcon } from "lucide-react"
 import Link from "next/link"
+
+// Dynamic import for payment components
+const StripeCheckout = dynamic(() => import("@/components/stripe-checkout"), { ssr: false })
+const ATHMovilCheckout = dynamic(() => import("@/components/athmovil-checkout"), { ssr: false })
 
 interface Restaurant {
   id: string
@@ -111,6 +116,7 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
   
   // Payment method state
   const [paymentMethod, setPaymentMethod] = useState<"stripe" | "ath_movil">("stripe")
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
   
   // Get default date/time based on delivery type
   const defaultDateTime = getDefaultDateTime("delivery")
@@ -978,11 +984,11 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
                   </div>
                   
                   <Button
-                    onClick={processOrder}
+                    onClick={() => setShowPaymentModal(true)}
                     className="w-full h-8 text-xs bg-rose-500 hover:bg-rose-600 mt-2"
                     disabled={!customerInfo.name || !customerInfo.phone || isProcessing}
                   >
-                    {isProcessing ? "Procesando..." : "Procesar Orden"}
+                    Procesar Pago
                   </Button>
                   {(!customerInfo.name || !customerInfo.phone) && (
                     <p className="text-[10px] text-amber-600 text-center mt-1">
@@ -1001,6 +1007,136 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
           </div>
         </div>
       </div>
+
+      {/* Payment Modal */}
+      {showPaymentModal && selectedRestaurant && cart.length > 0 && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg w-full max-w-lg max-h-[90vh] overflow-hidden">
+            {paymentMethod === "stripe" ? (
+              <StripeCheckout
+                orderData={{
+                  cart: cart.map(item => ({
+                    id: item.itemId,
+                    name: item.name,
+                    price: item.price,
+                    quantity: item.quantity,
+                    selectedOptions: item.selectedOptions,
+                    notes: item.notes,
+                  })),
+                  subtotal: subtotal,
+                  tax: subtotal * IVU_RATE,
+                  deliveryFee: customerInfo.deliveryType === "delivery" ? DELIVERY_FEE + DISPATCH_FEE : 0,
+                  tip: customTip ? parseFloat(customTip) || 0 : (subtotal * tipPercentage / 100),
+                  total: (() => {
+                    const deliveryFee = customerInfo.deliveryType === "delivery" ? DELIVERY_FEE : 0
+                    const dispatchFee = customerInfo.deliveryType === "delivery" ? DISPATCH_FEE : 0
+                    const ivu = subtotal * IVU_RATE
+                    const tipAmount = customTip ? parseFloat(customTip) || 0 : (subtotal * tipPercentage / 100)
+                    return subtotal + deliveryFee + dispatchFee + ivu + tipAmount
+                  })(),
+                  orderType: customerInfo.deliveryType,
+                  eventDetails: {
+                    name: customerInfo.name,
+                    phone: customerInfo.phone,
+                    address: customerInfo.address,
+                    city: customerInfo.city,
+                    zip: customerInfo.zip,
+                    eventDate: customerInfo.eventDate,
+                    eventTime: customerInfo.eventTime,
+                    specialInstructions: customerInfo.specialInstructions,
+                  },
+                  includeUtensils: false,
+                  customerEmail: "",
+                  customerPhone: customerInfo.phone,
+                  smsConsent: true,
+                  stripeAccountId: null,
+                  customerId: null,
+                }}
+                onSuccess={() => {
+                  setShowPaymentModal(false)
+                  setOrderSuccess("Pago completado exitosamente")
+                  setCart([])
+                  setCustomerInfo({
+                    phone: "",
+                    name: "",
+                    address: "",
+                    city: "",
+                    zip: "",
+                    deliveryType: "delivery",
+                    eventDate: getDefaultDateTime("delivery").date,
+                    eventTime: getDefaultDateTime("delivery").time,
+                    specialInstructions: "",
+                    selectedBranch: "",
+                  })
+                  setTimeout(() => setOrderSuccess(null), 5000)
+                }}
+                onCancel={() => setShowPaymentModal(false)}
+              />
+            ) : (
+              <ATHMovilCheckout
+                orderData={{
+                  restaurantId: selectedRestaurant.id,
+                  branchId: customerInfo.selectedBranch || null,
+                  cart: cart.map(item => ({
+                    id: item.itemId,
+                    menu_item_id: item.itemId,
+                    name: item.name,
+                    price: item.price,
+                    quantity: item.quantity,
+                    total_price: item.price * item.quantity,
+                    selectedOptions: item.selectedOptions,
+                  })),
+                  subtotal: subtotal,
+                  tax: subtotal * IVU_RATE,
+                  deliveryFee: customerInfo.deliveryType === "delivery" ? DELIVERY_FEE + DISPATCH_FEE : 0,
+                  tip: customTip ? parseFloat(customTip) || 0 : (subtotal * tipPercentage / 100),
+                  total: (() => {
+                    const deliveryFee = customerInfo.deliveryType === "delivery" ? DELIVERY_FEE : 0
+                    const dispatchFee = customerInfo.deliveryType === "delivery" ? DISPATCH_FEE : 0
+                    const ivu = subtotal * IVU_RATE
+                    const tipAmount = customTip ? parseFloat(customTip) || 0 : (subtotal * tipPercentage / 100)
+                    return subtotal + deliveryFee + dispatchFee + ivu + tipAmount
+                  })(),
+                  orderType: customerInfo.deliveryType,
+                  customerEmail: "",
+                  customerPhone: customerInfo.phone,
+                  eventDetails: {
+                    name: customerInfo.name,
+                    phone: customerInfo.phone,
+                    address: customerInfo.address,
+                    city: customerInfo.city,
+                    zip: customerInfo.zip,
+                    eventDate: customerInfo.eventDate,
+                    eventTime: customerInfo.eventTime,
+                    specialInstructions: customerInfo.specialInstructions,
+                  },
+                  restaurantName: selectedRestaurant.name,
+                  branchName: "",
+                }}
+                onSuccess={() => {
+                  setShowPaymentModal(false)
+                  setOrderSuccess("Pago ATH Movil completado")
+                  setCart([])
+                  setCustomerInfo({
+                    phone: "",
+                    name: "",
+                    address: "",
+                    city: "",
+                    zip: "",
+                    deliveryType: "delivery",
+                    eventDate: getDefaultDateTime("delivery").date,
+                    eventTime: getDefaultDateTime("delivery").time,
+                    specialInstructions: "",
+                    selectedBranch: "",
+                  })
+                  setTimeout(() => setOrderSuccess(null), 5000)
+                }}
+                onCancel={() => setShowPaymentModal(false)}
+              />
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Item Options Modal */}
       {selectedItem && (
