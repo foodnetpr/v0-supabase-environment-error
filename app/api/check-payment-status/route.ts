@@ -34,7 +34,8 @@ export async function GET(request: NextRequest) {
       const metadata = session.metadata
       const orderData = {
         restaurantId: metadata.restaurantId,
-        branchId: metadata.branchId,
+        branchId: metadata.branchId || null,
+        order_source: metadata.order_source || "online",
         customerId: metadata.customerId || null,
         orderType: metadata.orderType,
         customerEmail: metadata.customerEmail,
@@ -202,24 +203,17 @@ async function insertOrderWithFinancials(orderData: any, sessionId: string) {
   // Calculate what JunteReady pays the restaurant
   const restaurantPayout = foodSubtotal * (1 - discountPercent / 100)
 
-  // STRICT REQUIREMENT: branchId MUST be provided - no fallbacks allowed
-  if (!branchId) {
-    console.error("[v0] CRITICAL: Stripe order REJECTED - branchId is REQUIRED, no fallbacks allowed")
-    return NextResponse.json(
-      { error: "Error del sistema: Sucursal no especificada. Contacte soporte." },
-      { status: 400 }
-    )
-  }
+  // branchId is optional - system doesn't require branches, each restaurant is a unit
 
   // Generate order number
   const orderNumber = `ORD-${Date.now().toString(36).toUpperCase()}`
 
   // Insert the order - only use columns that exist in the schema
-  console.log("[v0] Inserting order for restaurant:", restaurantId, "branch:", branchId, "delivery_date:", orderData.eventDetails?.eventDate || new Date().toISOString().split('T')[0])
+  console.log("[v0] Inserting order for restaurant:", restaurantId, "branch:", branchId || "none", "delivery_date:", orderData.eventDetails?.eventDate || new Date().toISOString().split('T')[0])
   const { data: order, error } = await supabase.from("orders").insert({
     restaurant_id: restaurantId,
-    branch_id: branchId,
-    original_branch_id: branchId,
+    branch_id: branchId || null,
+    original_branch_id: branchId || null,
     customer_id: orderData.customerId || null,
     order_number: orderNumber,
     stripe_account_id: orderData.stripeAccountId || null,

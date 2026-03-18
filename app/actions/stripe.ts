@@ -147,6 +147,7 @@ export async function createCheckoutSession(orderData: {
       mode: "payment",
       redirect_on_completion: "never",
       metadata: {
+        order_source: (orderData as any).order_source || "online",
         restaurantId,
         branchId,
         customerId: orderData.customerId || "",
