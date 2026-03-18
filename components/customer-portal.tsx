@@ -4637,12 +4637,13 @@ const orderData = {
                         value={deliveryForm.streetAddress}
                         onChange={(val) => setDeliveryForm({ ...deliveryForm, streetAddress: val })}
                         onAddressSelected={(components: AddressComponents) => {
+                          // ALWAYS override with autocomplete values when user selects an address
                           const newForm = {
                             ...deliveryForm,
                             streetAddress: components.streetAddress || deliveryForm.streetAddress,
-                            city: components.city || deliveryForm.city,
+                            city: components.city, // Always use autocomplete value
                             state: components.state || "PR",
-                            zip: components.zip || deliveryForm.zip,
+                            zip: components.zip, // Always use autocomplete value
                           }
                           setDeliveryForm(newForm)
                           setZoneCheck({ checked: false, inZone: true, distance: null, radius: 7, closerBranch: null, acknowledged: false })
