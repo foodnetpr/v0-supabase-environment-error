@@ -148,6 +148,15 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
 
   // Load menu items and branches when restaurant is selected
   const selectRestaurant = async (restaurant: Restaurant) => {
+    // If switching restaurants, clear the cart (can't mix items from different restaurants)
+    if (selectedRestaurant && selectedRestaurant.id !== restaurant.id && cart.length > 0) {
+      const confirmSwitch = window.confirm(
+        `Cambiar a ${restaurant.name} vaciará el carrito actual. ¿Desea continuar?`
+      )
+      if (!confirmSwitch) return
+      setCart([])
+    }
+    
     setLoading(true)
     setSelectedRestaurant(restaurant)
     // Keep restaurant panel visible by default - user can hide manually
@@ -726,14 +735,15 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
               <div>
                 <Label className="text-[10px] text-amber-700 font-medium">Metodo de Pago</Label>
                 <div className="flex flex-col gap-1.5 mt-1">
+                  {/* Stripe button - always available (platform default) */}
                   <button
                     onClick={() => {
                       setPaymentMethod("stripe")
-                      if (cart.length > 0 && customerInfo.name && customerInfo.phone) {
+                      if (cart.length > 0 && customerInfo.name && customerInfo.phone && selectedRestaurant) {
                         setShowPaymentModal(true)
                       }
                     }}
-                    disabled={cart.length === 0 || !customerInfo.name || !customerInfo.phone}
+                    disabled={cart.length === 0 || !customerInfo.name || !customerInfo.phone || !selectedRestaurant}
                     className={`flex items-center gap-2 px-2 py-1.5 rounded border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                       paymentMethod === "stripe"
                         ? "bg-indigo-600 text-white border-indigo-600"
@@ -746,29 +756,37 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
                     <span className="text-[10px] font-medium">Stripe (Tarjeta)</span>
                   </button>
                   
-                  <button
-                    onClick={() => {
-                      setPaymentMethod("ath_movil")
-                      if (cart.length > 0 && customerInfo.name && customerInfo.phone) {
-                        setShowPaymentModal(true)
-                      }
-                    }}
-                    disabled={cart.length === 0 || !customerInfo.name || !customerInfo.phone}
-                    className={`flex items-center gap-2 px-2 py-1.5 rounded border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                      paymentMethod === "ath_movil"
-                        ? "bg-orange-500 text-white border-orange-500"
-                        : "bg-white text-slate-700 border-slate-300 hover:border-orange-400"
-                    }`}
-                  >
-                    <div className="w-4 h-4 bg-orange-500 rounded flex items-center justify-center text-white text-[8px] font-bold">
-                      ATH
-                    </div>
-                    <span className="text-[10px] font-medium">ATH Movil</span>
-                  </button>
+                  {/* ATH Movil button - only show if restaurant has it enabled */}
+                  {selectedRestaurant?.athmovil_enabled && (
+                    <button
+                      onClick={() => {
+                        setPaymentMethod("ath_movil")
+                        if (cart.length > 0 && customerInfo.name && customerInfo.phone && selectedRestaurant) {
+                          setShowPaymentModal(true)
+                        }
+                      }}
+                      disabled={cart.length === 0 || !customerInfo.name || !customerInfo.phone}
+                      className={`flex items-center gap-2 px-2 py-1.5 rounded border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                        paymentMethod === "ath_movil"
+                          ? "bg-orange-500 text-white border-orange-500"
+                          : "bg-white text-slate-700 border-slate-300 hover:border-orange-400"
+                      }`}
+                    >
+                      <div className="w-4 h-4 bg-orange-500 rounded flex items-center justify-center text-white text-[8px] font-bold">
+                        ATH
+                      </div>
+                      <span className="text-[10px] font-medium">ATH Movil</span>
+                    </button>
+                  )}
                 </div>
                 {(cart.length === 0 || !customerInfo.name || !customerInfo.phone) && (
                   <p className="text-[9px] text-amber-600 mt-1">
                     {cart.length === 0 ? "Agrega items al carrito" : "Completa nombre y telefono"}
+                  </p>
+                )}
+                {!selectedRestaurant && (
+                  <p className="text-[9px] text-amber-600 mt-1">
+                    Selecciona un restaurante
                   </p>
                 )}
               </div>
