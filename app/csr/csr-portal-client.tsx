@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Phone, Search, Building2, X, ShoppingCart, Minus, Plus, Trash2, ChevronRight, ChevronLeft, LogOut, Menu, User, MapPin, Clock, CalendarIcon } from "lucide-react"
 import Link from "next/link"
 import { calculateDeliveryFee } from "@/app/actions/delivery-zones"
+import { AddressAutocomplete } from "@/components/address-autocomplete"
 
 // Dynamic import for payment components
 const StripeCheckout = dynamic(() => import("@/components/stripe-checkout"), { ssr: false })
@@ -140,8 +141,10 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
     phone: "",
     name: "",
     email: "",
-    address: "",
+    streetAddress: "",
+    streetAddress2: "", // Apt, Urb, Suite, etc.
     city: "",
+    state: "PR", // Default to Puerto Rico
     zip: "",
     deliveryType: "delivery" as "delivery" | "pickup",
     eventDate: defaultDateTime.date,
@@ -419,7 +422,7 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
       }
       
       // Need full address to calculate
-      if (!customerInfo.address || !customerInfo.city) {
+      if (!customerInfo.streetAddress || !customerInfo.city) {
         setCalculatedDeliveryFee(0)
         setDeliveryDistance(0)
         return
@@ -431,7 +434,8 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
         const restaurantAddress = selectedRestaurant.address || 
           `${selectedRestaurant.city || ""}, ${selectedRestaurant.state || "PR"}`
         
-        const deliveryAddress = `${customerInfo.address}, ${customerInfo.city}, PR ${customerInfo.zip || ""}`
+const line2 = customerInfo.streetAddress2 ? `, ${customerInfo.streetAddress2}` : ""
+        const deliveryAddress = `${customerInfo.streetAddress}${line2}, ${customerInfo.city}, ${customerInfo.state} ${customerInfo.zip || ""}`
         
         const result = await calculateDeliveryFee({
           restaurantId: selectedRestaurant.id,
@@ -459,7 +463,7 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
     // Debounce the calculation
     const timer = setTimeout(calculateFee, 500)
     return () => clearTimeout(timer)
-  }, [selectedRestaurant, customerInfo.address, customerInfo.city, customerInfo.zip, customerInfo.deliveryType, totalItems])
+  }, [selectedRestaurant, customerInfo.streetAddress, customerInfo.streetAddress2, customerInfo.city, customerInfo.state, customerInfo.zip, customerInfo.deliveryType, totalItems])
 
   // Search customers by phone or name for autocomplete
   const searchCustomers = async (searchTerm: string) => {
@@ -528,8 +532,10 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
       phone: customer.phone || "",
       name: `${customer.first_name || ""} ${customer.last_name || ""}`.trim(),
       email: customer.email || "",
-      address: defaultAddress?.address_line_1 || "",
+      streetAddress: defaultAddress?.address_line_1 || "",
+      streetAddress2: defaultAddress?.address_line_2 || "",
       city: defaultAddress?.city || "",
+      state: defaultAddress?.state || "PR",
       zip: defaultAddress?.postal_code || "",
       specialInstructions: defaultAddress?.delivery_instructions || customerInfo.specialInstructions,
     })
@@ -589,14 +595,15 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
         setIsNewCustomer(false)
         
         // If delivery address provided, save it
-        if (customerInfo.deliveryType === "delivery" && customerInfo.address) {
+        if (customerInfo.deliveryType === "delivery" && customerInfo.streetAddress) {
           await supabase
             .from("customer_addresses")
             .insert({
               customer_id: newCustomer.id,
-              address_line_1: customerInfo.address,
+              address_line_1: customerInfo.streetAddress,
+              address_line_2: customerInfo.streetAddress2 || null,
               city: customerInfo.city,
-              state: "PR",
+              state: customerInfo.state || "PR",
               postal_code: customerInfo.zip,
               delivery_instructions: customerInfo.specialInstructions || null,
               is_default: true,
@@ -615,12 +622,13 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
   // Filter restaurants by delivery zone when customer address changes
   useEffect(() => {
     const filterByDeliveryZone = async () => {
-      if (!customerInfo.address || !customerInfo.city || customerInfo.deliveryType !== "delivery") {
+      if (!customerInfo.streetAddress || !customerInfo.city || customerInfo.deliveryType !== "delivery") {
         setFilteredRestaurants(restaurants)
         return
       }
       
-      const deliveryAddress = `${customerInfo.address}, ${customerInfo.city}, PR ${customerInfo.zip || ""}`
+      const line2 = customerInfo.streetAddress2 ? `, ${customerInfo.streetAddress2}` : ""
+      const deliveryAddress = `${customerInfo.streetAddress}${line2}, ${customerInfo.city}, ${customerInfo.state} ${customerInfo.zip || ""}`
       
       // Check each restaurant's delivery zones
       const available: Restaurant[] = []
@@ -647,7 +655,7 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
     
     const timer = setTimeout(filterByDeliveryZone, 800)
     return () => clearTimeout(timer)
-  }, [customerInfo.address, customerInfo.city, customerInfo.zip, customerInfo.deliveryType, restaurants])
+  }, [customerInfo.streetAddress, customerInfo.streetAddress2, customerInfo.city, customerInfo.state, customerInfo.zip, customerInfo.deliveryType, restaurants])
   
   // Debounced customer search when phone changes
   useEffect(() => {
@@ -899,22 +907,45 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
 
               {customerInfo.deliveryType === "delivery" && (
                 <>
+                  {/* Address Line 1 with Google Autocomplete */}
                   <div>
                     <Label className="text-[10px] text-amber-700 font-medium">Direccion *</Label>
-                    <Input
-                      value={customerInfo.address}
-                      onChange={(e) => setCustomerInfo({...customerInfo, address: e.target.value})}
-                      placeholder="Calle, numero..."
+                    <AddressAutocomplete
+                      value={customerInfo.streetAddress}
+                      onChange={(val) => setCustomerInfo({...customerInfo, streetAddress: val})}
+                      onAddressSelected={(components) => {
+                        setCustomerInfo({
+                          ...customerInfo,
+                          streetAddress: components.streetAddress,
+                          city: components.city || customerInfo.city,
+                          state: components.state || "PR",
+                          zip: components.zip || customerInfo.zip,
+                        })
+                      }}
+                      placeholder="Numero, Calle..."
                       className="h-7 text-xs mt-0.5"
                     />
                   </div>
+                  
+                  {/* Address Line 2 */}
+                  <div>
+                    <Label className="text-[10px] text-amber-700 font-medium">Apt, Urb, Suite</Label>
+                    <Input
+                      value={customerInfo.streetAddress2}
+                      onChange={(e) => setCustomerInfo({...customerInfo, streetAddress2: e.target.value})}
+                      placeholder="Apt 2B, Urb Villa Sol, etc."
+                      className="h-7 text-xs mt-0.5"
+                    />
+                  </div>
+                  
+                  {/* City and ZIP */}
                   <div className="grid grid-cols-2 gap-1">
                     <div>
                       <Label className="text-[10px] text-amber-700 font-medium">Ciudad</Label>
                       <Input
                         value={customerInfo.city}
                         onChange={(e) => setCustomerInfo({...customerInfo, city: e.target.value})}
-                        placeholder="Ciudad"
+                        placeholder="San Juan"
                         className="h-7 text-xs mt-0.5"
                       />
                     </div>
@@ -922,7 +953,11 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
                       <Label className="text-[10px] text-amber-700 font-medium">ZIP</Label>
                       <Input
                         value={customerInfo.zip}
-                        onChange={(e) => setCustomerInfo({...customerInfo, zip: e.target.value})}
+                        onChange={(e) => {
+                          // Only allow numeric input, max 5 digits
+                          const val = e.target.value.replace(/\D/g, "").slice(0, 5)
+                          setCustomerInfo({...customerInfo, zip: val})
+                        }}
                         placeholder="00XXX"
                         className="h-7 text-xs mt-0.5"
                       />
@@ -1417,10 +1452,10 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
                     company: "",
                     eventDate: customerInfo.eventDate,
                     eventTime: customerInfo.eventTime,
-                    address: customerInfo.address,
-                    address2: "", // No address line 2 in CSR for now
+                    address: customerInfo.streetAddress,
+                    address2: customerInfo.streetAddress2,
                     city: customerInfo.city,
-                    state: "PR",
+                    state: customerInfo.state,
                     zip: customerInfo.zip,
                     specialInstructions: customerInfo.specialInstructions,
                   },
@@ -1440,8 +1475,10 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
                     phone: "",
                     name: "",
                     email: "",
-                    address: "",
+                    streetAddress: "",
+                    streetAddress2: "",
                     city: "",
+                    state: "PR",
                     zip: "",
                     deliveryType: "delivery",
                     eventDate: getDefaultDateTime("delivery").date,
@@ -1499,10 +1536,10 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
                     company: "",
                     eventDate: customerInfo.eventDate,
                     eventTime: customerInfo.eventTime,
-                    address: customerInfo.address,
-                    address2: "",
+                    address: customerInfo.streetAddress,
+                    address2: customerInfo.streetAddress2,
                     city: customerInfo.city,
-                    state: "PR",
+                    state: customerInfo.state,
                     zip: customerInfo.zip,
                     specialInstructions: customerInfo.specialInstructions,
                   },
@@ -1519,8 +1556,10 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
                     phone: "",
                     name: "",
                     email: "",
-                    address: "",
+                    streetAddress: "",
+                    streetAddress2: "",
                     city: "",
+                    state: "PR",
                     zip: "",
                     deliveryType: "delivery",
                     eventDate: getDefaultDateTime("delivery").date,
@@ -1574,7 +1613,7 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
                 <div className="text-sm space-y-1">
                   <p><span className="text-slate-500">Restaurante:</span> <strong>{selectedRestaurant.name}</strong></p>
                   {customerInfo.deliveryType === "delivery" && (
-                    <p><span className="text-slate-500">Direccion:</span> <strong>{customerInfo.address}, {customerInfo.city} {customerInfo.zip}</strong></p>
+                    <p><span className="text-slate-500">Direccion:</span> <strong>{customerInfo.streetAddress}{customerInfo.streetAddress2 ? `, ${customerInfo.streetAddress2}` : ""}, {customerInfo.city}, {customerInfo.state} {customerInfo.zip}</strong></p>
                   )}
                   <p><span className="text-slate-500">Fecha:</span> <strong>{customerInfo.eventDate}</strong> a las <strong>{customerInfo.eventTime}</strong></p>
                   {customerInfo.specialInstructions && (
@@ -1701,7 +1740,7 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
                             phone: customerInfo.phone,
                             eventDate: customerInfo.eventDate,
                             eventTime: customerInfo.eventTime,
-                            address: customerInfo.address,
+                            address: customerInfo.streetAddress,
                             city: customerInfo.city,
                             state: "PR",
                             zip: customerInfo.zip,
@@ -1719,8 +1758,10 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
                           phone: "",
                           name: "",
                           email: "",
-                          address: "",
+                          streetAddress: "",
+                          streetAddress2: "",
                           city: "",
+                          state: "PR",
                           zip: "",
                           deliveryType: "delivery",
                           eventDate: getDefaultDateTime("delivery").date,
@@ -1780,7 +1821,7 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
                             phone: customerInfo.phone,
                             eventDate: customerInfo.eventDate,
                             eventTime: customerInfo.eventTime,
-                            address: customerInfo.address,
+                            address: customerInfo.streetAddress,
                             city: customerInfo.city,
                             state: "PR",
                             zip: customerInfo.zip,
@@ -1798,8 +1839,10 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
                           phone: "",
                           name: "",
                           email: "",
-                          address: "",
+                          streetAddress: "",
+                          streetAddress2: "",
                           city: "",
+                          state: "PR",
                           zip: "",
                           deliveryType: "delivery",
                           eventDate: getDefaultDateTime("delivery").date,
