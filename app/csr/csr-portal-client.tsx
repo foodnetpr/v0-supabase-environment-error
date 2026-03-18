@@ -756,28 +756,26 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
                     <span className="text-[10px] font-medium">Stripe (Tarjeta)</span>
                   </button>
                   
-                  {/* ATH Movil button - only show if restaurant has it enabled */}
-                  {selectedRestaurant?.athmovil_enabled && (
-                    <button
-                      onClick={() => {
-                        setPaymentMethod("ath_movil")
-                        if (cart.length > 0 && customerInfo.name && customerInfo.phone && selectedRestaurant) {
-                          setShowPaymentModal(true)
-                        }
-                      }}
-                      disabled={cart.length === 0 || !customerInfo.name || !customerInfo.phone}
-                      className={`flex items-center gap-2 px-2 py-1.5 rounded border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                        paymentMethod === "ath_movil"
-                          ? "bg-orange-500 text-white border-orange-500"
-                          : "bg-white text-slate-700 border-slate-300 hover:border-orange-400"
-                      }`}
-                    >
-                      <div className="w-4 h-4 bg-orange-500 rounded flex items-center justify-center text-white text-[8px] font-bold">
-                        ATH
-                      </div>
-                      <span className="text-[10px] font-medium">ATH Movil</span>
-                    </button>
-                  )}
+                  {/* ATH Movil button - always available */}
+                  <button
+                    onClick={() => {
+                      setPaymentMethod("ath_movil")
+                      if (cart.length > 0 && customerInfo.name && customerInfo.phone && selectedRestaurant) {
+                        setShowPaymentModal(true)
+                      }
+                    }}
+                    disabled={cart.length === 0 || !customerInfo.name || !customerInfo.phone || !selectedRestaurant}
+                    className={`flex items-center gap-2 px-2 py-1.5 rounded border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                      paymentMethod === "ath_movil"
+                        ? "bg-orange-500 text-white border-orange-500"
+                        : "bg-white text-slate-700 border-slate-300 hover:border-orange-400"
+                    }`}
+                  >
+                    <div className="w-4 h-4 bg-orange-500 rounded flex items-center justify-center text-white text-[8px] font-bold">
+                      ATH
+                    </div>
+                    <span className="text-[10px] font-medium">ATH Movil</span>
+                  </button>
                 </div>
                 {(cart.length === 0 || !customerInfo.name || !customerInfo.phone) && (
                   <p className="text-[9px] text-amber-600 mt-1">
@@ -953,70 +951,68 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
               const total = subtotal + deliveryFee + dispatchFee + ivu + tipAmount
               
               return (
-                <div className="p-2 border-t border-slate-200 bg-white space-y-1.5">
+                <div className="p-3 border-t border-slate-200 bg-white">
+                  {/* Header */}
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-2">DETALLES DE LA ORDEN</p>
+                  
                   {/* Subtotal */}
-                  <div className="flex justify-between text-xs">
-                    <span className="text-slate-600">Subtotal</span>
-                    <span className="font-medium text-slate-900">${subtotal.toFixed(2)}</span>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-slate-900 font-medium">Subtotal</span>
+                    <span className="text-slate-900">${subtotal.toFixed(2)}</span>
                   </div>
                   
                   {/* Delivery Fee */}
                   {customerInfo.deliveryType === "delivery" && (
-                    <div className="flex justify-between text-xs">
-                      <span className="text-slate-600">Delivery Fee</span>
-                      <span className="text-slate-900">${deliveryFee.toFixed(2)}</span>
-                    </div>
-                  )}
-                  
-                  {/* Dispatch Fee */}
-                  {customerInfo.deliveryType === "delivery" && (
-                    <div className="flex justify-between text-xs">
-                      <span className="text-slate-600">Dispatch Fee</span>
-                      <span className="text-slate-900">${dispatchFee.toFixed(2)}</span>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-rose-500">Delivery</span>
+                      <span className="text-slate-900">${(deliveryFee + dispatchFee).toFixed(2)}</span>
                     </div>
                   )}
                   
                   {/* IVU */}
-                  <div className="flex justify-between text-xs">
-                    <span className="text-slate-600">IVU (11.5%)</span>
+                  <div className="flex justify-between text-xs mb-2">
+                    <span className="text-rose-500">IVU</span>
                     <span className="text-slate-900">${ivu.toFixed(2)}</span>
                   </div>
                   
                   {/* Tip Section */}
-                  <div className="pt-1.5 border-t border-slate-100">
-                    <p className="text-[10px] text-slate-500 mb-1">Propina</p>
-                    <div className="flex gap-1 mb-1">
+                  <div className="border-t border-slate-100 pt-2 mb-2">
+                    <div className="flex justify-between items-center mb-1.5">
+                      <span className="text-xs text-slate-900 font-medium">Propina</span>
+                      <span className="text-xs text-slate-900">${tipAmount.toFixed(2)}</span>
+                    </div>
+                    <div className="flex gap-1">
                       {[10, 15, 18, 20].map((pct) => (
                         <button
                           key={pct}
                           onClick={() => { setTipPercentage(pct); setCustomTip(""); }}
-                          className={`flex-1 py-1 text-[10px] rounded transition-colors ${
+                          className={`flex-1 py-1.5 text-[11px] rounded-full transition-colors ${
                             tipPercentage === pct && !customTip
-                              ? "bg-rose-500 text-white"
+                              ? "bg-amber-400 text-slate-900 font-medium"
                               : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                           }`}
                         >
                           {pct}%
                         </button>
                       ))}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className="text-[10px] text-slate-500">$</span>
-                      <Input
-                        type="number"
-                        placeholder="Otra"
-                        value={customTip}
-                        onChange={(e) => setCustomTip(e.target.value)}
-                        className="h-6 text-xs flex-1"
-                      />
-                      <span className="text-xs text-slate-600 min-w-[50px] text-right">
-                        ${tipAmount.toFixed(2)}
-                      </span>
+                      <button
+                        onClick={() => {
+                          const amount = window.prompt("Ingrese monto de propina:")
+                          if (amount) setCustomTip(amount)
+                        }}
+                        className={`flex-1 py-1.5 text-[11px] rounded-full transition-colors ${
+                          customTip
+                            ? "bg-amber-400 text-slate-900 font-medium"
+                            : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                        }`}
+                      >
+                        Otro
+                      </button>
                     </div>
                   </div>
                   
                   {/* Total */}
-                  <div className="flex justify-between pt-1.5 border-t border-slate-200">
+                  <div className="flex justify-between pt-2 border-t border-slate-200">
                     <span className="text-sm font-bold text-slate-900">Total</span>
                     <span className="text-sm font-bold text-rose-600">${total.toFixed(2)}</span>
                   </div>
