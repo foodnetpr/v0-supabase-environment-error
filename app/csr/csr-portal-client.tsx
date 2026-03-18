@@ -957,8 +957,8 @@ const line2 = customerInfo.streetAddress2 ? `, ${customerInfo.streetAddress2}` :
                     />
                   </div>
                   
-                  {/* City and ZIP */}
-                  <div className="grid grid-cols-2 gap-1">
+                  {/* City, State, and ZIP */}
+                  <div className="grid grid-cols-3 gap-1">
                     <div>
                       <Label className="text-[10px] text-amber-700 font-medium">Ciudad</Label>
                       <Input
@@ -966,6 +966,16 @@ const line2 = customerInfo.streetAddress2 ? `, ${customerInfo.streetAddress2}` :
                         onChange={(e) => setCustomerInfo({...customerInfo, city: e.target.value})}
                         placeholder="San Juan"
                         className="h-7 text-xs mt-0.5"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-amber-700 font-medium">Estado</Label>
+                      <Input
+                        value={customerInfo.state}
+                        onChange={(e) => setCustomerInfo({...customerInfo, state: e.target.value.toUpperCase().slice(0, 2)})}
+                        placeholder="PR"
+                        className="h-7 text-xs mt-0.5"
+                        maxLength={2}
                       />
                     </div>
                     <div>
