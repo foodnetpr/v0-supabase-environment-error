@@ -73,7 +73,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [items, restaurantId, restaurantName, restaurantSlug])
 
   const setRestaurant = useCallback((id: string, name: string, slug: string) => {
-    // If switching restaurants, clear cart
     setRestaurantId((prevId) => {
       if (prevId && prevId !== id) {
         setItems([])
@@ -86,7 +85,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const addItem = useCallback((item: CartItem) => {
     setItems((prev) => {
-      // Check if same item exists (excluding fees and tips)
       if (item.type === "menu_item" || item.type === "package") {
         const existingIndex = prev.findIndex(
           (existing) =>
