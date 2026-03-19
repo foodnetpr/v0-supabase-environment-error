@@ -1,6 +1,5 @@
 "use client"
 
-// Cart context for FoodNetPR - manages shopping cart state
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react"
 
 export interface CartItem {
