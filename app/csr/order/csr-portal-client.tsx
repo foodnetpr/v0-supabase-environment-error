@@ -427,8 +427,8 @@ setMenuItems(items || [])
   // Delivery fee comes from calculated delivery zones (or 0 if not calculated yet)
   const DELIVERY_FEE = calculatedDeliveryFee
   const DISPATCH_FEE_PERCENT = selectedRestaurant?.dispatch_fee_percent ?? 0
-  // Dispatch fee = percentage of subtotal + subsidy recovery (platform recovers subsidy through dispatch fee)
-  const DISPATCH_FEE = (subtotal * (DISPATCH_FEE_PERCENT / 100)) + deliverySubsidy
+  // Dispatch fee = percentage of subtotal (subsidy is absorbed by platform, already deducted from delivery fee)
+  const DISPATCH_FEE = subtotal * (DISPATCH_FEE_PERCENT / 100)
   
   // Calculate delivery fee when address changes
   useEffect(() => {
@@ -1568,7 +1568,8 @@ const line2 = customerInfo.streetAddress2 ? `, ${customerInfo.streetAddress2}` :
                   })),
                   subtotal: subtotal,
                   tax: subtotal * IVU_RATE,
-                  deliveryFee: customerInfo.deliveryType === "delivery" ? DELIVERY_FEE + DISPATCH_FEE : 0,
+                  deliveryFee: customerInfo.deliveryType === "delivery" ? DELIVERY_FEE : 0,
+                  dispatchFee: customerInfo.deliveryType === "delivery" ? DISPATCH_FEE : 0,
                   tip: customTip ? parseFloat(customTip) || 0 : (subtotal * tipPercentage / 100),
                   total: (() => {
                     const deliveryFee = customerInfo.deliveryType === "delivery" ? DELIVERY_FEE : 0
@@ -1649,7 +1650,8 @@ const line2 = customerInfo.streetAddress2 ? `, ${customerInfo.streetAddress2}` :
                   })),
                   subtotal: subtotal,
                   tax: subtotal * IVU_RATE,
-                  deliveryFee: customerInfo.deliveryType === "delivery" ? DELIVERY_FEE + DISPATCH_FEE : 0,
+                  deliveryFee: customerInfo.deliveryType === "delivery" ? DELIVERY_FEE : 0,
+                  dispatchFee: customerInfo.deliveryType === "delivery" ? DISPATCH_FEE : 0,
                   tip: customTip ? parseFloat(customTip) || 0 : (subtotal * tipPercentage / 100),
                   total: (() => {
                     const deliveryFee = customerInfo.deliveryType === "delivery" ? DELIVERY_FEE : 0
@@ -1797,10 +1799,18 @@ const line2 = customerInfo.streetAddress2 ? `, ${customerInfo.streetAddress2}` :
                     <span>${(subtotal * IVU_RATE).toFixed(2)}</span>
                   </div>
                   {customerInfo.deliveryType === "delivery" && (
-                    <div className="flex justify-between">
-                      <span>Delivery:</span>
-                      <span>${(DELIVERY_FEE + DISPATCH_FEE).toFixed(2)}</span>
-                    </div>
+                    <>
+                      <div className="flex justify-between">
+                        <span>Delivery:</span>
+                        <span>${DELIVERY_FEE.toFixed(2)}</span>
+                      </div>
+                      {DISPATCH_FEE > 0 && (
+                        <div className="flex justify-between">
+                          <span>Dispatch Fee:</span>
+                          <span>${DISPATCH_FEE.toFixed(2)}</span>
+                        </div>
+                      )}
+                    </>
                   )}
                   {(customTip || tipPercentage > 0) && (
                     <div className="flex justify-between">
@@ -1811,10 +1821,11 @@ const line2 = customerInfo.streetAddress2 ? `, ${customerInfo.streetAddress2}` :
                   <div className="flex justify-between font-bold text-lg pt-1 border-t border-amber-300">
                     <span>Total:</span>
                     <span>${(() => {
-                      const deliveryFee = customerInfo.deliveryType === "delivery" ? DELIVERY_FEE + DISPATCH_FEE : 0
+                      const deliveryFee = customerInfo.deliveryType === "delivery" ? DELIVERY_FEE : 0
+                      const dispatchFee = customerInfo.deliveryType === "delivery" ? DISPATCH_FEE : 0
                       const ivu = subtotal * IVU_RATE
                       const tipAmount = customTip ? parseFloat(customTip) || 0 : (subtotal * tipPercentage / 100)
-                      return (subtotal + deliveryFee + ivu + tipAmount).toFixed(2)
+                      return (subtotal + deliveryFee + dispatchFee + ivu + tipAmount).toFixed(2)
                     })()}</span>
                   </div>
                 </div>
@@ -1853,10 +1864,11 @@ const line2 = customerInfo.streetAddress2 ? `, ${customerInfo.streetAddress2}` :
                   if (paymentMethod === "cash") {
                     // Process cash order directly
                     try {
-                      const deliveryFee = customerInfo.deliveryType === "delivery" ? DELIVERY_FEE + DISPATCH_FEE : 0
+                      const deliveryFee = customerInfo.deliveryType === "delivery" ? DELIVERY_FEE : 0
+                      const dispatchFee = customerInfo.deliveryType === "delivery" ? DISPATCH_FEE : 0
                       const ivu = subtotal * IVU_RATE
                       const tipAmount = customTip ? parseFloat(customTip) || 0 : (subtotal * tipPercentage / 100)
-                      const total = subtotal + deliveryFee + ivu + tipAmount
+                      const total = subtotal + deliveryFee + dispatchFee + ivu + tipAmount
                       
                       const response = await fetch("/api/csr/process-cash-order", {
                         method: "POST",
@@ -1874,6 +1886,7 @@ const line2 = customerInfo.streetAddress2 ? `, ${customerInfo.streetAddress2}` :
                           subtotal,
                           tax: ivu,
                           deliveryFee,
+                          dispatchFee,
                           tip: tipAmount,
                           total,
                           orderType: customerInfo.deliveryType,
