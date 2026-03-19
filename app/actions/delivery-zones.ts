@@ -107,8 +107,6 @@ export async function calculateDeliveryFee(params: CalculateDeliveryFeeParams): 
     // Apply minimum fee floor from restaurant config
     const totalFee = Math.max(Number(matchingZone.base_fee) + itemSurcharge, minFee)
     const displayedFee = Math.max(0, totalFee - subsidy)
-    
-    console.log("[v0] Final fee calculation - totalFee:", totalFee, "subsidy:", subsidy, "displayedFee:", displayedFee)
 
     return {
       success: true,

@@ -466,25 +466,38 @@ const line2 = customerInfo.streetAddress2 ? `, ${customerInfo.streetAddress2}` :
           itemCount: totalItems,
         })
         
-        console.log("[v0] Delivery fee calculation result:", JSON.stringify(result, null, 2))
-        
         if (result.success) {
           // Use displayedFee (subsidy-reduced) for customer-facing display
-          console.log("[v0] Setting fees - displayedFee:", result.displayedFee, "subsidy:", result.subsidy)
           setCalculatedDeliveryFee(result.displayedFee)
           setDeliveryDistance(result.distance)
           setDeliverySubsidy(result.subsidy)
         } else {
-          // Default fee if calculation fails
-          console.log("[v0] Calculation failed, using default fee:", selectedRestaurant.delivery_fee ?? 5.89, "error:", result.error)
-          setCalculatedDeliveryFee(selectedRestaurant.delivery_fee ?? 5.89)
+          // Default fee if calculation fails - still apply subsidy from platform_settings
+          const { data: platformSettings } = await supabase
+            .from("platform_settings")
+            .select("delivery_fee_subsidy")
+            .single()
+          
+          const subsidy = Number(platformSettings?.delivery_fee_subsidy ?? 3.0)
+          const baseFee = selectedRestaurant.delivery_fee ?? 5.89
+          const displayedFee = Math.max(0, baseFee - subsidy)
+          
+          setCalculatedDeliveryFee(displayedFee)
           setDeliveryDistance(0)
-          setDeliverySubsidy(0)
+          setDeliverySubsidy(subsidy)
         }
       } catch (error) {
         console.error("Error calculating delivery fee:", error)
-        setCalculatedDeliveryFee(selectedRestaurant.delivery_fee ?? 5.89)
-        setDeliverySubsidy(0)
+        // Fallback with subsidy from platform_settings
+        const { data: platformSettings } = await supabase
+          .from("platform_settings")
+          .select("delivery_fee_subsidy")
+          .single()
+        
+        const subsidy = Number(platformSettings?.delivery_fee_subsidy ?? 3.0)
+        const baseFee = selectedRestaurant.delivery_fee ?? 5.89
+        setCalculatedDeliveryFee(Math.max(0, baseFee - subsidy))
+        setDeliverySubsidy(subsidy)
       } finally {
         setIsCalculatingFee(false)
       }
