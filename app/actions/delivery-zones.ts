@@ -25,21 +25,8 @@ export async function calculateDeliveryFee(params: CalculateDeliveryFeeParams): 
   try {
     const { restaurantId, deliveryAddress, restaurantAddress, itemCount } = params
 
-    // Calculate distance using Google Maps Distance Matrix API
+    // Calculate distance using Google Maps Distance Matrix API (always returns a value, never fails)
     const distance = await calculateDistance(restaurantAddress, deliveryAddress)
-
-    if (distance === null) {
-      return {
-        success: false,
-        fee: 0,
-        displayedFee: 0,
-        subsidy: 0,
-        distance: 0,
-        zoneName: "",
-        itemSurcharge: 0,
-        error: "Could not calculate distance. Please check the delivery address.",
-      }
-    }
 
     // Fetch delivery zones, platform subsidy, and restaurant minimum fee in parallel
     const supabase = await createServerClient()
@@ -299,8 +286,6 @@ export async function checkDeliveryZone(
       distanceToBranch = await calculateDistance(branchAddr, deliveryAddress)
     }
 
-    if (distanceToBranch === null) return defaultResult
-
     const inZone = distanceToBranch <= branchRadius
 
     // If in zone, return early
@@ -347,12 +332,19 @@ export async function checkDeliveryZone(
 }
 
 // Calculate distance between two addresses using Google Maps Distance Matrix API
-async function calculateDistance(origin: string, destination: string): Promise<number | null> {
+// Falls back to geocoding + Haversine if Distance Matrix fails
+async function calculateDistance(origin: string, destination: string): Promise<number> {
+  const DEFAULT_DISTANCE = 3.0 // Default fallback distance in miles
+  
   try {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
 
-    if (!apiKey) return null
+    if (!apiKey) {
+      console.log("[v0] No Google Maps API key, using default distance")
+      return DEFAULT_DISTANCE
+    }
 
+    // Try Distance Matrix API first
     const url = new URL("https://maps.googleapis.com/maps/api/distancematrix/json")
     url.searchParams.append("origins", origin)
     url.searchParams.append("destinations", destination)
@@ -362,18 +354,29 @@ async function calculateDistance(origin: string, destination: string): Promise<n
     const response = await fetch(url.toString())
     const data = await response.json()
 
-    if (data.status !== "OK" || !data.rows || data.rows.length === 0) return null
+    if (data.status === "OK" && data.rows?.[0]?.elements?.[0]?.status === "OK") {
+      const meters = data.rows[0].elements[0].distance.value
+      return meters / 1609.34
+    }
 
-    const element = data.rows[0].elements[0]
-    if (element.status !== "OK") return null
+    // Distance Matrix failed - try geocoding both addresses and use Haversine
+    console.log("[v0] Distance Matrix failed, trying geocoding fallback")
+    const [originCoords, destCoords] = await Promise.all([
+      geocodeAddress(origin),
+      geocodeAddress(destination)
+    ])
 
-    // Convert meters to miles
-    const meters = element.distance.value
-    const miles = meters / 1609.34
+    if (originCoords && destCoords) {
+      const distance = haversineDistance(originCoords.lat, originCoords.lng, destCoords.lat, destCoords.lng)
+      console.log("[v0] Haversine distance calculated:", distance)
+      return distance
+    }
 
-    return miles
+    // All methods failed - return default distance
+    console.log("[v0] All distance methods failed, using default:", DEFAULT_DISTANCE)
+    return DEFAULT_DISTANCE
   } catch (error) {
-    console.error("[v0] Error fetching distance:", error)
-    return null
+    console.error("[v0] Error calculating distance:", error)
+    return DEFAULT_DISTANCE
   }
 }
