@@ -482,8 +482,6 @@ const line2 = customerInfo.streetAddress2 ? `, ${customerInfo.streetAddress2}` :
           // Use minimum zone fee, or fall back to 5.89 if no zones exist
           const baseFee = zonesResult.data?.[0]?.base_fee ? Number(zonesResult.data[0].base_fee) : 5.89
           const displayedFee = Math.max(0, baseFee - subsidy)
-          
-          console.log("[v0] Fallback: Using min zone fee:", baseFee, "subsidy:", subsidy, "displayed:", displayedFee)
           setCalculatedDeliveryFee(displayedFee)
           setDeliveryDistance(0)
           setDeliverySubsidy(subsidy)
