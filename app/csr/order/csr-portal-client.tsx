@@ -255,7 +255,7 @@ setMenuItems(items || [])
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
-    window.location.href = "/login"
+    window.location.href = "/auth/login"
   }
 
   // Load item options when item is selected - FIXED: use menu_item_id
