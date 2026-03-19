@@ -16,18 +16,37 @@ export default async function CSRLayout({
   // Check if user is authenticated
   const { data: { user } } = await supabase.auth.getUser()
   
+  console.log("[v0] CSR Layout - user:", user?.id, user?.email)
+  
   if (!user) {
-    redirect("/login?redirect=/csr")
+    console.log("[v0] CSR Layout - No user, redirecting to login")
+    redirect("/auth/customer/login?redirect=/csr")
   }
   
-  // Check if user is an admin
-  const { data: adminUser } = await supabase
+  // Check if user is an admin - check both admin_users table AND super_admins table
+  const { data: adminUser, error: adminError } = await supabase
     .from("admin_users")
     .select("id, role")
     .eq("auth_user_id", user.id)
     .single()
   
-  if (!adminUser || !["super_admin", "restaurant_admin"].includes(adminUser.role)) {
+  console.log("[v0] CSR Layout - adminUser:", adminUser, "error:", adminError)
+  
+  // Also check if user is a super_admin by email (for super admin login)
+  const { data: superAdmin } = await supabase
+    .from("super_admins")
+    .select("id, email")
+    .eq("email", user.email)
+    .single()
+  
+  console.log("[v0] CSR Layout - superAdmin:", superAdmin)
+  
+  const hasAccess = adminUser?.role === "super_admin" || 
+                    adminUser?.role === "restaurant_admin" || 
+                    superAdmin !== null
+  
+  if (!hasAccess) {
+    console.log("[v0] CSR Layout - No access, redirecting to home")
     redirect("/")
   }
 
