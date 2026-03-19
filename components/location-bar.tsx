@@ -12,8 +12,8 @@ import {
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 
-const LOCATION_STORAGE_KEY = "foodnet_user_location"
-const MODE_STORAGE_KEY = "foodnet_order_mode"
+const LOCATION_STORAGE_KEY = "foodnetpr_user_location"
+const MODE_STORAGE_KEY = "foodnetpr_order_mode"
 
 // Puerto Rico zip codes
 const PUERTO_RICO_ZIP_CODES = [
