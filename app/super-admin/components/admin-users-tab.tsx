@@ -108,21 +108,16 @@ export function AdminUsersTab({ restaurants }: AdminUsersTabProps) {
 
   // Create admin user
   const handleCreate = async () => {
-    console.log("[v0] handleCreate called with formData:", formData)
-    
     if (!formData.username || !formData.email || !formData.password) {
-      console.log("[v0] Validation failed - missing required fields")
       toast.error("Please fill in all required fields")
       return
     }
     
     if (formData.role === "restaurant_admin" && !formData.restaurant_id) {
-      console.log("[v0] Validation failed - missing restaurant")
       toast.error("Please select a restaurant for restaurant admin")
       return
     }
 
-    console.log("[v0] Validation passed, making API call...")
     setSaving(true)
     try {
       const response = await fetch("/api/admin-users", {
@@ -131,7 +126,6 @@ export function AdminUsersTab({ restaurants }: AdminUsersTabProps) {
         body: JSON.stringify(formData)
       })
 
-      console.log("[v0] API response status:", response.status)
       if (response.ok) {
         toast.success("Admin user created successfully")
         setIsCreateModalOpen(false)
@@ -139,11 +133,9 @@ export function AdminUsersTab({ restaurants }: AdminUsersTabProps) {
         fetchAdminUsers()
       } else {
         const error = await response.json()
-        console.log("[v0] API error:", error)
         toast.error(error.error || "Failed to create admin user")
       }
     } catch (error) {
-      console.log("[v0] Exception caught:", error)
       toast.error("Failed to create admin user")
     } finally {
       setSaving(false)
