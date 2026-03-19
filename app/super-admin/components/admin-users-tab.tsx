@@ -32,11 +32,13 @@ interface Restaurant {
   slug: string
 }
 
+type AdminRole = "super_admin" | "manager" | "csr" | "restaurant_admin"
+
 interface AdminUser {
   id: string
   username: string
   email: string
-  role: "super_admin" | "restaurant_admin"
+  role: AdminRole
   restaurant_id: string | null
   created_at: string
   restaurants?: { name: string; slug: string } | null
@@ -50,7 +52,7 @@ export function AdminUsersTab({ restaurants }: AdminUsersTabProps) {
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
-  const [roleFilter, setRoleFilter] = useState<"all" | "super_admin" | "restaurant_admin">("all")
+  const [roleFilter, setRoleFilter] = useState<"all" | AdminRole>("all")
   const [restaurantFilter, setRestaurantFilter] = useState<string>("all")
   
   // Create/Edit modal state
@@ -64,7 +66,7 @@ export function AdminUsersTab({ restaurants }: AdminUsersTabProps) {
     username: "",
     email: "",
     password: "",
-    role: "restaurant_admin" as "super_admin" | "restaurant_admin",
+    role: "csr" as AdminRole,
     restaurant_id: ""
   })
   const [showPassword, setShowPassword] = useState(false)
@@ -247,7 +249,7 @@ export function AdminUsersTab({ restaurants }: AdminUsersTabProps) {
       username: "",
       email: "",
       password: "",
-      role: "restaurant_admin",
+      role: "csr",
       restaurant_id: ""
     })
     setShowPassword(false)
@@ -356,7 +358,7 @@ export function AdminUsersTab({ restaurants }: AdminUsersTabProps) {
                 <Label htmlFor="role">Role *</Label>
                 <Select
                   value={formData.role}
-                  onValueChange={(value: "super_admin" | "restaurant_admin") => 
+                  onValueChange={(value: AdminRole) => 
                     setFormData({ ...formData, role: value })
                   }
                 >
@@ -366,13 +368,25 @@ export function AdminUsersTab({ restaurants }: AdminUsersTabProps) {
                   <SelectContent>
                     <SelectItem value="super_admin">
                       <div className="flex items-center gap-2">
-                        <Shield className="h-4 w-4" />
+                        <Shield className="h-4 w-4 text-rose-600" />
                         Super Admin
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="manager">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-purple-600" />
+                        Manager
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="csr">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-teal-600" />
+                        CSR (Customer Service)
                       </div>
                     </SelectItem>
                     <SelectItem value="restaurant_admin">
                       <div className="flex items-center gap-2">
-                        <Store className="h-4 w-4" />
+                        <Store className="h-4 w-4 text-blue-600" />
                         Restaurant Admin
                       </div>
                     </SelectItem>
@@ -434,6 +448,8 @@ export function AdminUsersTab({ restaurants }: AdminUsersTabProps) {
               <SelectContent>
                 <SelectItem value="all">All Roles</SelectItem>
                 <SelectItem value="super_admin">Super Admin</SelectItem>
+                <SelectItem value="manager">Manager</SelectItem>
+                <SelectItem value="csr">CSR</SelectItem>
                 <SelectItem value="restaurant_admin">Restaurant Admin</SelectItem>
               </SelectContent>
             </Select>
@@ -487,12 +503,19 @@ export function AdminUsersTab({ restaurants }: AdminUsersTabProps) {
                     <TableCell className="font-medium">{user.username}</TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>
-                      <Badge variant={user.role === "super_admin" ? "default" : "secondary"}>
-                        {user.role === "super_admin" ? (
-                          <><Shield className="h-3 w-3 mr-1" /> Super Admin</>
-                        ) : (
-                          <><Store className="h-3 w-3 mr-1" /> Restaurant Admin</>
-                        )}
+                      <Badge 
+                        variant={user.role === "super_admin" ? "default" : "secondary"}
+                        className={
+                          user.role === "super_admin" ? "bg-rose-600" :
+                          user.role === "manager" ? "bg-purple-600 text-white" :
+                          user.role === "csr" ? "bg-teal-600 text-white" :
+                          ""
+                        }
+                      >
+                        {user.role === "super_admin" && <><Shield className="h-3 w-3 mr-1" /> Super Admin</>}
+                        {user.role === "manager" && <><Users className="h-3 w-3 mr-1" /> Manager</>}
+                        {user.role === "csr" && <><Users className="h-3 w-3 mr-1" /> CSR</>}
+                        {user.role === "restaurant_admin" && <><Store className="h-3 w-3 mr-1" /> Restaurant Admin</>}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -578,7 +601,7 @@ export function AdminUsersTab({ restaurants }: AdminUsersTabProps) {
               <Label htmlFor="edit-role">Role</Label>
               <Select
                 value={formData.role}
-                onValueChange={(value: "super_admin" | "restaurant_admin") => 
+                onValueChange={(value: AdminRole) => 
                   setFormData({ ...formData, role: value })
                 }
               >
@@ -587,6 +610,8 @@ export function AdminUsersTab({ restaurants }: AdminUsersTabProps) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="super_admin">Super Admin</SelectItem>
+                  <SelectItem value="manager">Manager</SelectItem>
+                  <SelectItem value="csr">CSR</SelectItem>
                   <SelectItem value="restaurant_admin">Restaurant Admin</SelectItem>
                 </SelectContent>
               </Select>

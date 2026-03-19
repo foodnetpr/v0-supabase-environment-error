@@ -3,7 +3,7 @@
 import { createClient } from "@supabase/supabase-js"
 import { createClient as createServerClient } from "@/lib/supabase/server"
 
-export async function loginAction(username: string, password: string) {
+export async function loginAction(username: string, password: string, redirectUrl?: string) {
   try {
     // Use service role to look up admin_users (bypasses RLS)
     const supabaseAdmin = createClient(
@@ -47,16 +47,29 @@ export async function loginAction(username: string, password: string) {
       return { error: "Usuario o contraseña incorrectos" }
     }
 
-    if (adminData.role === "super_admin") {
-      return { redirectTo: "/super-admin" }
-    } else {
-      const restaurantSlug = (adminData.restaurants as any)?.slug
-      if (restaurantSlug) {
-        return { redirectTo: `/${restaurantSlug}/admin` }
-      } else {
-        return { error: "Restaurant not found" }
-      }
+// If a specific redirect URL was provided (e.g., /csr), use it if allowed
+  if (redirectUrl) {
+    // CSR portal is accessible by super_admin, manager, and csr roles
+    if (redirectUrl.startsWith("/csr") && ["super_admin", "manager", "csr"].includes(adminData.role)) {
+    return { redirectTo: redirectUrl }
     }
+  }
+  
+  // Default redirects based on role
+  if (adminData.role === "super_admin") {
+    return { redirectTo: "/super-admin" }
+  } else if (adminData.role === "manager" || adminData.role === "csr") {
+    // Managers and CSRs go to CSR portal by default
+    return { redirectTo: "/csr" }
+  } else {
+    // Restaurant admins go to their restaurant admin page
+    const restaurantSlug = (adminData.restaurants as any)?.slug
+    if (restaurantSlug) {
+    return { redirectTo: `/${restaurantSlug}/admin` }
+    } else {
+    return { error: "Restaurant not found" }
+    }
+  }
   } catch (err: any) {
     return { error: err.message || "Failed to login" }
   }

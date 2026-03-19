@@ -22,6 +22,9 @@ export default function LoginPage() {
     if (searchParams.get("setup") === "complete") {
       setSuccessMessage("Setup complete! Please login with your credentials.")
     }
+    if (searchParams.get("error") === "unauthorized") {
+      setError("No tienes permisos para acceder a esta seccion. Inicia sesion con una cuenta autorizada.")
+    }
   }, [searchParams])
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -30,7 +33,8 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      const result = await loginAction(username, password)
+      const redirectParam = searchParams.get("redirect") || undefined
+      const result = await loginAction(username, password, redirectParam)
 
       if (result.error) {
         setError(result.error)

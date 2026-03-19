@@ -6,6 +6,9 @@ export const metadata = {
   description: "Customer Service Representative Phone Order Portal",
 }
 
+// Roles that can access the CSR Portal
+const CSR_ALLOWED_ROLES = ["super_admin", "manager", "csr"]
+
 export default async function CSRLayout({
   children,
 }: {
@@ -16,38 +19,32 @@ export default async function CSRLayout({
   // Check if user is authenticated
   const { data: { user } } = await supabase.auth.getUser()
   
-  console.log("[v0] CSR Layout - user:", user?.id, user?.email)
-  
   if (!user) {
-    console.log("[v0] CSR Layout - No user, redirecting to login")
-    redirect("/auth/customer/login?redirect=/csr")
+    // Redirect to admin login (not customer login) for employees
+    redirect("/auth/login?redirect=/csr")
   }
   
-  // Check if user is an admin - check both admin_users table AND super_admins table
-  const { data: adminUser, error: adminError } = await supabase
+  // Check if user is in admin_users table with an allowed role
+  const { data: adminUser } = await supabase
     .from("admin_users")
     .select("id, role")
     .eq("auth_user_id", user.id)
     .single()
   
-  console.log("[v0] CSR Layout - adminUser:", adminUser, "error:", adminError)
-  
-  // Also check if user is a super_admin by email (for super admin login)
+  // Also check super_admins table for legacy super admin accounts
   const { data: superAdmin } = await supabase
     .from("super_admins")
     .select("id, email")
     .eq("email", user.email)
     .single()
   
-  console.log("[v0] CSR Layout - superAdmin:", superAdmin)
-  
-  const hasAccess = adminUser?.role === "super_admin" || 
-                    adminUser?.role === "restaurant_admin" || 
+  // Allow access if user has an allowed role OR is in super_admins table
+  const hasAccess = (adminUser && CSR_ALLOWED_ROLES.includes(adminUser.role)) || 
                     superAdmin !== null
   
   if (!hasAccess) {
-    console.log("[v0] CSR Layout - No access, redirecting to home")
-    redirect("/")
+    // No access - redirect to admin login with error
+    redirect("/auth/login?error=unauthorized&redirect=/csr")
   }
 
   return (
