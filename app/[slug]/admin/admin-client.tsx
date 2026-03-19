@@ -128,10 +128,12 @@ export default function RestaurantAdminClient({
   marketplaceAreas?: { id: string; name: string }[]
   userRole?: string
 }) {
-  const { toast } = useToast()
+const { toast } = useToast()
   const isSuperAdmin = userRole === "super_admin"
-
-  const [activeTab, setActiveTab] = useState("overview")
+  const isCSR = userRole === "csr" || userRole === "manager"
+  
+  // CSRs default to menu tab and can only access menu
+  const [activeTab, setActiveTab] = useState(isCSR ? "menu" : "overview")
   const [stats, setStats] = useState({
     categories: 0,
     menuItems: 0,
@@ -2581,8 +2583,14 @@ payment_provider: branchForm.payment_provider || "stripe",
                   Super Admin Dashboard
                 </Link>
               )}
+              {isCSR && (
+                <Link href="/csr/menus" className="inline-flex items-center gap-1 text-xs font-medium text-teal-600 hover:underline mb-1">
+                  <ArrowRightLeft className="h-3 w-3" />
+                  Volver a Seleccion de Restaurantes
+                </Link>
+              )}
               <h1 className="text-2xl font-bold">{restaurantName}</h1>
-              <p className="text-sm text-gray-600 mt-1">Restaurant Admin Panel</p>
+              <p className="text-sm text-gray-600 mt-1">{isCSR ? "CSR - Edicion de Menu" : "Restaurant Admin Panel"}</p>
             </div>
             <div className="flex items-center gap-2">
               {isSuperAdmin && (
@@ -2604,15 +2612,21 @@ payment_provider: branchForm.payment_provider || "stripe",
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-    <TabsList className={`grid w-full mb-8 ${settingsForm.is_chain ? "grid-cols-5 lg:grid-cols-7" : "grid-cols-5 lg:grid-cols-6"}`}>
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="menu">Menu Items</TabsTrigger>
-              {settingsForm.is_chain && <TabsTrigger value="branches">Sucursales</TabsTrigger>}
-              <TabsTrigger value="packages">Service Packages</TabsTrigger>
-              <TabsTrigger value="orders">Orders</TabsTrigger>
-<TabsTrigger value="settings">Settings</TabsTrigger>
-  {isSuperAdmin && <TabsTrigger value="marketplace">Marketplace</TabsTrigger>}
-  </TabsList>
+    {isCSR ? (
+              <TabsList className="grid w-full mb-8 grid-cols-1 max-w-xs">
+                <TabsTrigger value="menu">Menu Items</TabsTrigger>
+              </TabsList>
+            ) : (
+              <TabsList className={`grid w-full mb-8 ${settingsForm.is_chain ? "grid-cols-5 lg:grid-cols-7" : "grid-cols-5 lg:grid-cols-6"}`}>
+                <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="menu">Menu Items</TabsTrigger>
+                {settingsForm.is_chain && <TabsTrigger value="branches">Sucursales</TabsTrigger>}
+                <TabsTrigger value="packages">Service Packages</TabsTrigger>
+                <TabsTrigger value="orders">Orders</TabsTrigger>
+                <TabsTrigger value="settings">Settings</TabsTrigger>
+                {isSuperAdmin && <TabsTrigger value="marketplace">Marketplace</TabsTrigger>}
+              </TabsList>
+            )}
 
           {/* Overview Tab */}
           <TabsContent value="overview">

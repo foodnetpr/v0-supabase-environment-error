@@ -78,7 +78,7 @@ export function CSRMenusClient({ restaurants }: CSRMenusClientProps) {
           {filteredRestaurants.map((restaurant) => (
             <Link
               key={restaurant.id}
-              href={`/csr/menus/${restaurant.slug}`}
+              href={`/${restaurant.slug}/admin`}
               className="block"
             >
               <Card className="h-full transition-all hover:shadow-md hover:border-teal-300">
