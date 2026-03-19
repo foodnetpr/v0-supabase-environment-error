@@ -53,8 +53,6 @@ export async function calculateDeliveryFee(params: CalculateDeliveryFeeParams): 
     const minFee = Number(restaurantResult.data?.delivery_fee ?? 0)
     const { data: zones, error } = zonesResult
     
-    console.log("[v0] Fee data - subsidy:", subsidy, "minFee:", minFee, "raw delivery_fee:", restaurantResult.data?.delivery_fee)
-
     if (error || !zones || zones.length === 0) {
       // No zones configured — delivery unavailable
       return {
@@ -71,7 +69,6 @@ export async function calculateDeliveryFee(params: CalculateDeliveryFeeParams): 
 
     // Find matching zone
     const matchingZone = zones.find((zone) => distance >= zone.min_distance && distance <= zone.max_distance)
-    console.log("[v0] Matching zone:", matchingZone?.zone_name, "base_fee:", matchingZone?.base_fee)
 
     if (!matchingZone) {
       // Distance outside all zones
@@ -97,8 +94,6 @@ export async function calculateDeliveryFee(params: CalculateDeliveryFeeParams): 
     // Apply minimum fee floor from restaurant config
     const totalFee = Math.max(Number(matchingZone.base_fee) + itemSurcharge, minFee)
     const displayedFee = Math.max(0, totalFee - subsidy)
-    
-    console.log("[v0] Final calc - zone base_fee:", matchingZone.base_fee, "itemSurcharge:", itemSurcharge, "minFee:", minFee, "totalFee:", totalFee, "subsidy:", subsidy, "displayedFee:", displayedFee)
 
     return {
       success: true,
@@ -339,7 +334,7 @@ export async function checkDeliveryZone(
 // Calculate distance between two addresses using Google Maps Distance Matrix API
 // Falls back to geocoding + Haversine if Distance Matrix fails
 async function calculateDistance(origin: string, destination: string): Promise<number> {
-  const DEFAULT_DISTANCE = 3.0 // Default fallback distance in miles
+  const DEFAULT_DISTANCE = 0.5 // Default fallback distance in miles (uses Tier 1 pricing)
   
   try {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
