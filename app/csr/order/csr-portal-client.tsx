@@ -472,30 +472,32 @@ const line2 = customerInfo.streetAddress2 ? `, ${customerInfo.streetAddress2}` :
           setDeliveryDistance(result.distance)
           setDeliverySubsidy(result.subsidy)
         } else {
-          // Default fee if calculation fails - still apply subsidy from platform_settings
-          const { data: platformSettings } = await supabase
-            .from("platform_settings")
-            .select("delivery_fee_subsidy")
-            .single()
+          // Calculation failed - fetch minimum zone fee from delivery_zones table
+          const [settingsResult, zonesResult] = await Promise.all([
+            supabase.from("platform_settings").select("delivery_fee_subsidy").single(),
+            supabase.from("delivery_zones").select("base_fee").eq("restaurant_id", selectedRestaurant.id).order("base_fee", { ascending: true }).limit(1)
+          ])
           
-          const subsidy = Number(platformSettings?.delivery_fee_subsidy ?? 3.0)
-          const baseFee = selectedRestaurant.delivery_fee ?? 5.89
+          const subsidy = Number(settingsResult.data?.delivery_fee_subsidy ?? 3.0)
+          // Use minimum zone fee, or fall back to 5.89 if no zones exist
+          const baseFee = zonesResult.data?.[0]?.base_fee ? Number(zonesResult.data[0].base_fee) : 5.89
           const displayedFee = Math.max(0, baseFee - subsidy)
           
+          console.log("[v0] Fallback: Using min zone fee:", baseFee, "subsidy:", subsidy, "displayed:", displayedFee)
           setCalculatedDeliveryFee(displayedFee)
           setDeliveryDistance(0)
           setDeliverySubsidy(subsidy)
         }
       } catch (error) {
         console.error("Error calculating delivery fee:", error)
-        // Fallback with subsidy from platform_settings
-        const { data: platformSettings } = await supabase
-          .from("platform_settings")
-          .select("delivery_fee_subsidy")
-          .single()
+        // Fallback - fetch minimum zone fee from delivery_zones table
+        const [settingsResult, zonesResult] = await Promise.all([
+          supabase.from("platform_settings").select("delivery_fee_subsidy").single(),
+          supabase.from("delivery_zones").select("base_fee").eq("restaurant_id", selectedRestaurant.id).order("base_fee", { ascending: true }).limit(1)
+        ])
         
-        const subsidy = Number(platformSettings?.delivery_fee_subsidy ?? 3.0)
-        const baseFee = selectedRestaurant.delivery_fee ?? 5.89
+        const subsidy = Number(settingsResult.data?.delivery_fee_subsidy ?? 3.0)
+        const baseFee = zonesResult.data?.[0]?.base_fee ? Number(zonesResult.data[0].base_fee) : 5.89
         setCalculatedDeliveryFee(Math.max(0, baseFee - subsidy))
         setDeliverySubsidy(subsidy)
       } finally {
