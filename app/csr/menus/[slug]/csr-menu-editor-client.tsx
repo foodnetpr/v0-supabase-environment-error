@@ -48,9 +48,9 @@ interface MenuItem {
   price: number
   category_id: string
   image_url: string | null
-  is_available: boolean
+  is_active: boolean
   display_order: number
-  menu_categories: { id: string; name: string } | null
+  categories: { id: string; name: string } | null
 }
 
 interface Restaurant {
@@ -127,7 +127,7 @@ export function CSRMenuEditorClient({
           description: editingItem.description,
           price: editingItem.price,
           category_id: editingItem.category_id,
-          is_available: editingItem.is_available,
+          is_active: editingItem.is_active,
         })
         .eq("id", editingItem.id)
       
@@ -136,7 +136,7 @@ export function CSRMenuEditorClient({
       // Update local state
       setMenuItems(prev => prev.map(item => 
         item.id === editingItem.id 
-          ? { ...editingItem, menu_categories: categories.find(c => c.id === editingItem.category_id) ? { id: editingItem.category_id, name: categories.find(c => c.id === editingItem.category_id)!.name } : null }
+          ? { ...editingItem, categories: categories.find(c => c.id === editingItem.category_id) ? { id: editingItem.category_id, name: categories.find(c => c.id === editingItem.category_id)!.name } : null }
           : item
       ))
       
@@ -152,16 +152,16 @@ export function CSRMenuEditorClient({
 
   const toggleItemAvailability = async (item: MenuItem) => {
     try {
-      const newAvailability = !item.is_available
+      const newAvailability = !item.is_active
       const { error } = await supabase
         .from("menu_items")
-        .update({ is_available: newAvailability })
+        .update({ is_active: newAvailability })
         .eq("id", item.id)
       
       if (error) throw error
       
       setMenuItems(prev => prev.map(i => 
-        i.id === item.id ? { ...i, is_available: newAvailability } : i
+        i.id === item.id ? { ...i, is_active: newAvailability } : i
       ))
       
       toast.success(newAvailability ? "Item marcado como disponible" : "Item marcado como no disponible")
@@ -276,7 +276,7 @@ export function CSRMenuEditorClient({
                           <div
                             key={item.id}
                             className={`flex items-center gap-4 p-3 rounded-lg border ${
-                              item.is_available ? 'bg-white' : 'bg-slate-50 opacity-60'
+                              item.is_active ? 'bg-white' : 'bg-slate-50 opacity-60'
                             }`}
                           >
                             {/* Image */}
@@ -300,7 +300,7 @@ export function CSRMenuEditorClient({
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
                                 <h4 className="font-medium text-slate-900">{item.name}</h4>
-                                {!item.is_available && (
+                                {!item.is_active && (
                                   <Badge variant="destructive" className="text-xs">
                                     No disponible
                                   </Badge>
@@ -323,7 +323,7 @@ export function CSRMenuEditorClient({
                             {/* Actions */}
                             <div className="flex items-center gap-2">
                               <Switch
-                                checked={item.is_available}
+                                checked={item.is_active}
                                 onCheckedChange={() => toggleItemAvailability(item)}
                               />
                               <Button
@@ -410,8 +410,8 @@ export function CSRMenuEditorClient({
               <div className="flex items-center justify-between">
                 <Label>Disponible</Label>
                 <Switch
-                  checked={editingItem.is_available}
-                  onCheckedChange={(checked) => setEditingItem({ ...editingItem, is_available: checked })}
+                  checked={editingItem.is_active}
+                  onCheckedChange={(checked) => setEditingItem({ ...editingItem, is_active: checked })}
                 />
               </div>
             </div>

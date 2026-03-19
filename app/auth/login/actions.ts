@@ -47,18 +47,24 @@ export async function loginAction(username: string, password: string, redirectUr
       return { error: "Usuario o contraseña incorrectos" }
     }
 
-// If a specific redirect URL was provided (e.g., /csr), use it if allowed
+console.log("[v0] Login: User role is:", adminData.role)
+
+  // If a specific redirect URL was provided (e.g., /csr), use it if allowed
   if (redirectUrl) {
+    console.log("[v0] Login: Redirect URL provided:", redirectUrl)
     // CSR portal is accessible by super_admin, manager, and csr roles
     if (redirectUrl.startsWith("/csr") && ["super_admin", "manager", "csr"].includes(adminData.role)) {
-    return { redirectTo: redirectUrl }
+      console.log("[v0] Login: Redirecting to CSR portal")
+      return { redirectTo: redirectUrl }
     }
   }
   
   // Default redirects based on role
   if (adminData.role === "super_admin") {
+    console.log("[v0] Login: Redirecting super_admin to /super-admin")
     return { redirectTo: "/super-admin" }
   } else if (adminData.role === "manager" || adminData.role === "csr") {
+    console.log("[v0] Login: Redirecting manager/csr to /csr")
     // Managers and CSRs go to CSR portal by default
     return { redirectTo: "/csr" }
   } else {

@@ -20,7 +20,7 @@ type InternalShopItem = {
   price: number
   category: string
   image_url: string | null
-  in_stock: boolean
+  is_active: boolean
   sku: string | null
 }
 
@@ -43,9 +43,11 @@ export default function CSRTiendaPage() {
     const { data, error } = await supabase
       .from("internal_shop_items")
       .select("*")
-      .eq("in_stock", true)
+      .eq("is_active", true)
       .order("category", { ascending: true })
       .order("name", { ascending: true })
+    
+    console.log("[v0] internal_shop_items fetch:", { data, error })
     
     if (!error && data) {
       setItems(data)

@@ -23,7 +23,7 @@ export default async function CSRMenuEditorPage({
 
   // Get menu categories
   const { data: categories } = await supabase
-    .from("menu_categories")
+    .from("categories")
     .select("*")
     .eq("restaurant_id", restaurant.id)
     .order("display_order", { ascending: true })
@@ -33,7 +33,7 @@ export default async function CSRMenuEditorPage({
     .from("menu_items")
     .select(`
       *,
-      menu_categories(id, name)
+      categories(id, name)
     `)
     .eq("restaurant_id", restaurant.id)
     .order("display_order", { ascending: true })
