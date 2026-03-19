@@ -93,6 +93,7 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null)
   const [menuItems, setMenuItems] = useState<any[]>([])
   const [branches, setBranches] = useState<any[]>([])
+  const [internalShopItems, setInternalShopItems] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   
   // Left slideout - Restaurant selector (visible by default)
@@ -216,8 +217,18 @@ export function CSRPortalClient({ restaurants }: CSRPortalClientProps) {
         .eq("is_active", true)
         .order("display_order", { ascending: true })
 
-      setMenuItems(items || [])
-      setBranches(branchData || [])
+setMenuItems(items || [])
+    setBranches(branchData || [])
+    
+    // Fetch internal shop items
+    const { data: shopItems } = await supabase
+      .from("internal_shop_items")
+      .select("*")
+      .eq("is_active", true)
+      .order("category", { ascending: true })
+      .order("name", { ascending: true })
+    
+    setInternalShopItems(shopItems || [])
       
       // Auto-select first branch
       if (branchData && branchData.length > 0) {
@@ -743,9 +754,6 @@ const line2 = customerInfo.streetAddress2 ? `, ${customerInfo.streetAddress2}` :
             <Link href="/csr/menus" className="text-[10px] text-slate-400 hover:text-white">
               Editar Menús
             </Link>
-            <Link href="/csr/tienda" className="text-[10px] text-slate-400 hover:text-white">
-              Tienda
-            </Link>
             <button onClick={handleLogout} className="text-[10px] text-slate-400 hover:text-white flex items-center gap-0.5">
               <LogOut className="w-3 h-3" />
               Salir
@@ -1269,6 +1277,55 @@ const line2 = customerInfo.streetAddress2 ? `, ${customerInfo.streetAddress2}` :
                         </div>
                       </div>
                     ))}
+                    
+                    {/* Internal Shop Section */}
+                    {internalShopItems.length > 0 && (
+                      <div className="break-inside-avoid mb-3">
+                        <h4 className="text-[10px] font-bold text-purple-600 uppercase tracking-wide mb-1 px-1 bg-purple-100 py-0.5 rounded flex items-center gap-1">
+                          <Package className="w-3 h-3" />
+                          Tienda Interna
+                        </h4>
+                        <div className="space-y-0">
+                          {internalShopItems.map((item) => {
+                            const inCart = cart.filter((c) => c.itemId === `shop-${item.id}`)
+                            const totalQty = inCart.reduce((sum, c) => sum + c.quantity, 0)
+                            return (
+                              <button
+                                key={item.id}
+                                className="w-full text-left py-0.5 px-1 text-[11px] hover:bg-purple-50 rounded flex items-center justify-between group"
+                                onClick={() => {
+                                  // Add internal shop item directly to cart
+                                  const cartItem: CartItem = {
+                                    id: `shop-${item.id}-${Date.now()}`,
+                                    itemId: `shop-${item.id}`,
+                                    name: `[Tienda] ${item.name}`,
+                                    price: Number(item.price),
+                                    quantity: 1,
+                                    description: item.description,
+                                    selectedOptions: {},
+                                    notes: ""
+                                  }
+                                  setCart(prev => [...prev, cartItem])
+                                  setIsCartOpen(true)
+                                }}
+                              >
+                                <span className="truncate text-purple-600 hover:underline flex-1 mr-1">
+                                  {item.name}
+                                </span>
+                                <span className="text-slate-600 flex-shrink-0 flex items-center gap-1">
+                                  {totalQty > 0 && (
+                                    <span className="w-4 h-4 bg-purple-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                                      {totalQty}
+                                    </span>
+                                  )}
+                                  ${Number(item.price).toFixed(2)}
+                                </span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </>
@@ -1436,18 +1493,7 @@ const line2 = customerInfo.streetAddress2 ? `, ${customerInfo.streetAddress2}` :
                     <span className="text-sm font-bold text-rose-600">${total.toFixed(2)}</span>
                   </div>
                   
-                  <Button
-                    onClick={() => setShowPaymentModal(true)}
-                    className="w-full h-8 text-xs bg-rose-500 hover:bg-rose-600 mt-2"
-                    disabled={cart.length === 0 || !customerInfo.name || !customerInfo.phone || !selectedRestaurant}
-                  >
-                    Procesar Pago
-                  </Button>
-                  {(cart.length === 0 || !customerInfo.name || !customerInfo.phone) && (
-                    <p className="text-[10px] text-amber-600 text-center mt-1">
-                      {cart.length === 0 ? "Agrega items" : "Completa info del cliente"}
-                    </p>
-                  )}
+                  
                   {orderSuccess && (
                     <div className="mt-2 p-2 bg-green-100 border border-green-300 rounded text-center">
                       <p className="text-xs font-medium text-green-700">Orden Creada</p>
