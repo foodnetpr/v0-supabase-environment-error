@@ -1359,13 +1359,21 @@ const line2 = customerInfo.streetAddress2 ? `, ${customerInfo.streetAddress2}` :
                   
                   {/* Delivery Fee */}
                   {customerInfo.deliveryType === "delivery" && (
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-rose-500">
-                        Delivery{deliveryDistance > 0 ? ` (${deliveryDistance.toFixed(1)} mi)` : ""}
-                        {isCalculatingFee && <span className="ml-1 text-slate-400">...</span>}
-                      </span>
-                      <span className="text-slate-900">${(deliveryFee + dispatchFee).toFixed(2)}</span>
-                    </div>
+                    <>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-rose-500">
+                          Delivery{deliveryDistance > 0 ? ` (${deliveryDistance.toFixed(1)} mi)` : ""}
+                          {isCalculatingFee && <span className="ml-1 text-slate-400">...</span>}
+                        </span>
+                        <span className="text-slate-900">${deliveryFee.toFixed(2)}</span>
+                      </div>
+                      {dispatchFee > 0 && (
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="text-rose-500">Dispatch Fee</span>
+                          <span className="text-slate-900">${dispatchFee.toFixed(2)}</span>
+                        </div>
+                      )}
+                    </>
                   )}
                   
                   {/* IVU */}
