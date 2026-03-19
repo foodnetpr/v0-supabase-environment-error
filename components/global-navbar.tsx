@@ -96,7 +96,7 @@ export function GlobalNavbar({
 
             {/* Login */}
             <Link
-              href="/auth/login"
+              href="/auth/customer/login"
               className="px-4 py-1.5 text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors"
             >
               Log in
@@ -156,7 +156,7 @@ export function GlobalNavbar({
           {mobileMenuOpen && (
             <div className="border-t border-slate-200 bg-white px-3 py-3 space-y-2">
               <Link
-                href="/auth/login"
+                href="/auth/customer/login"
                 className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
                 onClick={() => setMobileMenuOpen(false)}
               >
