@@ -1266,12 +1266,12 @@ const line2 = customerInfo.streetAddress2 ? `, ${customerInfo.streetAddress2}` :
                   {/* Dropdown */}
                   {showInternalShop && (
                     <div className="absolute top-full right-0 mt-1 w-64 bg-white border border-purple-200 rounded-lg shadow-xl z-50 max-h-80 overflow-y-auto">
-                      <div className="p-2 bg-purple-50 border-b border-purple-200 flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-purple-700">Contabilidad Separada</span>
-                        <button onClick={() => setShowInternalShop(false)} className="text-purple-400 hover:text-purple-600">
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
+<div className="p-2 bg-purple-50 border-b border-purple-200 flex items-center justify-between">
+  <span className="text-[10px] font-bold text-purple-700">Productos Disponibles</span>
+  <button onClick={() => setShowInternalShop(false)} className="text-purple-400 hover:text-purple-600">
+  <X className="w-3 h-3" />
+  </button>
+  </div>
                       <div className="p-2 space-y-1">
                         {internalShopItems.map((item) => {
                           const inCart = cart.filter((c) => c.itemId === `shop-${item.id}`)
