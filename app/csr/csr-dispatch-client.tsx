@@ -361,11 +361,8 @@ export function CSRDispatchClient({ initialOrders, restaurants }: CSRDispatchCli
             <Link href="/csr/menus" className="text-sm text-slate-400 hover:text-white">
               Editar Menús
             </Link>
-            <Link href="/csr/internal-shop" className="text-sm text-slate-400 hover:text-white">
+            <Link href="/csr/tienda" className="text-sm text-slate-400 hover:text-white">
               Tienda Interna
-            </Link>
-            <Link href="/super-admin" className="text-sm text-slate-400 hover:text-white">
-              Admin
             </Link>
             <button onClick={handleLogout} className="text-sm text-slate-400 hover:text-white flex items-center gap-1">
               <LogOut className="w-4 h-4" />

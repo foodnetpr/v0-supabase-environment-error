@@ -743,11 +743,8 @@ const line2 = customerInfo.streetAddress2 ? `, ${customerInfo.streetAddress2}` :
             <Link href="/csr/menus" className="text-[10px] text-slate-400 hover:text-white">
               Editar Menús
             </Link>
-            <Link href="/csr/internal-shop" className="text-[10px] text-slate-400 hover:text-white">
+            <Link href="/csr/tienda" className="text-[10px] text-slate-400 hover:text-white">
               Tienda
-            </Link>
-            <Link href="/super-admin" className="text-[10px] text-slate-400 hover:text-white">
-              Admin
             </Link>
             <button onClick={handleLogout} className="text-[10px] text-slate-400 hover:text-white flex items-center gap-0.5">
               <LogOut className="w-3 h-3" />
