@@ -432,14 +432,7 @@ setMenuItems(items || [])
   const DISPATCH_FEE_PERCENT = selectedRestaurant?.dispatch_fee_percent ?? 0
   const DISPATCH_FEE = (subtotal * (DISPATCH_FEE_PERCENT / 100)) + deliverySubsidy
   
-  console.log("[v0] Fee debug:", { 
-    calculatedDeliveryFee, 
-    deliverySubsidy, 
-    DELIVERY_FEE, 
-    DISPATCH_FEE_PERCENT, 
-    DISPATCH_FEE,
-    subtotal 
-  })
+
   
   // Calculate delivery fee when address changes
   useEffect(() => {

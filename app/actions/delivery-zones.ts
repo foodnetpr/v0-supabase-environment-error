@@ -13,6 +13,7 @@ interface CalculateDeliveryFeeResult {
   success: boolean
   fee: number           // Full fee — used for order totals, reporting, payment
   displayedFee: number  // Subsidy-reduced fee shown to the customer
+  subsidy: number       // The subsidy amount (platform absorbs this)
   distance: number
   zoneName: string
   itemSurcharge: number
@@ -32,6 +33,7 @@ export async function calculateDeliveryFee(params: CalculateDeliveryFeeParams): 
         success: false,
         fee: 0,
         displayedFee: 0,
+        subsidy: 0,
         distance: 0,
         zoneName: "",
         itemSurcharge: 0,
@@ -70,6 +72,7 @@ export async function calculateDeliveryFee(params: CalculateDeliveryFeeParams): 
         success: false,
         fee: 0,
         displayedFee: 0,
+        subsidy: 0,
         distance,
         zoneName: "",
         itemSurcharge: 0,
@@ -113,8 +116,8 @@ export async function calculateDeliveryFee(params: CalculateDeliveryFeeParams): 
       zoneName: matchingZone.zone_name,
       itemSurcharge,
     }
-  } catch (error) {
-    console.error("[v0] Error calculating delivery fee:", error)
+  } catch (err) {
+    console.error("[v0] Error calculating delivery fee:", err)
     return {
       success: false,
       fee: 0,
