@@ -466,13 +466,17 @@ const line2 = customerInfo.streetAddress2 ? `, ${customerInfo.streetAddress2}` :
           itemCount: totalItems,
         })
         
+        console.log("[v0] Delivery fee calculation result:", JSON.stringify(result, null, 2))
+        
         if (result.success) {
           // Use displayedFee (subsidy-reduced) for customer-facing display
+          console.log("[v0] Setting fees - displayedFee:", result.displayedFee, "subsidy:", result.subsidy)
           setCalculatedDeliveryFee(result.displayedFee)
           setDeliveryDistance(result.distance)
           setDeliverySubsidy(result.subsidy)
         } else {
           // Default fee if calculation fails
+          console.log("[v0] Calculation failed, using default fee:", selectedRestaurant.delivery_fee ?? 5.89, "error:", result.error)
           setCalculatedDeliveryFee(selectedRestaurant.delivery_fee ?? 5.89)
           setDeliveryDistance(0)
           setDeliverySubsidy(0)
