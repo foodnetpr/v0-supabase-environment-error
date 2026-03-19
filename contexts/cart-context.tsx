@@ -7,16 +7,15 @@ export interface CartItem {
   name: string
   price: number
   quantity: number
-  type: "menu_item" | "package" | "delivery_fee" | "tip"
-  options?: {
+  modifiers?: Array<{
+    id: string
     name: string
-    choices: { name: string; price: number }[]
-  }[]
-  selectedSize?: { name: string; price: number }
-  restaurantId?: string
-  restaurantName?: string
-  restaurantSlug?: string
-  image_url?: string | null
+    price: number
+  }>
+  specialInstructions?: string
+  restaurantId: string
+  restaurantName: string
+  restaurantSlug: string
 }
 
 interface CartContextType {
@@ -25,12 +24,11 @@ interface CartContextType {
   restaurantName: string | null
   restaurantSlug: string | null
   addItem: (item: CartItem) => void
-  removeItem: (index: number) => void
-  updateQuantity: (index: number, quantity: number) => void
+  removeItem: (itemId: string) => void
+  updateQuantity: (itemId: string, quantity: number) => void
   clearCart: () => void
-  setRestaurant: (id: string, name: string, slug: string) => void
-  itemCount: number
-  subtotal: number
+  getItemCount: () => number
+  getSubtotal: () => number
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
@@ -42,81 +40,84 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [restaurantId, setRestaurantId] = useState<string | null>(null)
   const [restaurantName, setRestaurantName] = useState<string | null>(null)
   const [restaurantSlug, setRestaurantSlug] = useState<string | null>(null)
+  const [isHydrated, setIsHydrated] = useState(false)
 
   useEffect(() => {
-    const stored = localStorage.getItem(CART_STORAGE_KEY)
-    if (stored) {
+    if (typeof window !== "undefined") {
       try {
-        const parsed = JSON.parse(stored)
-        setItems(parsed.items || [])
-        setRestaurantId(parsed.restaurantId || null)
-        setRestaurantName(parsed.restaurantName || null)
-        setRestaurantSlug(parsed.restaurantSlug || null)
+        const saved = localStorage.getItem(CART_STORAGE_KEY)
+        if (saved) {
+          const parsed = JSON.parse(saved)
+          setItems(parsed.items || [])
+          setRestaurantId(parsed.restaurantId || null)
+          setRestaurantName(parsed.restaurantName || null)
+          setRestaurantSlug(parsed.restaurantSlug || null)
+        }
       } catch (e) {
-        console.error("Error loading cart from localStorage:", e)
+        console.error("Failed to load cart from localStorage:", e)
       }
+      setIsHydrated(true)
     }
   }, [])
 
   useEffect(() => {
-    localStorage.setItem(
-      CART_STORAGE_KEY,
-      JSON.stringify({
-        items,
-        restaurantId,
-        restaurantName,
-        restaurantSlug,
-      })
-    )
-  }, [items, restaurantId, restaurantName, restaurantSlug])
-
-  const setRestaurant = useCallback((id: string, name: string, slug: string) => {
-    setRestaurantId((prevId) => {
-      if (prevId && prevId !== id) {
-        setItems([])
+    if (isHydrated && typeof window !== "undefined") {
+      try {
+        localStorage.setItem(
+          CART_STORAGE_KEY,
+          JSON.stringify({ items, restaurantId, restaurantName, restaurantSlug })
+        )
+      } catch (e) {
+        console.error("Failed to save cart to localStorage:", e)
       }
-      return id
-    })
-    setRestaurantName(name)
-    setRestaurantSlug(slug)
-  }, [])
+    }
+  }, [items, restaurantId, restaurantName, restaurantSlug, isHydrated])
 
   const addItem = useCallback((item: CartItem) => {
     setItems((prev) => {
-      if (item.type === "menu_item" || item.type === "package") {
-        const existingIndex = prev.findIndex(
-          (existing) =>
-            existing.id === item.id &&
-            existing.type === item.type &&
-            JSON.stringify(existing.options) === JSON.stringify(item.options) &&
-            JSON.stringify(existing.selectedSize) === JSON.stringify(item.selectedSize)
-        )
-        if (existingIndex >= 0) {
-          const updated = [...prev]
-          updated[existingIndex].quantity += item.quantity
-          return updated
+      if (restaurantId && restaurantId !== item.restaurantId) {
+        return [item]
+      }
+      const existingIndex = prev.findIndex(
+        (i) =>
+          i.id === item.id &&
+          JSON.stringify(i.modifiers) === JSON.stringify(item.modifiers)
+      )
+      if (existingIndex >= 0) {
+        const updated = [...prev]
+        updated[existingIndex] = {
+          ...updated[existingIndex],
+          quantity: updated[existingIndex].quantity + item.quantity,
         }
+        return updated
       }
       return [...prev, item]
     })
-  }, [])
+    setRestaurantId(item.restaurantId)
+    setRestaurantName(item.restaurantName)
+    setRestaurantSlug(item.restaurantSlug)
+  }, [restaurantId])
 
-  const removeItem = useCallback((index: number) => {
-    setItems((prev) => prev.filter((_, i) => i !== index))
-  }, [])
-
-  const updateQuantity = useCallback((index: number, quantity: number) => {
-    if (quantity <= 0) {
-      removeItem(index)
-      return
-    }
+  const removeItem = useCallback((itemId: string) => {
     setItems((prev) => {
-      const updated = [...prev]
-      if (updated[index]) {
-        updated[index].quantity = quantity
+      const updated = prev.filter((i) => i.id !== itemId)
+      if (updated.length === 0) {
+        setRestaurantId(null)
+        setRestaurantName(null)
+        setRestaurantSlug(null)
       }
       return updated
     })
+  }, [])
+
+  const updateQuantity = useCallback((itemId: string, quantity: number) => {
+    if (quantity <= 0) {
+      removeItem(itemId)
+      return
+    }
+    setItems((prev) =>
+      prev.map((i) => (i.id === itemId ? { ...i, quantity } : i))
+    )
   }, [removeItem])
 
   const clearCart = useCallback(() => {
@@ -126,19 +127,19 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setRestaurantSlug(null)
   }, [])
 
-  const itemCount = items.reduce((sum, item) => {
-    if (item.type === "menu_item" || item.type === "package") {
-      return sum + item.quantity
-    }
-    return sum
-  }, 0)
+  const getItemCount = useCallback(() => {
+    return items.reduce((sum, item) => sum + item.quantity, 0)
+  }, [items])
 
-  const subtotal = items.reduce((sum, item) => {
-    if (item.type === "delivery_fee" || item.type === "tip") {
-      return sum
-    }
-    return sum + item.price * item.quantity
-  }, 0)
+  const getSubtotal = useCallback(() => {
+    return items.reduce((sum, item) => {
+      const modifiersTotal = (item.modifiers || []).reduce(
+        (m, mod) => m + mod.price,
+        0
+      )
+      return sum + (item.price + modifiersTotal) * item.quantity
+    }, 0)
+  }, [items])
 
   return (
     <CartContext.Provider
@@ -151,9 +152,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         removeItem,
         updateQuantity,
         clearCart,
-        setRestaurant,
-        itemCount,
-        subtotal,
+        getItemCount,
+        getSubtotal,
       }}
     >
       {children}
