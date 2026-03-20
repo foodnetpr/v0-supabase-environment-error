@@ -80,6 +80,7 @@ export function SuperAdminSidebar({ activeTab, onTabChange }: SuperAdminSidebarP
     }
   }
 
+  // Navigation menu items - KDS added for kitchen display access
   const navItems: NavItem[] = [
     { id: "restaurants", label: "Restaurantes", icon: <Building2 className="h-5 w-5" /> },
     { id: "marketing", label: "Marketing & Sales", icon: <Megaphone className="h-5 w-5" /> },
