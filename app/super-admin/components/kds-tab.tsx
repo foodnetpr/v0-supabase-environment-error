@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { 
-  MonitorPlay, 
+  Monitor, 
   ExternalLink, 
   Search, 
   Copy, 
@@ -125,7 +125,7 @@ export function KDSTab() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <MonitorPlay className="h-6 w-6" />
+            <Monitor className="h-6 w-6" />
             Kitchen Display System (KDS)
           </h2>
           <p className="text-slate-500 mt-1">
