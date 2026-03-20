@@ -4957,38 +4957,31 @@ const orderData = {
                   </div>
                 </div>
 
-                <div className="mt-6 pt-6 border-t space-y-3 relative z-10">
-                  {/* Stripe Payment Button */}
+                <div className="mt-6 pt-6 border-t space-y-3 relative z-50">
+                  {/* Stripe Payment Button - Credit Card */}
                   <button
                     type="button"
-                    onClick={(e) => {
-                      console.log("[v0] Stripe button clicked")
-                      e.preventDefault()
-                      e.stopPropagation()
+                    onClick={() => {
+                      console.log("[v0] Stripe button clicked - initiating checkout")
                       handleSubmitCheckout()
                     }}
-                    className="w-full flex items-center justify-center p-4 bg-[#635BFF] text-white rounded-lg hover:bg-[#5349E0] transition-colors shadow-lg cursor-pointer active:scale-[0.98]"
-                    style={{ pointerEvents: 'auto' }}
+                    className="w-full flex items-center justify-center p-4 bg-[#635BFF] text-white rounded-lg hover:bg-[#5349E0] transition-colors shadow-lg cursor-pointer active:scale-95"
                   >
                     <span className="font-semibold text-lg">Pagar con Tarjeta</span>
                   </button>
 
-                  {/* ATH Movil Payment Button - Official Design */}
+                  {/* ATH Movil Payment Button - Official Logo */}
                   <button
                     type="button"
-                    onClick={(e) => {
-                      console.log("[v0] ATH Movil button clicked")
-                      e.preventDefault()
-                      e.stopPropagation()
+                    onClick={() => {
+                      console.log("[v0] ATH Movil button clicked - initiating checkout")
                       handleSubmitCheckout()
-                      // After checkout data is set, we'll show ATH Movil
                       setTimeout(() => {
                         setShowStripeCheckout(false)
                         setShowATHMovilCheckout(true)
                       }, 100)
                     }}
-                    className="w-full flex items-center justify-center p-4 bg-white border-2 border-[#F58220] rounded-lg hover:bg-orange-50 transition-colors shadow-lg cursor-pointer active:scale-[0.98]"
-                    style={{ pointerEvents: 'auto' }}
+                    className="w-full flex items-center justify-center p-4 bg-white border-2 border-[#F58220] rounded-lg hover:bg-orange-50 transition-colors shadow-lg cursor-pointer active:scale-95"
                   >
                     <img 
                       src="/images/ath-movil-logo.png" 
