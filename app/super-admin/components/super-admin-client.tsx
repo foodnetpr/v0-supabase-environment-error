@@ -43,6 +43,7 @@ import { AdminUsersTab } from "./admin-users-tab"
 import { CuisineTypesTab } from "./cuisine-types-tab"
 import { ReportsTab } from "./reports-tab"
 import { PromoCardsTab } from "./promo-cards-tab"
+import { KDSTab } from "./kds-tab"
 import { SuperAdminSidebar } from "./super-admin-sidebar"
 
 interface Restaurant {
@@ -449,6 +450,7 @@ export function SuperAdminClient({
                 {activeTab === "cuisine-types" && "Tipos de Cocina"}
                 {activeTab === "reports" && "Reports"}
                 {activeTab === "promo-cards" && "Promo Cards"}
+                {activeTab === "kds" && "KDS (Kitchen Display)"}
               </h2>
               <div className="flex items-center gap-3">
                 {activeTab === "restaurants" && (
@@ -991,11 +993,16 @@ export function SuperAdminClient({
         <ReportsTab restaurants={restaurants} />
       )}
 
-      {/* Promo Cards Tab */}
-      {activeTab === "promo-cards" && (
-        <PromoCardsTab />
-      )}
-      </div>{/* End main content wrapper */}
+{/* Promo Cards Tab */}
+                {activeTab === "promo-cards" && (
+                  <PromoCardsTab />
+                )}
+
+                {/* KDS Tab */}
+                {activeTab === "kds" && (
+                  <KDSTab />
+                )}
+              </div>{/* End main content wrapper */}
 
       {/* Create Restaurant Modal - keep existing */}
       <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
