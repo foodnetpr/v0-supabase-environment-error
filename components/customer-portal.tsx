@@ -1680,12 +1680,6 @@ export default function CustomerPortal({
     
     console.log("[v0] All validations passed, proceeding with checkout")
 
-    // CRITICAL: Ensure branch is selected - orders CANNOT proceed without a branch
-    if (!selectedBranch?.id) {
-      toast({ title: "Error", description: "Por favor seleccione una sucursal antes de continuar.", variant: "destructive" })
-      return
-    }
-
     const tax = calculateTax()
     const dynamicDeliveryFee = deliveryMethod === "delivery" ? deliveryFeeCalculation.fee : 0
     
@@ -1693,13 +1687,13 @@ export default function CustomerPortal({
     const internalShopTotal = internalShopSubtotal + internalShopTax
     const total = subtotal + tax + dynamicDeliveryFee + tipAmount + internalShopTotal
 
-const orderData = {
-  restaurantId: restaurant.id,
-  restaurantName: restaurant.name,
-  restaurantAddress: effectiveRestaurant.restaurant_address || "",
-  branchId: selectedBranch.id,
-  branchName: selectedBranch?.name || null,
-  customerId: customer?.id || null, // Platform customer ID for order history
+    const orderData = {
+      restaurantId: restaurant.id,
+      restaurantName: restaurant.name,
+      restaurantAddress: effectiveRestaurant.restaurant_address || "",
+      branchId: selectedBranch?.id || null,
+      branchName: selectedBranch?.name || null,
+      customerId: customer?.id || null,
       // Payment provider settings - check branch first, then fall back to restaurant
       paymentProvider: (selectedBranch as any)?.payment_provider || (restaurant as any)?.payment_provider || "stripe",
       stripeAccountId: (selectedBranch as any)?.stripe_account_id || (restaurant as any)?.stripe_account_id || null,
