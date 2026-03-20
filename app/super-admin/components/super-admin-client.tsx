@@ -443,7 +443,7 @@ export function SuperAdminClient({
             <div className="flex items-center justify-between">
               <div className="md:hidden w-10" /> {/* Spacer for mobile menu button */}
               <h2 className="text-lg font-semibold text-slate-900 capitalize">
-                {activeTab === "restaurants" && "Restaurantes"}
+                {activeTab === "restaurants" && "Restaurantes "}
                 {activeTab === "marketing" && "Marketing & Sales"}
                 {activeTab === "operations" && "Operations"}
                 {activeTab === "admin-users" && "Admin Users"}
