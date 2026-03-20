@@ -1680,12 +1680,6 @@ export default function CustomerPortal({
     
     console.log("[v0] All validations passed, proceeding with checkout")
 
-    // CRITICAL: Ensure branch is selected - orders CANNOT proceed without a branch
-    if (!selectedBranch?.id) {
-      toast({ title: "Error", description: "Por favor seleccione una sucursal antes de continuar.", variant: "destructive" })
-      return
-    }
-
     const tax = calculateTax()
     const dynamicDeliveryFee = deliveryMethod === "delivery" ? deliveryFeeCalculation.fee : 0
     
@@ -1693,13 +1687,13 @@ export default function CustomerPortal({
     const internalShopTotal = internalShopSubtotal + internalShopTax
     const total = subtotal + tax + dynamicDeliveryFee + tipAmount + internalShopTotal
 
-const orderData = {
-  restaurantId: restaurant.id,
-  restaurantName: restaurant.name,
-  restaurantAddress: effectiveRestaurant.restaurant_address || "",
-  branchId: selectedBranch.id,
-  branchName: selectedBranch?.name || null,
-  customerId: customer?.id || null, // Platform customer ID for order history
+    const orderData = {
+      restaurantId: restaurant.id,
+      restaurantName: restaurant.name,
+      restaurantAddress: effectiveRestaurant.restaurant_address || "",
+      branchId: selectedBranch?.id || null,
+      branchName: selectedBranch?.name || null,
+      customerId: customer?.id || null,
       // Payment provider settings - check branch first, then fall back to restaurant
       paymentProvider: (selectedBranch as any)?.payment_provider || (restaurant as any)?.payment_provider || "stripe",
       stripeAccountId: (selectedBranch as any)?.stripe_account_id || (restaurant as any)?.stripe_account_id || null,
@@ -4979,8 +4973,8 @@ const orderData = {
                   <button
                     type="button"
                     onClick={() => {
-                      console.log("[v0] Stripe button clicked - initiating checkout")
-                      handleSubmitCheckout()
+                      console.log("[v0] Stripe button clicked - opening Stripe checkout")
+                      setShowStripeCheckout(true)
                     }}
                     className="w-full flex items-center justify-center p-4 bg-[#635BFF] text-white rounded-lg hover:bg-[#5349E0] transition-colors shadow-lg cursor-pointer active:scale-95"
                   >
@@ -4991,12 +4985,8 @@ const orderData = {
                   <button
                     type="button"
                     onClick={() => {
-                      console.log("[v0] ATH Movil button clicked - initiating checkout")
-                      handleSubmitCheckout()
-                      setTimeout(() => {
-                        setShowStripeCheckout(false)
-                        setShowATHMovilCheckout(true)
-                      }, 100)
+                      console.log("[v0] ATH Movil button clicked - opening ATH Movil checkout")
+                      setShowATHMovilCheckout(true)
                     }}
                     className="w-full flex items-center justify-center p-4 bg-white border-2 border-[#F58220] rounded-lg hover:bg-orange-50 transition-colors shadow-lg cursor-pointer active:scale-95"
                   >
