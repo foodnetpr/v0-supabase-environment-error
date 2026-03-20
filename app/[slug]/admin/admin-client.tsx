@@ -441,6 +441,7 @@ const { toast } = useToast()
   const [marketplaceSettings, setMarketplaceSettings] = useState({
   show_in_marketplace: restaurant.show_in_marketplace || false,
   marketplace_tagline: restaurant.marketplace_tagline || "",
+  main_cuisine_type: (restaurant as any).main_cuisine_type || "",
   cuisine_types: (restaurant.cuisine_types as string[] | null) || (restaurant.cuisine_type ? [restaurant.cuisine_type] : []),
   is_featured: restaurant.is_featured || false,
   area: restaurant.area || "",
@@ -2323,16 +2324,17 @@ const { toast } = useToast()
     }
   }
 
-  const handleSaveMarketplaceSettings = async () => {
-    try {
-      const result = await updateRestaurantMarketplaceSettings(
-        restaurant.id,
-        marketplaceSettings.show_in_marketplace,
-        marketplaceSettings.marketplace_tagline,
-        marketplaceSettings.cuisine_types,
-        marketplaceSettings.is_featured,
-        marketplaceSettings.area,
-      )
+const handleSaveMarketplaceSettings = async () => {
+  try {
+  const result = await updateRestaurantMarketplaceSettings(
+  restaurant.id,
+  marketplaceSettings.show_in_marketplace,
+  marketplaceSettings.marketplace_tagline,
+  marketplaceSettings.cuisine_types,
+  marketplaceSettings.is_featured,
+  marketplaceSettings.area,
+  marketplaceSettings.main_cuisine_type,
+  )
       if (result.error) {
         toast({
           title: "Error updating marketplace settings",
@@ -5199,37 +5201,70 @@ const pickupOrders = orders.filter((o: any) => o.order_type === "pickup" || o.de
                   <p className="text-xs text-gray-500 mt-1">Una frase corta y atractiva para describir tu restaurante.</p>
                 </div>
 
-                <div>
-                  <Label>Tipo de Cocina</Label>
-                  <p className="text-xs text-muted-foreground mt-0.5 mb-2">
-                    Selecciona todos los tipos de cocina que apliquen. El restaurante aparecerá bajo cada icono seleccionado.
-                  </p>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 border rounded-lg p-3 bg-slate-50 mt-1">
-                    {cuisineTypes.map((ct) => {
-                      const checked = marketplaceSettings.cuisine_types.includes(ct.name)
-                      return (
-                        <label key={ct.id} className="flex items-center gap-2 cursor-pointer select-none">
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() => {
-                              const next = checked
-                                ? marketplaceSettings.cuisine_types.filter((c) => c !== ct.name)
-                                : [...marketplaceSettings.cuisine_types, ct.name]
-                              setMarketplaceSettings((prev) => ({ ...prev, cuisine_types: next }))
-                            }}
-                            className="rounded border-slate-300 text-black focus:ring-black"
-                          />
-                          <span className="text-sm">{ct.name}</span>
-                        </label>
-                      )
-                    })}
-                  </div>
-                  {marketplaceSettings.cuisine_types.length > 0 && (
-                    <p className="text-xs text-green-700 mt-1.5">
-                      {marketplaceSettings.cuisine_types.join(", ")}
+                <div className="space-y-4">
+                  {/* Main Cuisine Type Dropdown */}
+                  <div>
+                    <Label>Tipo de Cocina Principal</Label>
+                    <p className="text-xs text-muted-foreground mt-0.5 mb-2">
+                      Este es el tipo de cocina que se mostrará en la tarjeta del restaurante.
                     </p>
-                  )}
+                    <select
+                      className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm mt-1"
+                      value={marketplaceSettings.main_cuisine_type}
+                      onChange={(e) => {
+                        const newMain = e.target.value
+                        setMarketplaceSettings((prev) => ({
+                          ...prev,
+                          main_cuisine_type: newMain,
+                          // Ensure main cuisine is always in the cuisine_types array
+                          cuisine_types: newMain && !prev.cuisine_types.includes(newMain)
+                            ? [...prev.cuisine_types, newMain]
+                            : prev.cuisine_types
+                        }))
+                      }}
+                    >
+                      <option value="">Seleccionar tipo principal...</option>
+                      {cuisineTypes.map((ct) => (
+                        <option key={ct.id} value={ct.name}>{ct.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Additional Cuisine Types Checkboxes */}
+                  <div>
+                    <Label>Tipos de Cocina Adicionales</Label>
+                    <p className="text-xs text-muted-foreground mt-0.5 mb-2">
+                      Selecciona otros tipos de cocina para aparecer en más filtros de busqueda.
+                    </p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 border rounded-lg p-3 bg-slate-50 mt-1">
+                      {cuisineTypes.map((ct) => {
+                        const checked = marketplaceSettings.cuisine_types.includes(ct.name)
+                        const isMain = marketplaceSettings.main_cuisine_type === ct.name
+                        return (
+                          <label key={ct.id} className={`flex items-center gap-2 cursor-pointer select-none ${isMain ? "opacity-50" : ""}`}>
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              disabled={isMain}
+                              onChange={() => {
+                                const next = checked
+                                  ? marketplaceSettings.cuisine_types.filter((c) => c !== ct.name)
+                                  : [...marketplaceSettings.cuisine_types, ct.name]
+                                setMarketplaceSettings((prev) => ({ ...prev, cuisine_types: next }))
+                              }}
+                              className="rounded border-slate-300 text-black focus:ring-black disabled:opacity-50"
+                            />
+                            <span className="text-sm">{ct.name} {isMain && "(Principal)"}</span>
+                          </label>
+                        )
+                      })}
+                    </div>
+                    {marketplaceSettings.cuisine_types.length > 0 && (
+                      <p className="text-xs text-green-700 mt-1.5">
+                        Filtros activos: {marketplaceSettings.cuisine_types.join(", ")}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 <div>

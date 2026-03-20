@@ -1039,6 +1039,7 @@ export async function updateRestaurantMarketplaceSettings(
   cuisineTypes: string[],
   isFeatured: boolean,
   area?: string,
+  mainCuisineType?: string,
 ) {
   try {
     const supabase = getAdminClient()
@@ -1052,6 +1053,7 @@ export async function updateRestaurantMarketplaceSettings(
         cuisine_type: cuisineTypes[0] || null,
         cuisine_types: cuisineTypes.length > 0 ? cuisineTypes : null,
         area: area || null,
+        main_cuisine_type: mainCuisineType || null,
       })
       .eq("id", restaurantId)
       .select()

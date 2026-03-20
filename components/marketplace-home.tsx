@@ -464,9 +464,12 @@ function RestaurantCard({
   inDeliveryZone: boolean
   hasLocation: boolean
 }) {
-  const cuisineLabel = restaurant.cuisine_types?.length
-    ? restaurant.cuisine_types.join(" · ")
-    : restaurant.cuisine_type || "Catering"
+  // Show only the main cuisine type on the tile (for cleaner display)
+  // Falls back to first cuisine_type or cuisine_type field
+  const cuisineLabel = restaurant.main_cuisine_type 
+    || (restaurant.cuisine_types?.length ? restaurant.cuisine_types[0] : null)
+    || restaurant.cuisine_type 
+    || "Catering"
   const featuredImage = restaurant.marketplace_image_url
   const logoImage = restaurant.logo_url
   const unavailable = hasLocation && !inDeliveryZone
