@@ -37,12 +37,13 @@ import {
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { createRestaurant, updateRestaurant, deleteRestaurant, fetchCuisineTypes, createCuisineType, deleteCuisineType, updateCuisineType, fetchMarketplaceAreas, createMarketplaceArea, deleteMarketplaceArea, updateMarketplaceArea } from "../actions"
-import { Trash2, Shield, Megaphone, Globe, Copy, ArrowUpRight, MapPin, Clock, AlertTriangle, Users, ImageIcon, RefreshCw, Phone } from "lucide-react"
+import { Trash2, Shield, Megaphone, Globe, Copy, ArrowUpRight, MapPin, Clock, AlertTriangle, Users, ImageIcon, RefreshCw, Phone, Monitor } from "lucide-react"
 import { OperationsTab } from "./operations-tab"
 import { AdminUsersTab } from "./admin-users-tab"
 import { CuisineTypesTab } from "./cuisine-types-tab"
 import { ReportsTab } from "./reports-tab"
 import { PromoCardsTab } from "./promo-cards-tab"
+import { KDSTab } from "./kds-tab"
 import { SuperAdminSidebar } from "./super-admin-sidebar"
 
 interface Restaurant {
@@ -442,13 +443,14 @@ export function SuperAdminClient({
             <div className="flex items-center justify-between">
               <div className="md:hidden w-10" /> {/* Spacer for mobile menu button */}
               <h2 className="text-lg font-semibold text-slate-900 capitalize">
-                {activeTab === "restaurants" && "Restaurantes"}
+                {activeTab === "restaurants" && "Restaurantes "}
                 {activeTab === "marketing" && "Marketing & Sales"}
                 {activeTab === "operations" && "Operations"}
                 {activeTab === "admin-users" && "Admin Users"}
                 {activeTab === "cuisine-types" && "Tipos de Cocina"}
                 {activeTab === "reports" && "Reports"}
                 {activeTab === "promo-cards" && "Promo Cards"}
+                {activeTab === "kds" && "KDS (Kitchen Display)"}
               </h2>
               <div className="flex items-center gap-3">
                 {activeTab === "restaurants" && (
@@ -991,11 +993,16 @@ export function SuperAdminClient({
         <ReportsTab restaurants={restaurants} />
       )}
 
-      {/* Promo Cards Tab */}
-      {activeTab === "promo-cards" && (
-        <PromoCardsTab />
-      )}
-      </div>{/* End main content wrapper */}
+{/* Promo Cards Tab */}
+                {activeTab === "promo-cards" && (
+                  <PromoCardsTab />
+                )}
+
+                {/* KDS Tab */}
+                {activeTab === "kds" && (
+                  <KDSTab />
+                )}
+              </div>{/* End main content wrapper */}
 
       {/* Create Restaurant Modal - keep existing */}
       <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>

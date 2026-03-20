@@ -80,6 +80,7 @@ export function SuperAdminSidebar({ activeTab, onTabChange }: SuperAdminSidebarP
     }
   }
 
+  // Navigation menu items
   const navItems: NavItem[] = [
     { id: "restaurants", label: "Restaurantes", icon: <Building2 className="h-5 w-5" /> },
     { id: "marketing", label: "Marketing & Sales", icon: <Megaphone className="h-5 w-5" /> },
@@ -158,21 +159,40 @@ export function SuperAdminSidebar({ activeTab, onTabChange }: SuperAdminSidebarP
             Quick Access
           </p>
           {quickLinks.map((item) => (
-            <Link
-              key={item.id}
-              href={item.href || "#"}
-              className={cn(
-                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
-                item.highlight === "rose" && "text-rose-600 hover:bg-rose-50 hover:text-rose-700",
-                item.highlight === "cyan" && "text-cyan-600 hover:bg-cyan-50 hover:text-cyan-700",
-                isCollapsed && "justify-center px-2"
-              )}
-              title={isCollapsed ? item.label : undefined}
-            >
-              {item.icon}
-              {!isCollapsed && <span className="truncate">{item.label}</span>}
-              {!isCollapsed && <ExternalLink className="h-3 w-3 ml-auto opacity-50" />}
-            </Link>
+            item.href ? (
+              <Link
+                key={item.id}
+                href={item.href}
+                className={cn(
+                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
+                  item.highlight === "rose" && "text-rose-600 hover:bg-rose-50 hover:text-rose-700",
+                  item.highlight === "cyan" && "text-cyan-600 hover:bg-cyan-50 hover:text-cyan-700",
+                  !item.highlight && "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+                  isCollapsed && "justify-center px-2"
+                )}
+                title={isCollapsed ? item.label : undefined}
+              >
+                {item.icon}
+                {!isCollapsed && <span className="truncate">{item.label}</span>}
+                {!isCollapsed && <ExternalLink className="h-3 w-3 ml-auto opacity-50" />}
+              </Link>
+            ) : (
+              <button
+                key={item.id}
+                onClick={() => handleNavClick(item)}
+                className={cn(
+                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
+                  activeTab === item.id
+                    ? "bg-slate-900 text-white"
+                    : "text-cyan-600 hover:bg-cyan-50 hover:text-cyan-700",
+                  isCollapsed && "justify-center px-2"
+                )}
+                title={isCollapsed ? item.label : undefined}
+              >
+                {item.icon}
+                {!isCollapsed && <span className="truncate">{item.label}</span>}
+              </button>
+            )
           ))}
         </div>
       </nav>

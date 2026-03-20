@@ -1,7 +1,9 @@
+// Super Admin Page - Last updated: March 19, 2026 - KDS Button Added
 import { createClient } from "@/lib/supabase/server"
 import { SuperAdminClient } from "./components/super-admin-client"
 
 export const dynamic = "force-dynamic"
+export const revalidate = 0 // Force no caching - rebuild required
 
 export default async function SuperAdminPage() {
   const supabase = await createClient()
