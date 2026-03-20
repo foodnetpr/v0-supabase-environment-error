@@ -37,7 +37,7 @@ import {
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { createRestaurant, updateRestaurant, deleteRestaurant, fetchCuisineTypes, createCuisineType, deleteCuisineType, updateCuisineType, fetchMarketplaceAreas, createMarketplaceArea, deleteMarketplaceArea, updateMarketplaceArea } from "../actions"
-import { Trash2, Shield, Megaphone, Globe, Copy, ArrowUpRight, MapPin, Clock, AlertTriangle, Users, ImageIcon, RefreshCw, Phone } from "lucide-react"
+import { Trash2, Shield, Megaphone, Globe, Copy, ArrowUpRight, MapPin, Clock, AlertTriangle, Users, ImageIcon, RefreshCw, Phone, Monitor } from "lucide-react"
 import { OperationsTab } from "./operations-tab"
 import { AdminUsersTab } from "./admin-users-tab"
 import { CuisineTypesTab } from "./cuisine-types-tab"
@@ -453,6 +453,15 @@ export function SuperAdminClient({
                 {activeTab === "kds" && "KDS (Kitchen Display)"}
               </h2>
               <div className="flex items-center gap-3">
+                {/* KDS Button - always visible */}
+                <Button 
+                  onClick={() => setActiveTab("kds")} 
+                  variant={activeTab === "kds" ? "default" : "outline"}
+                  className="gap-2 bg-cyan-600 hover:bg-cyan-700 text-white border-cyan-600"
+                >
+                  <Monitor className="h-4 w-4" />
+                  <span className="hidden sm:inline">KDS</span>
+                </Button>
                 {activeTab === "restaurants" && (
                   <>
                     <Button onClick={() => setShowSettingsModal(true)} variant="outline" className="gap-2">
