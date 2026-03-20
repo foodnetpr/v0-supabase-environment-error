@@ -4979,8 +4979,8 @@ const orderData = {
                   <button
                     type="button"
                     onClick={() => {
-                      console.log("[v0] Stripe button clicked - initiating checkout")
-                      handleSubmitCheckout()
+                      console.log("[v0] Stripe button clicked - opening Stripe checkout")
+                      setShowStripeCheckout(true)
                     }}
                     className="w-full flex items-center justify-center p-4 bg-[#635BFF] text-white rounded-lg hover:bg-[#5349E0] transition-colors shadow-lg cursor-pointer active:scale-95"
                   >
@@ -4991,12 +4991,8 @@ const orderData = {
                   <button
                     type="button"
                     onClick={() => {
-                      console.log("[v0] ATH Movil button clicked - initiating checkout")
-                      handleSubmitCheckout()
-                      setTimeout(() => {
-                        setShowStripeCheckout(false)
-                        setShowATHMovilCheckout(true)
-                      }, 100)
+                      console.log("[v0] ATH Movil button clicked - opening ATH Movil checkout")
+                      setShowATHMovilCheckout(true)
                     }}
                     className="w-full flex items-center justify-center p-4 bg-white border-2 border-[#F58220] rounded-lg hover:bg-orange-50 transition-colors shadow-lg cursor-pointer active:scale-95"
                   >
