@@ -515,11 +515,11 @@ function RestaurantCard({
             </div>
           )}
 
-          {/* PRE-ORDER ribbon badge - top right corner */}
+          {/* Pre-Ordenar ribbon badge - top right corner */}
           {canPreOrder && (
             <div className="absolute -top-1 -right-1 z-10">
               <div className="bg-pink-500 text-white text-[8px] sm:text-[10px] font-bold px-2 py-1 transform rotate-12 shadow-md">
-                PRE-ORDER
+                Pre-Ordenar
               </div>
             </div>
           )}
@@ -535,8 +535,8 @@ function RestaurantCard({
           {canPreOrder && nextOpenTime && (
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="bg-black/70 text-white px-4 py-2 rounded-lg backdrop-blur-sm text-center">
-                <p className="text-[10px] sm:text-xs opacity-80">Delivery at</p>
-                <p className="text-sm sm:text-lg font-bold">{nextOpenTime}</p>
+                <p className="text-sm sm:text-lg font-bold">Disponible mañana</p>
+                <p className="text-[10px] sm:text-xs opacity-80">a las {nextOpenTime}</p>
               </div>
             </div>
           )}
