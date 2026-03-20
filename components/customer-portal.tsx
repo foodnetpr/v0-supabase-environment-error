@@ -4956,11 +4956,9 @@ export default function CustomerPortal({
                   <button
                     type="button"
                     onClick={async () => {
-                      console.log("[v0] Stripe button clicked")
                       await handleSubmitCheckout()
-                      // Small delay to allow React to update checkoutData state
                       setTimeout(() => {
-                        console.log("[v0] Opening Stripe dialog")
+                        setCheckoutStep(null) // Close summary dialog
                         setShowStripeCheckout(true)
                       }, 100)
                     }}
@@ -4973,11 +4971,9 @@ export default function CustomerPortal({
                   <button
                     type="button"
                     onClick={async () => {
-                      console.log("[v0] ATH Movil button clicked")
                       await handleSubmitCheckout()
-                      // Small delay to allow React to update checkoutData state
                       setTimeout(() => {
-                        console.log("[v0] Opening ATH Movil dialog")
+                        setCheckoutStep(null) // Close summary dialog
                         setShowATHMovilCheckout(true)
                       }, 100)
                     }}
@@ -5323,9 +5319,9 @@ export default function CustomerPortal({
         </div>
       )}
 
-      {/* Stripe Checkout */}
-      {showStripeCheckout && checkoutData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+{/* Stripe Checkout */}
+  {showStripeCheckout && checkoutData && (
+  <div className="fixed inset-0 z-[100] flex items-center justify-center">
           {/* Backdrop - click to cancel */}
           <div 
             className="absolute inset-0 bg-black/50" 
@@ -5375,9 +5371,9 @@ export default function CustomerPortal({
         </div>
       )}
 
-      {/* ATH Móvil Checkout */}
-      {showATHMovilCheckout && checkoutData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+{/* ATH Móvil Checkout */}
+  {showATHMovilCheckout && checkoutData && (
+  <div className="fixed inset-0 z-[100] flex items-center justify-center">
           <div 
             className="absolute inset-0 bg-black/50" 
             onClick={() => {
