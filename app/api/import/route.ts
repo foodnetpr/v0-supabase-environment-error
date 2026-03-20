@@ -99,7 +99,7 @@ export async function POST(request: Request) {
             logo_url: restaurant.logo_url || null,
             hero_image_url: restaurant.featured_url || null,
             marketplace_image_url: restaurant.featured_url || restaurant.logo_url || null,
-            primary_color: "#ef4444", // Default red
+            primary_color: "#d00169", // Default magenta brand color
             is_active: true,
             pickup_enabled: true,
             delivery_enabled: true,

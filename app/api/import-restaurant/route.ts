@@ -52,7 +52,7 @@ export async function POST(request: Request) {
       min_delivery_order: restaurant.min_order != null ? Number(restaurant.min_order) : null,
       delivery_lead_time: restaurant.delivery_time_minutes != null ? Number(restaurant.delivery_time_minutes) : null,
       tax_rate: restaurant.tax_rate != null ? Number(restaurant.tax_rate) / 100 : 0.115,
-      primary_color: "#ef4444",
+      primary_color: "#d00169",
       is_active: true,
       pickup_enabled: true,
       delivery_enabled: true,

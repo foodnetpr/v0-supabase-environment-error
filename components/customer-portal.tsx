@@ -836,7 +836,7 @@ export default function CustomerPortal({
   }
 
   // Get template styles
-  const primaryColor = effectiveRestaurant.primary_color || "#6B1F1F"
+  const primaryColor = effectiveRestaurant.primary_color || "#d00169"
   const template = designTemplate || effectiveRestaurant.design_template || "modern"
   const templateStyles = getTemplateStyles(template as DesignTemplate)
 

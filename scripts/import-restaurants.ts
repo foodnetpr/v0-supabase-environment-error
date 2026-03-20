@@ -96,7 +96,7 @@ async function importData() {
         logo_url: restaurant.logo_url || null,
         hero_image_url: restaurant.featured_url || null,
         marketplace_image_url: restaurant.featured_url || restaurant.logo_url || null,
-        primary_color: "#ef4444",
+        primary_color: "#d00169",
         secondary_color: "#f97316",
         is_active: true,
         accepts_pickup: true,

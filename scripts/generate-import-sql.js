@@ -30,7 +30,7 @@ data.forEach((entry, index) => {
   
   restaurantInserts.push(`
     INSERT INTO restaurants (name, slug, is_active, pickup_enabled, delivery_enabled, tax_rate, show_in_marketplace, primary_color)
-    VALUES (${escapeString(restaurant.name)}, ${escapeString(slug)}, true, true, true, 0.115, true, '#ef4444')
+    VALUES (${escapeString(restaurant.name)}, ${escapeString(slug)}, true, true, true, 0.115, true, '#d00169')
     ON CONFLICT (slug) DO UPDATE SET name = EXCLUDED.name
     RETURNING id;
   `);
