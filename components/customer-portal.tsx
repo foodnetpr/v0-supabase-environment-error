@@ -4990,14 +4990,14 @@ const orderData = {
                         setShowATHMovilCheckout(true)
                       }, 100)
                     }}
-                    className="w-full flex items-center justify-center gap-2 p-4 bg-[#F58220] text-white rounded-lg hover:bg-[#E57310] transition-colors shadow-lg cursor-pointer active:scale-[0.98]"
+                    className="w-full flex items-center justify-center p-4 bg-white border-2 border-[#F58220] rounded-lg hover:bg-orange-50 transition-colors shadow-lg cursor-pointer active:scale-[0.98]"
                     style={{ pointerEvents: 'auto' }}
                   >
-                    <span className="font-semibold text-lg">Pay with</span>
-                    <div className="bg-white rounded px-2 py-0.5 flex items-center">
-                      <span className="text-[#F58220] font-black text-lg tracking-tight">ATH</span>
-                    </div>
-                    <span className="font-semibold text-lg">Móvil</span>
+                    <img 
+                      src="/images/ath-movil-logo.png" 
+                      alt="ATH Móvil" 
+                      className="h-8"
+                    />
                   </button>
 
                   {/* Back to Cart Button */}
