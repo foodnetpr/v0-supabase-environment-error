@@ -18,6 +18,7 @@ import {
   ExternalLink,
   Menu,
   X,
+  Monitor,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Switch } from "@/components/ui/switch"
@@ -88,6 +89,7 @@ export function SuperAdminSidebar({ activeTab, onTabChange }: SuperAdminSidebarP
     { id: "internal-shop", label: "Internal Shop", icon: <ShoppingCart className="h-5 w-5" />, href: "/super-admin/internal-shop" },
     { id: "reports", label: "Reports", icon: <FileText className="h-5 w-5" /> },
     { id: "promo-cards", label: "Promo Cards", icon: <Images className="h-5 w-5" /> },
+    { id: "kds", label: "KDS (Cocina)", icon: <Monitor className="h-5 w-5" /> },
   ]
 
   const quickLinks: NavItem[] = [
