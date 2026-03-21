@@ -50,30 +50,35 @@ export async function GET(request: Request) {
           .single()
 
         if (!existingByAuthId) {
-          // No customer row yet. Check if another account exists with the same email
-          // (e.g. an old account from a previous system or a different OAuth provider).
+          // No customer row yet linked to this auth user. 
+          // Check if a customer exists with the same email (imported or legacy).
           const { data: existingByEmail } = await supabase
             .from("customers")
             .select("id, auth_user_id")
             .eq("email", user.email!)
-            .is("auth_user_id", null) // unlinked legacy record
             .single()
 
-          if (existingByEmail && provider === "apple") {
-            // An unlinked legacy account exists with this email.
-            // Redirect to the link-account page so the user can decide.
-            return NextResponse.redirect(
-              `${origin}/auth/link-account?next=${encodeURIComponent(next)}&legacy_customer_id=${existingByEmail.id}`,
-            )
+          if (existingByEmail) {
+            // Customer exists with this email - link to current auth user
+            await supabase
+              .from("customers")
+              .update({ auth_user_id: user.id })
+              .eq("id", existingByEmail.id)
+            
+            // Also update the profiles table if exists
+            await supabase
+              .from("profiles")
+              .update({ auth_user_id: user.id })
+              .eq("email", user.email!)
+          } else {
+            // No existing customer - create a fresh customer record.
+            await supabase.from("customers").insert({
+              auth_user_id: user.id,
+              email: user.email!,
+              first_name: user.user_metadata?.full_name?.split(" ")[0] || user.user_metadata?.name?.split(" ")[0] || "",
+              last_name: user.user_metadata?.full_name?.split(" ").slice(1).join(" ") || "",
+            })
           }
-
-          // No conflict — create a fresh customer record.
-          await supabase.from("customers").insert({
-            auth_user_id: user.id,
-            email: user.email!,
-            first_name: user.user_metadata?.full_name?.split(" ")[0] || user.user_metadata?.name?.split(" ")[0] || "",
-            last_name: user.user_metadata?.full_name?.split(" ").slice(1).join(" ") || "",
-          })
         }
       }
 
