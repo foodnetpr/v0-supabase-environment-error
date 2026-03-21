@@ -415,7 +415,7 @@ async function sendEmail(to: string, subject: string, body: string, recipient: "
     try {
       const fromName = restaurantName || "FoodNet PR"
       await resend.emails.send({
-        from: `${fromName} <pedidos@foodnetpr.com>`,
+        from: `${fromName} <foodnetpr.mail@gmail.com>`,
         to,
         subject,
         text: body,
