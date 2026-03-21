@@ -9,7 +9,7 @@ import { createBrowserClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Plus, Minus, Pencil, Trash2, Settings, GripVertical, MapPin, Copy, Upload, Building, Phone, Eye, EyeOff, ChevronUp, ChevronDown, ArrowRightLeft, Search, CalendarDays, List, ChevronLeft, ChevronRight, Clock, Truck, Check, Monitor, ExternalLink, User } from "lucide-react"
+import { Plus, Minus, Pencil, Trash2, Settings, GripVertical, MapPin, Copy, Upload, Building, Phone, Eye, EyeOff, ChevronUp, ChevronDown, ArrowRightLeft, Search, CalendarDays, List, ChevronLeft, ChevronRight, Clock, Truck, Check, Monitor, ExternalLink, User, Key } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
@@ -169,6 +169,14 @@ const { toast } = useToast()
   const [editingTemplate, setEditingTemplate] = useState<any | null>(null)
   const [templateForm, setTemplateForm] = useState({ subject: "", body: "" })
   const [savingTemplate, setSavingTemplate] = useState(false)
+
+  // Restaurant admin users state
+  const [restaurantAdmins, setRestaurantAdmins] = useState<any[]>([])
+  const [editingAdmin, setEditingAdmin] = useState<any | null>(null)
+  const [adminForm, setAdminForm] = useState({ username: "", email: "", password: "" })
+  const [showAdminPassword, setShowAdminPassword] = useState(false)
+  const [savingAdmin, setSavingAdmin] = useState(false)
+  const [showCreateAdminDialog, setShowCreateAdminDialog] = useState(false)
 
   const handleTestShipday = async (branchId?: string) => {
     setShipdayTestStatus("testing")
@@ -668,6 +676,7 @@ const { toast } = useToast()
   loadOperatingHours()
   loadRestaurantHours()
   loadEmailTemplates()
+  loadRestaurantAdmins()
   // Load all restaurants for copy menu feature
   supabase.from("restaurants").select("id, name").order("name").then(({ data }) => {
     setAllRestaurantsForCopy(data || [])
@@ -757,6 +766,77 @@ const { toast } = useToast()
       .eq("restaurant_id", restaurantId)
       .order("template_type")
     setEmailTemplates(data || [])
+  }
+
+  const loadRestaurantAdmins = async () => {
+    const { data } = await supabase
+      .from("admin_users")
+      .select("*")
+      .eq("restaurant_id", restaurantId)
+      .order("created_at", { ascending: false })
+    setRestaurantAdmins(data || [])
+  }
+
+  const generatePassword = () => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%"
+    let password = ""
+    for (let i = 0; i < 12; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
+    return password
+  }
+
+  const handleCreateAdmin = async () => {
+    if (!adminForm.username || !adminForm.email || !adminForm.password) {
+      toast({ title: "Error", description: "Todos los campos son requeridos", variant: "destructive" })
+      return
+    }
+    setSavingAdmin(true)
+    try {
+      const res = await fetch("/api/admin-users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: adminForm.username,
+          email: adminForm.email,
+          password: adminForm.password,
+          role: "restaurant_admin",
+          restaurant_id: restaurantId,
+        }),
+      })
+      if (res.ok) {
+        toast({ title: "Exito", description: "Usuario administrador creado" })
+        setShowCreateAdminDialog(false)
+        setAdminForm({ username: "", email: "", password: "" })
+        loadRestaurantAdmins()
+      } else {
+        const err = await res.json()
+        toast({ title: "Error", description: err.error || "Error al crear usuario", variant: "destructive" })
+      }
+    } catch (err) {
+      toast({ title: "Error", description: "Error al crear usuario", variant: "destructive" })
+    } finally {
+      setSavingAdmin(false)
+    }
+  }
+
+  const handleResetAdminPassword = async (userId: string, newPassword: string) => {
+    try {
+      const res = await fetch(`/api/admin-users/${userId}/reset-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: newPassword }),
+      })
+      if (res.ok) {
+        toast({ title: "Exito", description: "Contrasena actualizada" })
+        setEditingAdmin(null)
+      } else {
+        const err = await res.json()
+        toast({ title: "Error", description: err.error || "Error al actualizar", variant: "destructive" })
+      }
+    } catch (err) {
+      toast({ title: "Error", description: "Error al actualizar", variant: "destructive" })
+    }
   }
 
   const handleSaveTemplate = async () => {
@@ -2662,14 +2742,15 @@ payment_provider: branchForm.payment_provider || "stripe",
                 <TabsTrigger value="menu">Menu Items</TabsTrigger>
               </TabsList>
             ) : (
-              <TabsList className={`grid w-full mb-8 ${settingsForm.is_chain ? "grid-cols-5 lg:grid-cols-9" : "grid-cols-5 lg:grid-cols-8"}`}>
+              <TabsList className={`grid w-full mb-8 ${settingsForm.is_chain ? "grid-cols-5 lg:grid-cols-10" : "grid-cols-5 lg:grid-cols-9"}`}>
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="menu">Menu Items</TabsTrigger>
                 {settingsForm.is_chain && <TabsTrigger value="branches">Sucursales</TabsTrigger>}
                 <TabsTrigger value="packages">Service Packages</TabsTrigger>
                 <TabsTrigger value="orders">Orders</TabsTrigger>
-                <TabsTrigger value="communications">Comunicaciones</TabsTrigger>
-                <TabsTrigger value="settings">Settings</TabsTrigger>
+<TabsTrigger value="communications">Comunicaciones</TabsTrigger>
+  <TabsTrigger value="access">Acceso</TabsTrigger>
+  <TabsTrigger value="settings">Settings</TabsTrigger>
                 <TabsTrigger value="kds">KDS</TabsTrigger>
                 {isSuperAdmin && <TabsTrigger value="marketplace">Marketplace</TabsTrigger>}
               </TabsList>
@@ -5365,9 +5446,235 @@ const pickupOrders = orders.filter((o: any) => o.order_type === "pickup" || o.de
             </Dialog>
           </TabsContent>
 
+{/* Acceso Tab Content - Restaurant Admin Management */}
+          <TabsContent value="access" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Key className="h-5 w-5" />
+                      Acceso al Panel de Administracion
+                    </CardTitle>
+                    <CardDescription>
+                      Administra los usuarios que pueden acceder a este panel de restaurante.
+                    </CardDescription>
+                  </div>
+                  {isSuperAdmin && (
+                    <Dialog open={showCreateAdminDialog} onOpenChange={setShowCreateAdminDialog}>
+                      <DialogTrigger asChild>
+                        <Button onClick={() => setAdminForm({ username: "", email: "", password: generatePassword() })}>
+                          <Plus className="h-4 w-4 mr-2" />
+                          Crear Usuario
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Crear Usuario Administrador</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                          <div className="space-y-2">
+                            <Label>Nombre de Usuario *</Label>
+                            <Input
+                              placeholder="ej: restaurante.admin"
+                              value={adminForm.username}
+                              onChange={(e) => setAdminForm({ ...adminForm, username: e.target.value })}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Correo Electronico *</Label>
+                            <Input
+                              type="email"
+                              placeholder="ej: admin@restaurante.com"
+                              value={adminForm.email}
+                              onChange={(e) => setAdminForm({ ...adminForm, email: e.target.value })}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Contrasena *</Label>
+                            <div className="flex gap-2">
+                              <div className="relative flex-1">
+                                <Input
+                                  type={showAdminPassword ? "text" : "password"}
+                                  value={adminForm.password}
+                                  onChange={(e) => setAdminForm({ ...adminForm, password: e.target.value })}
+                                />
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="absolute right-0 top-0 h-full px-3"
+                                  onClick={() => setShowAdminPassword(!showAdminPassword)}
+                                >
+                                  {showAdminPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </Button>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(adminForm.password)
+                                  toast({ title: "Copiado", description: "Contrasena copiada al portapapeles" })
+                                }}
+                              >
+                                <Copy className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setAdminForm({ ...adminForm, password: generatePassword() })}
+                              >
+                                Generar
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex justify-end gap-2">
+                          <Button variant="outline" onClick={() => setShowCreateAdminDialog(false)}>Cancelar</Button>
+                          <Button onClick={handleCreateAdmin} disabled={savingAdmin} className="bg-[#5d1f1f] hover:bg-[#4a1818]">
+                            {savingAdmin ? "Creando..." : "Crear Usuario"}
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                {restaurantAdmins.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Key className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No hay usuarios administradores configurados para este restaurante.</p>
+                    {isSuperAdmin && (
+                      <p className="text-sm mt-2">Haz clic en "Crear Usuario" para agregar uno.</p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {restaurantAdmins.map((admin) => (
+                      <div key={admin.id} className="border rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-medium">{admin.username}</h3>
+                              <span className="px-2 py-0.5 text-xs rounded bg-blue-100 text-blue-800">
+                                Restaurant Admin
+                              </span>
+                            </div>
+                            <p className="text-sm text-muted-foreground">{admin.email}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Creado: {new Date(admin.created_at).toLocaleDateString("es-PR")}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Dialog open={editingAdmin?.id === admin.id} onOpenChange={(open) => {
+                              if (open) {
+                                setEditingAdmin(admin)
+                                setAdminForm({ ...adminForm, password: generatePassword() })
+                              } else {
+                                setEditingAdmin(null)
+                              }
+                            }}>
+                              <DialogTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                  <Key className="h-4 w-4 mr-1" />
+                                  Cambiar Contrasena
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Cambiar Contrasena</DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-4 py-4">
+                                  <p className="text-sm text-muted-foreground">
+                                    Cambiando contrasena para: <strong>{admin.username}</strong>
+                                  </p>
+                                  <div className="space-y-2">
+                                    <Label>Nueva Contrasena</Label>
+                                    <div className="flex gap-2">
+                                      <div className="relative flex-1">
+                                        <Input
+                                          type={showAdminPassword ? "text" : "password"}
+                                          value={adminForm.password}
+                                          onChange={(e) => setAdminForm({ ...adminForm, password: e.target.value })}
+                                        />
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="icon"
+                                          className="absolute right-0 top-0 h-full px-3"
+                                          onClick={() => setShowAdminPassword(!showAdminPassword)}
+                                        >
+                                          {showAdminPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                        </Button>
+                                      </div>
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => {
+                                          navigator.clipboard.writeText(adminForm.password)
+                                          toast({ title: "Copiado", description: "Contrasena copiada al portapapeles" })
+                                        }}
+                                      >
+                                        <Copy className="h-4 w-4" />
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => setAdminForm({ ...adminForm, password: generatePassword() })}
+                                      >
+                                        Generar
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="flex justify-end gap-2">
+                                  <Button variant="outline" onClick={() => setEditingAdmin(null)}>Cancelar</Button>
+                                  <Button 
+                                    onClick={() => handleResetAdminPassword(admin.id, adminForm.password)} 
+                                    className="bg-[#5d1f1f] hover:bg-[#4a1818]"
+                                  >
+                                    Guardar Contrasena
+                                  </Button>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Login URL Info */}
+                <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                  <h4 className="font-medium text-blue-900 mb-2">URL de Acceso</h4>
+                  <p className="text-sm text-blue-800 mb-2">
+                    Los usuarios pueden acceder al panel de administracion en:
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <code className="bg-blue-100 px-3 py-1 rounded text-sm flex-1 truncate">
+                      {typeof window !== "undefined" ? `${window.location.origin}/${restaurant.slug}/admin` : `/${restaurant.slug}/admin`}
+                    </code>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        navigator.clipboard.writeText(`${window.location.origin}/${restaurant.slug}/admin`)
+                        toast({ title: "Copiado", description: "URL copiada al portapapeles" })
+                      }}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
 {/* KDS Tab Content */}
-                <TabsContent value="kds" className="space-y-6">
-                  <Card>
+  <TabsContent value="kds" className="space-y-6">
+  <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <Monitor className="h-5 w-5" />
