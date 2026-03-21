@@ -98,6 +98,34 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // If no email but has phone, create phone-only auth user
+    if (!email && phone) {
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        phone: phone,
+        phone_confirm: true,
+        user_metadata: {
+          full_name: fullName,
+          created_via: "csv_import",
+        },
+      })
+
+      if (authError) {
+        // Check if user already exists
+        if (authError.message.includes("already been registered") || authError.message.includes("already exists")) {
+          // Try to find existing user by phone
+          const { data: { users } } = await supabase.auth.admin.listUsers()
+          const existingUser = users?.find((u) => u.phone === phone)
+          if (existingUser) {
+            authUserId = existingUser.id
+          }
+          // If not found, continue without auth user - they can still be in customers table
+        }
+        // For other errors, continue without auth user
+      } else {
+        authUserId = authData.user.id
+      }
+    }
+
     // Check if profile already exists with this email or phone
     let existingProfile = null
     if (email) {
