@@ -98,6 +98,34 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // If no email but has phone, create phone-only auth user
+    if (!email && phone) {
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        phone: phone,
+        phone_confirm: true,
+        user_metadata: {
+          full_name: fullName,
+          created_via: "csv_import",
+        },
+      })
+
+      if (authError) {
+        // Check if user already exists
+        if (authError.message.includes("already been registered") || authError.message.includes("already exists")) {
+          // Try to find existing user by phone
+          const { data: { users } } = await supabase.auth.admin.listUsers()
+          const existingUser = users?.find((u) => u.phone === phone)
+          if (existingUser) {
+            authUserId = existingUser.id
+          }
+          // If not found, continue without auth user - they can still be in customers table
+        }
+        // For other errors, continue without auth user
+      } else {
+        authUserId = authData.user.id
+      }
+    }
+
     // Check if profile already exists with this email or phone
     let existingProfile = null
     if (email) {
@@ -136,6 +164,48 @@ export async function POST(request: NextRequest) {
         )
       }
 
+      // Also update/insert in customers table
+      let existingCustomer = null
+      if (email) {
+        const { data } = await supabase
+          .from("customers")
+          .select("id")
+          .eq("email", email)
+          .single()
+        existingCustomer = data
+      }
+      if (!existingCustomer && phone) {
+        const { data } = await supabase
+          .from("customers")
+          .select("id")
+          .eq("phone", phone)
+          .single()
+        existingCustomer = data
+      }
+
+      if (existingCustomer) {
+        await supabase
+          .from("customers")
+          .update({
+            first_name: firstName || fullName.split(" ")[0] || null,
+            last_name: lastName || fullName.split(" ").slice(1).join(" ") || null,
+            email: email || undefined,
+            phone: phone || undefined,
+            auth_user_id: authUserId || undefined,
+          })
+          .eq("id", existingCustomer.id)
+      } else {
+        await supabase
+          .from("customers")
+          .insert({
+            auth_user_id: authUserId,
+            first_name: firstName || fullName.split(" ")[0] || null,
+            last_name: lastName || fullName.split(" ").slice(1).join(" ") || null,
+            email: email || null,
+            phone: phone || null,
+          })
+      }
+
       return NextResponse.json({
         success: true,
         action: "updated",
@@ -164,10 +234,60 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Also insert into customers table (used by CSR portal)
+    // Check if customer already exists by email or phone
+    let existingCustomer = null
+    if (email) {
+      const { data } = await supabase
+        .from("customers")
+        .select("id")
+        .eq("email", email)
+        .single()
+      existingCustomer = data
+    }
+    if (!existingCustomer && phone) {
+      const { data } = await supabase
+        .from("customers")
+        .select("id")
+        .eq("phone", phone)
+        .single()
+      existingCustomer = data
+    }
+
+    let customerId = existingCustomer?.id
+    if (existingCustomer) {
+      // Update existing customer
+      await supabase
+        .from("customers")
+        .update({
+          first_name: firstName || fullName.split(" ")[0] || null,
+          last_name: lastName || fullName.split(" ").slice(1).join(" ") || null,
+          email: email || undefined,
+          phone: phone || undefined,
+          auth_user_id: authUserId || undefined,
+        })
+        .eq("id", existingCustomer.id)
+    } else {
+      // Insert new customer
+      const { data: customer } = await supabase
+        .from("customers")
+        .insert({
+          auth_user_id: authUserId,
+          first_name: firstName || fullName.split(" ")[0] || null,
+          last_name: lastName || fullName.split(" ").slice(1).join(" ") || null,
+          email: email || null,
+          phone: phone || null,
+        })
+        .select()
+        .single()
+      customerId = customer?.id
+    }
+
     return NextResponse.json({
       success: true,
       action: "created",
       profileId: profile.id,
+      customerId,
       authUserId,
     })
   } catch (error) {

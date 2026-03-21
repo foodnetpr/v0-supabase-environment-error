@@ -90,22 +90,43 @@ export async function customerSignIn(formData: FormData) {
     return { error: error.message }
   }
 
-  // Ensure customer record exists
+  // Ensure customer record exists and is linked
   if (data.user) {
-    const { data: customer } = await supabase
+    const { data: customerByAuth } = await supabase
       .from("customers")
       .select("id")
       .eq("auth_user_id", data.user.id)
       .single()
 
-    if (!customer) {
-      // Create customer record if it doesn't exist
-      await supabase.from("customers").insert({
-        auth_user_id: data.user.id,
-        email: data.user.email!,
-        first_name: data.user.user_metadata?.first_name || "",
-        last_name: data.user.user_metadata?.last_name || "",
-      })
+    if (!customerByAuth) {
+      // Check if customer exists by email (imported or legacy)
+      const { data: customerByEmail } = await supabase
+        .from("customers")
+        .select("id")
+        .eq("email", data.user.email!)
+        .single()
+
+      if (customerByEmail) {
+        // Link existing customer to this auth user
+        await supabase
+          .from("customers")
+          .update({ auth_user_id: data.user.id })
+          .eq("id", customerByEmail.id)
+        
+        // Also update profiles table if exists
+        await supabase
+          .from("profiles")
+          .update({ auth_user_id: data.user.id })
+          .eq("email", data.user.email!)
+      } else {
+        // Create customer record if it doesn't exist
+        await supabase.from("customers").insert({
+          auth_user_id: data.user.id,
+          email: data.user.email!,
+          first_name: data.user.user_metadata?.first_name || "",
+          last_name: data.user.user_metadata?.last_name || "",
+        })
+      }
     }
   }
 
