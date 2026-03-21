@@ -730,11 +730,6 @@ export function KDSBoard({ restaurant, branchId, branchName, initialOrders, onPr
                     Las ordenes de prueba se crearan para: <strong>{branchName}</strong>
                   </div>
                 )}
-                {!branchId && (
-                  <div className="text-sm text-yellow-400 bg-yellow-900/20 p-3 rounded border border-yellow-800">
-                    No hay sucursal seleccionada. Las ordenes se crearan a nivel de restaurante.
-                  </div>
-                )}
 
                 <div className="text-xs text-gray-500 bg-gray-800/50 p-3 rounded">
                   <p className="font-medium text-gray-400 mb-1">Notas:</p>
