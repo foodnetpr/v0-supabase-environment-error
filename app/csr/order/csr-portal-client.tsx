@@ -517,6 +517,7 @@ const line2 = customerInfo.streetAddress2 ? `, ${customerInfo.streetAddress2}` :
     }
     
     setIsSearchingCustomers(true)
+    console.log("[v0] searchCustomers called with:", searchTerm)
     try {
       // Search by phone, name, or email in customers table
       const { data: customersData, error: customersError } = await supabase
@@ -552,14 +553,17 @@ const line2 = customerInfo.streetAddress2 ? `, ${customerInfo.streetAddress2}` :
         .or(`phone.ilike.%${searchTerm}%,first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`)
         .limit(5)
       
+      console.log("[v0] customers query result:", customersData, "error:", customersError)
       if (customersError) throw customersError
 
       // Also search profiles table for imported contacts
-      const { data: profilesData } = await supabase
+      const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
         .select("id, full_name, phone, email")
         .or(`phone.ilike.%${searchTerm}%,full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`)
         .limit(5)
+
+      console.log("[v0] profiles query result:", profilesData, "error:", profilesError)
 
       // Convert profiles to customer-like format and merge
       const profilesAsCustomers = (profilesData || [])
@@ -582,6 +586,7 @@ const line2 = customerInfo.streetAddress2 ? `, ${customerInfo.streetAddress2}` :
 
       const allResults = [...(customersData || []), ...profilesAsCustomers].slice(0, 8)
       
+      console.log("[v0] allResults:", allResults)
       setCustomerSearchResults(allResults)
       setShowCustomerDropdown(allResults.length > 0)
       setIsNewCustomer(allResults.length === 0)
