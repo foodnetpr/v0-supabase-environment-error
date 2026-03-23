@@ -47,7 +47,8 @@ interface KDSClientProps {
 const getAutoPrintKey = (restaurantId: string, branchId?: string | null) => 
   `kds_auto_print_${restaurantId}${branchId ? `_${branchId}` : ''}`
 
-// LocalStorage keys for KDS session persistence (for PWA home screen launch)
+// LocalStorage/Cookie key for KDS session persistence (for PWA home screen launch)
+// Cookie is read by middleware.ts to restore token before server component runs
 const getKdsSessionKey = (slug: string) => `kds_session_${slug}`
 
 export function KDSClient({ restaurant, branchId, branchName, initialOrders, accessToken }: KDSClientProps) {
@@ -70,8 +71,9 @@ export function KDSClient({ restaurant, branchId, branchName, initialOrders, acc
     setIsPWA(isStandalone)
   }, [])
 
-  // Persist KDS session to localStorage for PWA home screen launches
-  // When the app is opened from home screen, URL params are lost, so we save the full session
+  // Persist KDS session to BOTH localStorage AND cookie for PWA home screen launches
+  // Cookie is read by middleware.ts BEFORE server component runs (solves the race condition)
+  // localStorage is kept as backup for any edge cases
   useEffect(() => {
     const sessionKey = getKdsSessionKey(restaurant.slug)
     
@@ -82,31 +84,20 @@ export function KDSClient({ restaurant, branchId, branchName, initialOrders, acc
         branchId: branchId || null,
         savedAt: new Date().toISOString()
       }
+      
+      // Save to localStorage (backup)
       localStorage.setItem(sessionKey, JSON.stringify(session))
-      console.log("[KDS] Session saved to localStorage for PWA")
-    } else {
-      // If no token in URL, check if we have a saved session and redirect
-      // This handles PWA launch where URL params are lost
-      try {
-        const savedSession = localStorage.getItem(sessionKey)
-        if (savedSession) {
-          const session = JSON.parse(savedSession)
-          if (session.token) {
-            // Reconstruct URL with saved token and branch for proper authentication
-            const url = new URL(window.location.href)
-            url.searchParams.set('token', session.token)
-            if (session.branchId) {
-              url.searchParams.set('branch', session.branchId)
-            }
-            console.log("[KDS] Restoring session from localStorage, redirecting...")
-            window.location.replace(url.toString())
-            return
-          }
-        }
-      } catch (e) {
-        console.error("[KDS] Error parsing saved session:", e)
-      }
+      
+      // Save to cookie (read by middleware.ts for PWA launches)
+      // Cookie expires in 1 year, SameSite=Lax for security, path scoped to this restaurant
+      const cookieValue = encodeURIComponent(JSON.stringify(session))
+      const maxAge = 365 * 24 * 60 * 60 // 1 year in seconds
+      document.cookie = `${sessionKey}=${cookieValue}; path=/${restaurant.slug}/kds; max-age=${maxAge}; SameSite=Lax`
+      
+      console.log("[KDS] Session saved to localStorage and cookie for PWA")
     }
+    // Note: We no longer need client-side redirect logic here because
+    // middleware.ts handles the token restoration BEFORE the page loads
   }, [accessToken, restaurant.slug, branchId])
 
   // Navigation prevention - warn before leaving
@@ -283,6 +274,31 @@ export function KDSClient({ restaurant, branchId, branchName, initialOrders, acc
                     Los nuevos pedidos se imprimirán automáticamente en {printerStatus.name || 'la impresora'}
                   </p>
                 )}
+              </div>
+              
+              {/* Session Management - for switching tablets or tokens */}
+              <div className="border-t pt-4">
+                <div className="space-y-2">
+                  <h3 className="font-medium text-gray-700">Sesión del Dispositivo</h3>
+                  <p className="text-sm text-gray-500">
+                    Esta tablet está configurada para acceder al KDS. Si necesitas cambiar de cuenta o dispositivo, cierra la sesión.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // Clear session from localStorage and cookie
+                      const sessionKey = getKdsSessionKey(restaurant.slug)
+                      localStorage.removeItem(sessionKey)
+                      // Clear cookie by setting it to expire immediately
+                      document.cookie = `${sessionKey}=; path=/${restaurant.slug}/kds; max-age=0`
+                      // Redirect to login
+                      window.location.href = `/${restaurant.slug}`
+                    }}
+                    className="w-full px-4 py-2 text-sm text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+                  >
+                    Cerrar Sesión del KDS
+                  </button>
+                </div>
               </div>
             </div>
           </div>
