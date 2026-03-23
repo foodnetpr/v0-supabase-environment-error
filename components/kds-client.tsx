@@ -196,7 +196,6 @@ export function KDSClient({ restaurant, branchId, branchName, initialOrders, acc
     const key = getAutoPrintKey(restaurant.id, branchId)
     localStorage.setItem(key, enabled ? "true" : "false")
     setAutoPrintEnabled(enabled)
-    console.log("[v0] Auto-print setting changed:", enabled)
   }, [restaurant.id, branchId])
 
   const handlePrintOrder = useCallback(async (order: Order) => {
@@ -207,8 +206,8 @@ export function KDSClient({ restaurant, branchId, branchName, initialOrders, acc
     }
 
     try {
-      // Print kitchen ticket (condensed version)
-      const result = await bluetoothPrinter.printKitchenTicket(order)
+      // Print kitchen ticket with FOODNETPR branding
+      const result = await bluetoothPrinter.printKitchenTicket(order, restaurant.name, branchName)
       if (!result.success) {
         console.error("Print failed:", result.error)
         // Fallback to browser print
@@ -218,7 +217,7 @@ export function KDSClient({ restaurant, branchId, branchName, initialOrders, acc
       console.error("Print error:", error)
       window.print()
     }
-  }, [printerStatus.connected])
+  }, [printerStatus.connected, restaurant.name, branchName])
 
   return (
     <div 
