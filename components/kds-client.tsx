@@ -36,6 +36,7 @@ interface KDSClientProps {
     name: string
     slug: string
     logo_url?: string | null
+    kds_admin_pin?: string | null
   }
   branchId?: string | null
   branchName?: string | null
