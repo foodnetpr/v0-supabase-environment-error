@@ -52,6 +52,7 @@ type Restaurant = {
   name: string
   slug: string
   logo_url?: string | null
+  kds_admin_pin?: string | null
 }
 
 interface KDSBoardProps {
@@ -74,6 +75,13 @@ export function KDSBoard({ restaurant, branchId, branchName, initialOrders, onPr
   const [updatingOrders, setUpdatingOrders] = useState<Set<string>>(new Set())
   const [testModeOpen, setTestModeOpen] = useState(false)
   const [creatingTestOrder, setCreatingTestOrder] = useState(false)
+  // Admin exit gesture state
+  const [showPinDialog, setShowPinDialog] = useState(false)
+  const [pinInput, setPinInput] = useState("")
+  const [pinError, setPinError] = useState(false)
+  const [adminExitEnabled, setAdminExitEnabled] = useState(false)
+  const tapCountRef = useRef(0)
+  const lastTapTimeRef = useRef(0)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const supabase = createBrowserClient()
 
@@ -333,6 +341,57 @@ export function KDSBoard({ restaurant, branchId, branchName, initialOrders, onPr
       supabase.removeChannel(channel)
     }
   }, [restaurant.id, branchId, supabase, soundEnabled, autoPrint, onPrintOrder])
+
+  // Hidden admin exit gesture - tap logo 3 times rapidly to show PIN dialog
+  const handleLogoTap = useCallback(() => {
+    const now = Date.now()
+    const timeSinceLastTap = now - lastTapTimeRef.current
+    
+    // Reset counter if more than 500ms between taps
+    if (timeSinceLastTap > 500) {
+      tapCountRef.current = 1
+    } else {
+      tapCountRef.current++
+    }
+    lastTapTimeRef.current = now
+    
+    // After 3 rapid taps, show PIN dialog
+    if (tapCountRef.current >= 3) {
+      tapCountRef.current = 0
+      // Only show dialog if restaurant has a PIN configured
+      if (restaurant.kds_admin_pin) {
+        setShowPinDialog(true)
+        setPinInput("")
+        setPinError(false)
+      } else {
+        // No PIN configured - just enable exit mode
+        setAdminExitEnabled(true)
+      }
+    }
+  }, [restaurant.kds_admin_pin])
+
+  // Verify PIN and enable admin exit
+  const handlePinSubmit = useCallback(() => {
+    if (pinInput === restaurant.kds_admin_pin) {
+      setShowPinDialog(false)
+      setAdminExitEnabled(true)
+      setPinInput("")
+      setPinError(false)
+    } else {
+      setPinError(true)
+      setPinInput("")
+    }
+  }, [pinInput, restaurant.kds_admin_pin])
+
+  // Disable admin exit after 30 seconds
+  useEffect(() => {
+    if (adminExitEnabled) {
+      const timer = setTimeout(() => {
+        setAdminExitEnabled(false)
+      }, 30000) // 30 seconds to navigate away
+      return () => clearTimeout(timer)
+    }
+  }, [adminExitEnabled])
 
   const playNotificationSound = () => {
     if (audioRef.current) {
@@ -629,19 +688,32 @@ export function KDSBoard({ restaurant, branchId, branchName, initialOrders, onPr
       {/* Header */}
       <div className="bg-gray-800 px-4 py-3 flex items-center justify-between border-b border-gray-700">
 <div className="flex items-center gap-2">
-            {restaurant.logo_url ? (
-              <img 
-                src={restaurant.logo_url} 
-                alt={restaurant.name}
-                className="h-8 w-8 rounded object-cover flex-shrink-0"
-              />
-            ) : (
-              <ChefHat className="h-6 w-6 text-orange-500 flex-shrink-0" />
-            )}
+            {/* Tappable logo area for hidden admin exit gesture */}
+            <button
+              type="button"
+              onClick={handleLogoTap}
+              className="flex items-center gap-2 focus:outline-none select-none"
+              aria-label="Restaurant logo"
+            >
+              {restaurant.logo_url ? (
+                <img 
+                  src={restaurant.logo_url} 
+                  alt={restaurant.name}
+                  className="h-8 w-8 rounded object-cover flex-shrink-0"
+                />
+              ) : (
+                <ChefHat className="h-6 w-6 text-orange-500 flex-shrink-0" />
+              )}
+            </button>
             <div>
               <h1 className="text-xl font-bold">
                 {restaurant.name}
                 {branchName && <span className="text-orange-400 ml-2">- {branchName}</span>}
+                {adminExitEnabled && (
+                  <span className="ml-2 text-xs bg-red-600 text-white px-2 py-0.5 rounded animate-pulse">
+                    EXIT MODE (30s)
+                  </span>
+                )}
               </h1>
               <p className="text-sm text-gray-400">Kitchen Display System</p>
             </div>
@@ -868,8 +940,96 @@ export function KDSBoard({ restaurant, branchId, branchName, initialOrders, onPr
               })}
             </div>
           )}
-        </TabsContent>
+</TabsContent>
       </Tabs>
+
+      {/* Admin Exit PIN Dialog */}
+      <Dialog open={showPinDialog} onOpenChange={setShowPinDialog}>
+        <DialogContent className="sm:max-w-md bg-gray-800 text-white border-gray-700">
+          <DialogHeader>
+            <DialogTitle className="text-white">Admin Exit</DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Ingrese el PIN de administrador para habilitar la navegación
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="flex gap-2 justify-center">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map((digit) => (
+                <span key={digit} className="w-3 h-3 rounded-full bg-gray-600" />
+              ))}
+            </div>
+            <input
+              type="password"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={pinInput}
+              onChange={(e) => {
+                setPinError(false)
+                setPinInput(e.target.value.replace(/\D/g, ''))
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handlePinSubmit()
+              }}
+              placeholder="Ingrese PIN"
+              className={`w-full px-4 py-3 text-center text-2xl tracking-widest bg-gray-700 border rounded-lg focus:outline-none focus:ring-2 ${
+                pinError 
+                  ? 'border-red-500 focus:ring-red-500' 
+                  : 'border-gray-600 focus:ring-orange-500'
+              }`}
+              autoFocus
+            />
+            {pinError && (
+              <p className="text-red-400 text-sm text-center">PIN incorrecto. Intente de nuevo.</p>
+            )}
+            <div className="grid grid-cols-3 gap-2">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((digit) => (
+                <button
+                  key={digit}
+                  type="button"
+                  onClick={() => {
+                    setPinError(false)
+                    setPinInput(prev => prev + digit)
+                  }}
+                  className="p-4 text-xl font-bold bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                >
+                  {digit}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setPinInput(prev => prev.slice(0, -1))}
+                className="p-4 text-xl bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+              >
+                ←
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setPinError(false)
+                  setPinInput(prev => prev + '0')
+                }}
+                className="p-4 text-xl font-bold bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+              >
+                0
+              </button>
+              <button
+                type="button"
+                onClick={handlePinSubmit}
+                className="p-4 text-xl bg-orange-600 hover:bg-orange-500 rounded-lg transition-colors"
+              >
+                OK
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowPinDialog(false)}
+              className="w-full py-2 text-gray-400 hover:text-white transition-colors"
+            >
+              Cancelar
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -236,11 +236,12 @@ const { toast } = useToast()
     order_notification_method: "email" as "email" | "kds" | "chowly" | "square_kds" | "multiple",
     chowly_api_key: "",
     chowly_location_id: "",
-    chowly_enabled: false,
-    square_kds_enabled: false,
-    kds_access_token: "",
+chowly_enabled: false,
+  square_kds_enabled: false,
+  kds_access_token: "",
+  kds_admin_pin: "",
   })
-
+  
   // Operating hours state
   const DAY_NAMES = ["Domingo", "Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado"]
   const DEFAULT_HOURS: OperatingHourEntry[] = Array.from({ length: 7 }, (_, i) => ({
@@ -453,6 +454,7 @@ const { toast } = useToast()
     chowly_enabled: false,
     square_kds_enabled: false,
     kds_access_token: "",
+    kds_admin_pin: "",
   })
 
   const [marketplaceSettings, setMarketplaceSettings] = useState({
@@ -544,7 +546,7 @@ const { toast } = useToast()
       const { data: restaurantData } = await supabase
         .from("restaurants")
         .select(
-          "tax_rate, delivery_fee, tip_option_1, tip_option_2, tip_option_3, lead_time_hours, delivery_lead_time_hours, pickup_lead_time_hours, max_advance_days, min_delivery_order, min_pickup_order, restaurant_address, latitude, longitude, primary_color, standalone_domain, design_template, packages_section_title, name, logo_url, banner_logo_url, hero_image_url, delivery_enabled, pickup_enabled, show_service_packages, shipday_api_key, is_chain, hide_branch_selector_title, delivery_base_fee, delivery_included_containers, footer_description, footer_email, footer_phone, footer_links, payment_provider, stripe_account_id, square_access_token, square_location_id, square_environment, athmovil_public_token, athmovil_ecommerce_id, cash_payment_enabled, kds_access_token",
+          "tax_rate, delivery_fee, tip_option_1, tip_option_2, tip_option_3, lead_time_hours, delivery_lead_time_hours, pickup_lead_time_hours, max_advance_days, min_delivery_order, min_pickup_order, restaurant_address, latitude, longitude, primary_color, standalone_domain, design_template, packages_section_title, name, logo_url, banner_logo_url, hero_image_url, delivery_enabled, pickup_enabled, show_service_packages, shipday_api_key, is_chain, hide_branch_selector_title, delivery_base_fee, delivery_included_containers, footer_description, footer_email, footer_phone, footer_links, payment_provider, stripe_account_id, square_access_token, square_location_id, square_environment, athmovil_public_token, athmovil_ecommerce_id, cash_payment_enabled, kds_access_token, kds_admin_pin",
         )
         .eq("id", restaurantId)
         .single()
@@ -599,11 +601,12 @@ const { toast } = useToast()
           square_environment: restaurantData.square_environment || "production",
           athmovil_public_token: restaurantData.athmovil_public_token || "",
           athmovil_ecommerce_id: restaurantData.athmovil_ecommerce_id || "",
-          cash_payment_enabled: restaurantData.cash_payment_enabled || false,
-          kds_access_token: restaurantData.kds_access_token || "",
-        })
-      }
-      setLoading(false)
+cash_payment_enabled: restaurantData.cash_payment_enabled || false,
+  kds_access_token: restaurantData.kds_access_token || "",
+  kds_admin_pin: restaurantData.kds_admin_pin || "",
+  })
+  }
+  setLoading(false)
     } catch (error) {
       console.error("Error loading data:", error)
       toast({
@@ -2139,11 +2142,12 @@ const { toast } = useToast()
       chowly_api_key: settingsForm.chowly_api_key || null,
       chowly_location_id: settingsForm.chowly_location_id || null,
       chowly_enabled: settingsForm.chowly_enabled || false,
-      square_kds_enabled: settingsForm.square_kds_enabled || false,
-      kds_access_token: settingsForm.kds_access_token || null,
-    }
-
-    try {
+square_kds_enabled: settingsForm.square_kds_enabled || false,
+  kds_access_token: settingsForm.kds_access_token || null,
+  kds_admin_pin: settingsForm.kds_admin_pin || null,
+  }
+  
+  try {
       const result = await updateRestaurantSettings(restaurantId, data)
 
       if (result.error) {
@@ -5793,6 +5797,49 @@ const pickupOrders = orders.filter((o: any) => o.order_type === "pickup" || o.de
                         <RefreshCw className="h-4 w-4 mr-2" />
                         Regenerar Codigo
                       </Button>
+                    </div>
+
+                    {/* Admin PIN Configuration */}
+                    <div className="border-t pt-4 mt-4">
+                      <h4 className="font-medium mb-2">PIN de Administrador</h4>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Configura un PIN para salir del modo KDS. Toca el logo 3 veces rapidamente para ingresar el PIN.
+                      </p>
+                      <div className="flex gap-2">
+                        <Input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          placeholder="Ej: 1234"
+                          value={settingsForm.kds_admin_pin}
+                          onChange={(e) => {
+                            const pin = e.target.value.replace(/\D/g, '').slice(0, 6)
+                            setSettingsForm({ ...settingsForm, kds_admin_pin: pin })
+                          }}
+                          className="w-32 text-center tracking-widest"
+                          maxLength={6}
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            const { error } = await supabase
+                              .from("restaurants")
+                              .update({ kds_admin_pin: settingsForm.kds_admin_pin || null })
+                              .eq("id", restaurantId)
+                            if (!error) {
+                              toast({ title: "PIN guardado", description: settingsForm.kds_admin_pin ? "PIN de administrador actualizado" : "PIN eliminado" })
+                            }
+                          }}
+                        >
+                          Guardar PIN
+                        </Button>
+                      </div>
+                      {!settingsForm.kds_admin_pin && (
+                        <p className="text-xs text-amber-600 mt-2">
+                          Sin PIN configurado, cualquier persona puede salir del modo KDS tocando el logo 3 veces.
+                        </p>
+                      )}
                     </div>
                   </div>
                 )}

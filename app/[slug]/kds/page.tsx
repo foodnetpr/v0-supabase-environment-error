@@ -182,6 +182,19 @@ export default async function KDSPage({
     }
   }
 
+  // Get admin PIN (prefer branch PIN if accessing a branch, fallback to restaurant PIN)
+  let adminPin = restaurant.kds_admin_pin || null
+  if (effectiveBranchId) {
+    const { data: branchPinData } = await supabase
+      .from("branches")
+      .select("kds_admin_pin")
+      .eq("id", effectiveBranchId)
+      .single()
+    if (branchPinData?.kds_admin_pin) {
+      adminPin = branchPinData.kds_admin_pin
+    }
+  }
+
   return (
     <KDSClient
       restaurant={{
@@ -189,6 +202,7 @@ export default async function KDSPage({
         name: restaurant.name,
         slug: restaurant.slug,
         logo_url: logoUrl,
+        kds_admin_pin: adminPin,
       }}
       branchId={effectiveBranchId}
       branchName={branchName}

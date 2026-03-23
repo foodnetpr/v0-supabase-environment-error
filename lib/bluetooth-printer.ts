@@ -3,7 +3,12 @@
  * 
  * Supports ESC/POS compatible thermal printers via Web Bluetooth API.
  * Common printers: Epson TM series, Star Micronics, and generic 58mm/80mm printers.
+ * 
+ * Paper width: 58mm = 32 chars, 80mm = 48 chars
  */
+
+// Paper width in characters - 58mm thermal paper (most common for kitchen printers)
+const PAPER_WIDTH = 32
 
 // ESC/POS Commands
 const ESC = 0x1B
@@ -22,26 +27,65 @@ const COMMANDS = {
   // Text formatting
   BOLD_ON: new Uint8Array([ESC, 0x45, 0x01]),
   BOLD_OFF: new Uint8Array([ESC, 0x45, 0x00]),
-  DOUBLE_HEIGHT_ON: new Uint8Array([GS, 0x21, 0x10]),
+  DOUBLE_HEIGHT_ON: new Uint8Array([ESC, 0x21, 0x10]),
   DOUBLE_WIDTH_ON: new Uint8Array([GS, 0x21, 0x20]),
-  DOUBLE_SIZE_ON: new Uint8Array([GS, 0x21, 0x30]),
-  NORMAL_SIZE: new Uint8Array([GS, 0x21, 0x00]),
+  DOUBLE_SIZE_ON: new Uint8Array([ESC, 0x21, 0x30]),
+  NORMAL_SIZE: new Uint8Array([ESC, 0x21, 0x00]),
+  UNDERLINE_ON: new Uint8Array([ESC, 0x2D, 0x01]),
+  UNDERLINE_OFF: new Uint8Array([ESC, 0x2D, 0x00]),
   
   // Line spacing
   LINE_SPACING_DEFAULT: new Uint8Array([ESC, 0x32]),
   LINE_SPACING_TIGHT: new Uint8Array([ESC, 0x33, 24]),
   
   // Cut paper
-  PARTIAL_CUT: new Uint8Array([GS, 0x56, 0x01]),
+  PARTIAL_CUT: new Uint8Array([GS, 0x56, 0x41, 0x10]),
   FULL_CUT: new Uint8Array([GS, 0x56, 0x00]),
   
   // Feed paper
   FEED_LINE: new Uint8Array([LF]),
+  FEED_LINES_2: new Uint8Array([ESC, 0x64, 0x02]),
   FEED_LINES_3: new Uint8Array([ESC, 0x64, 0x03]),
   FEED_LINES_5: new Uint8Array([ESC, 0x64, 0x05]),
   
   // Beep (if supported)
   BEEP: new Uint8Array([ESC, 0x42, 0x03, 0x02]),
+}
+
+// Helper functions for receipt formatting
+function centerText(text: string): string {
+  const pad = Math.max(0, Math.floor((PAPER_WIDTH - text.length) / 2))
+  return ' '.repeat(pad) + text
+}
+
+function leftRightText(left: string, right: string): string {
+  const space = PAPER_WIDTH - left.length - right.length
+  return left + ' '.repeat(Math.max(1, space)) + right
+}
+
+function wrapText(text: string, width: number = PAPER_WIDTH): string[] {
+  const words = text.split(' ')
+  const lines: string[] = []
+  let current = ''
+  words.forEach(word => {
+    if ((current + ' ' + word).trim().length <= width) {
+      current = (current + ' ' + word).trim()
+    } else {
+      if (current) lines.push(current)
+      current = word
+    }
+  })
+  if (current) lines.push(current)
+  return lines
+}
+
+function getCustomerInitials(name: string): string {
+  if (!name) return ''
+  return name
+    .split(' ')
+    .filter(n => n.length > 0)
+    .map(n => n[0].toUpperCase() + '.')
+    .join('')
 }
 
 // Bluetooth printer service UUIDs (common ones)
@@ -468,65 +512,121 @@ class BluetoothPrinter {
   }
 
   /**
-   * Print a condensed kitchen ticket
+   * Print a KDS kitchen ticket with FOODNETPR branding
+   * Uses 58mm paper (32 chars width) - Paper-efficient layout
    */
-  async printKitchenTicket(order: Order): Promise<{ success: boolean; error?: string }> {
+  async printKitchenTicket(order: Order, restaurantName: string, branchName?: string | null): Promise<{ success: boolean; error?: string }> {
     if (!this.characteristic) {
       return { success: false, error: "Impresora no conectada" }
     }
 
     try {
+      // Initialize printer
       await this.write(COMMANDS.INIT)
 
       // Beep for attention (if supported)
       await this.write(COMMANDS.BEEP)
 
-      // Order number - large
+      // --- NUEVA ORDEN (large, bold, centered) - most important for kitchen ---
       await this.write(COMMANDS.ALIGN_CENTER)
       await this.write(COMMANDS.DOUBLE_SIZE_ON)
-      await this.printText(`#${order.order_number}\n`)
-      await this.write(COMMANDS.NORMAL_SIZE)
-
-      // Order type
       await this.write(COMMANDS.BOLD_ON)
-      const orderType = order.delivery_type === "delivery" ? "DELIVERY" : "PICKUP"
-      await this.printText(`${orderType}\n`)
+      await this.printText("NUEVA ORDEN\n")
+      await this.write(COMMANDS.NORMAL_SIZE)
       await this.write(COMMANDS.BOLD_OFF)
 
-      await this.printText("================================\n")
+      // --- FOODNETPR + restaurant on same block, no blank lines ---
+      await this.write(COMMANDS.DOUBLE_HEIGHT_ON)
+      await this.write(COMMANDS.BOLD_ON)
+      await this.printText(centerText("FOODNETPR") + "\n")
+      await this.write(COMMANDS.NORMAL_SIZE)
+      await this.write(COMMANDS.BOLD_OFF)
       await this.write(COMMANDS.ALIGN_LEFT)
+      await this.write(COMMANDS.BOLD_ON)
+      await this.printText(restaurantName.toUpperCase() + "\n")
+      await this.write(COMMANDS.BOLD_OFF)
+      if (branchName) {
+        await this.printText(branchName + "\n")
+      }
 
-      // Items - bold and clear
+      // --- ORDER NUMBER ---
+      await this.printText("-".repeat(PAPER_WIDTH) + "\n")
+      await this.write(COMMANDS.ALIGN_CENTER)
+      await this.write(COMMANDS.DOUBLE_SIZE_ON)
+      await this.write(COMMANDS.BOLD_ON)
+      await this.printText(`#${order.order_number}\n`)
+      await this.write(COMMANDS.NORMAL_SIZE)
+      await this.write(COMMANDS.BOLD_OFF)
+
+      // --- ORDER META (compact, all on consecutive lines) ---
+      await this.write(COMMANDS.ALIGN_LEFT)
+      const date = new Date(order.created_at)
+      const dateStr = date.toLocaleDateString('es-PR', {
+        day: '2-digit', month: '2-digit', year: 'numeric'
+      })
+      const timeStr = date.toLocaleTimeString('es-PR', {
+        hour: '2-digit', minute: '2-digit', hour12: true
+      })
+      await this.printText(leftRightText("Fecha:", dateStr) + "\n")
+      await this.printText(leftRightText("Hora:", timeStr) + "\n")
+      const orderTypeLabel = order.delivery_type === "delivery" ? "DELIVERY" : "PICKUP"
+      await this.printText(leftRightText("Tipo:", orderTypeLabel) + "\n")
+
+      // Customer initials only (privacy)
+      if (order.customer_name) {
+        const initials = getCustomerInitials(order.customer_name)
+        await this.printText(leftRightText("Cliente:", initials) + "\n")
+      }
+      if (order.customer_phone) {
+        await this.printText(leftRightText("Tel:", order.customer_phone) + "\n")
+      }
+
+      // --- ITEMS (no blank lines between items) ---
+      await this.printText("-".repeat(PAPER_WIDTH) + "\n")
+      await this.write(COMMANDS.BOLD_ON)
+      await this.printText("ITEMS:\n")
+      await this.write(COMMANDS.BOLD_OFF)
+
       for (const item of order.order_items) {
-        await this.write(COMMANDS.DOUBLE_HEIGHT_ON)
-        await this.printText(`${item.quantity}x ${item.item_name}\n`)
-        await this.write(COMMANDS.NORMAL_SIZE)
+        // Item name + quantity (bold)
+        await this.write(COMMANDS.BOLD_ON)
+        await this.printText(`${item.quantity}x ${item.item_name.toUpperCase()}\n`)
+        await this.write(COMMANDS.BOLD_OFF)
 
+        // Modifiers/options - immediately after item, no gap
         if (item.selected_options && Object.keys(item.selected_options).length > 0) {
           for (const [, value] of Object.entries(item.selected_options)) {
-            const optValue = Array.isArray(value) ? value.join(", ") : String(value)
-            await this.printText(`   ${optValue}\n`)
+            if (value) {
+              const optValue = Array.isArray(value) ? value.join(", ") : String(value)
+              if (optValue && optValue !== "undefined") {
+                await this.printText(`  >${optValue}\n`)
+              }
+            }
           }
         }
       }
 
-      // Special instructions - highlighted
+      // --- ORDER NOTES - inline, bold+underline, no wasted lines ---
       if (order.special_instructions) {
-        await this.write(COMMANDS.FEED_LINE)
-        await this.printText("********************************\n")
+        await this.printText("-".repeat(PAPER_WIDTH) + "\n")
         await this.write(COMMANDS.BOLD_ON)
-        await this.printText(`NOTA: ${order.special_instructions}\n`)
+        await this.write(COMMANDS.UNDERLINE_ON)
+        await this.printText("!NOTAS:\n")
+        await this.write(COMMANDS.UNDERLINE_OFF)
+        const wrappedNotes = wrapText(order.special_instructions.toUpperCase())
+        for (const line of wrappedNotes) {
+          await this.printText(line + "\n")
+        }
         await this.write(COMMANDS.BOLD_OFF)
-        await this.printText("********************************\n")
       }
 
-      // Delivery date
-      await this.write(COMMANDS.FEED_LINE)
-      const deliveryDate = new Date(order.delivery_date)
-      await this.printText(`Para: ${deliveryDate.toLocaleDateString("es-PR")}\n`)
+      // --- FOOTER (minimal) ---
+      await this.printText("-".repeat(PAPER_WIDTH) + "\n")
+      await this.write(COMMANDS.ALIGN_CENTER)
+      await this.printText("foodnetpr.com\n")
 
-      // Feed and cut
-      await this.write(COMMANDS.FEED_LINES_3)
+      // Minimal feed before cut - just enough to clear tear bar
+      await this.write(COMMANDS.FEED_LINES_2)
       await this.write(COMMANDS.PARTIAL_CUT)
 
       return { success: true }
