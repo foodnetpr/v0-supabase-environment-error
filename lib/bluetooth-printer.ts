@@ -259,77 +259,79 @@ class BluetoothPrinter {
   /**
    * Try to reconnect to a previously paired printer
    * Uses the Web Bluetooth getDevices() API available in Chrome 85+
+   * Falls back to requestDevice() if getDevices() fails
    */
-  async tryReconnect(): Promise<{ success: boolean; error?: string; printer?: PrinterStatus }> {
+  async tryReconnect(): Promise<{ success: boolean; error?: string; printer?: PrinterStatus; needsManualConnect?: boolean }> {
     if (!this.isSupported()) {
       return { success: false, error: "Web Bluetooth no soportado" }
     }
 
-    // Check if getDevices is available (Chrome 85+)
-    if (!('getDevices' in navigator.bluetooth)) {
-      return { success: false, error: "Reconexión automática no soportada en este navegador" }
+    const savedId = typeof localStorage !== "undefined" ? localStorage.getItem("bt_printer_id") : null
+    const savedName = typeof localStorage !== "undefined" ? localStorage.getItem("bt_printer_name") : null
+    
+    if (!savedId) {
+      return { success: false, error: "No hay impresora guardada" }
     }
 
-    try {
-      const savedId = typeof localStorage !== "undefined" ? localStorage.getItem("bt_printer_id") : null
-      if (!savedId) {
-        return { success: false, error: "No hay impresora guardada" }
-      }
+    // Try getDevices() first (Chrome 85+)
+    if ('getDevices' in navigator.bluetooth) {
+      try {
+        const devices = await (navigator.bluetooth as any).getDevices()
+        const savedDevice = devices.find((d: BluetoothDevice) => d.id === savedId)
+        
+        if (savedDevice) {
+          this.device = savedDevice
+          
+          // Connect to GATT server
+          const server = await this.device.gatt?.connect()
+          if (server) {
+            // Find writable characteristic
+            const allServices = await server.getPrimaryServices()
+            for (const serviceUUID of PRINTER_SERVICE_UUIDS) {
+              try {
+                const service = await server.getPrimaryService(serviceUUID)
+                for (const charUUID of PRINTER_CHARACTERISTIC_UUIDS) {
+                  try {
+                    this.characteristic = await service.getCharacteristic(charUUID)
+                    if (this.characteristic) break
+                  } catch { continue }
+                }
+                if (this.characteristic) break
+              } catch { continue }
+            }
 
-      // Get previously paired devices
-      const devices = await (navigator.bluetooth as any).getDevices()
-      const savedDevice = devices.find((d: BluetoothDevice) => d.id === savedId)
-      
-      if (!savedDevice) {
-        return { success: false, error: "Impresora no encontrada. Reconecta manualmente." }
-      }
-
-      this.device = savedDevice
-
-      // Connect to GATT server
-      const server = await this.device.gatt?.connect()
-      if (!server) {
-        return { success: false, error: "No se pudo conectar al servidor GATT" }
-      }
-
-      // Find writable characteristic (same logic as connect)
-      const allServices = await server.getPrimaryServices()
-      for (const serviceUUID of PRINTER_SERVICE_UUIDS) {
-        try {
-          const service = await server.getPrimaryService(serviceUUID)
-          for (const charUUID of PRINTER_CHARACTERISTIC_UUIDS) {
-            try {
-              this.characteristic = await service.getCharacteristic(charUUID)
-              if (this.characteristic) break
-            } catch { continue }
-          }
-          if (this.characteristic) break
-        } catch { continue }
-      }
-
-      // Try any writable characteristic
-      if (!this.characteristic) {
-        for (const service of allServices) {
-          try {
-            const chars = await service.getCharacteristics()
-            for (const char of chars) {
-              if (char.properties.write || char.properties.writeWithoutResponse) {
-                this.characteristic = char
-                break
+            // Try any writable characteristic
+            if (!this.characteristic) {
+              for (const service of allServices) {
+                try {
+                  const chars = await service.getCharacteristics()
+                  for (const char of chars) {
+                    if (char.properties.write || char.properties.writeWithoutResponse) {
+                      this.characteristic = char
+                      break
+                    }
+                  }
+                  if (this.characteristic) break
+                } catch { continue }
               }
             }
-            if (this.characteristic) break
-          } catch { continue }
+
+            if (this.characteristic) {
+              return { success: true, printer: this.getStatus() }
+            }
+          }
         }
+      } catch {
+        // getDevices() failed, continue to fallback
       }
+    }
 
-      if (!this.characteristic) {
-        return { success: false, error: "No se encontró característica de escritura" }
-      }
-
-      return { success: true, printer: this.getStatus() }
-    } catch (error: any) {
-      return { success: false, error: error.message || "Error al reconectar" }
+    // If getDevices() didn't work, inform user they need to manually select
+    // This happens after PWA restart, page refresh, or browser restart
+    return { 
+      success: false, 
+      error: `Selecciona "${savedName || 'la impresora'}" en la lista para reconectar`,
+      needsManualConnect: true
     }
   }
 

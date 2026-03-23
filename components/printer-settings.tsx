@@ -47,15 +47,26 @@ export function PrinterSettings({ onPrinterStatusChange }: PrinterSettingsProps)
     onPrinterStatusChange?.(printerStatus)
   }, [printerStatus, onPrinterStatusChange])
 
-  const handleReconnect = async () => {
+  const handleReconnect = async (showErrors = false) => {
     setIsReconnecting(true)
     try {
       const result = await bluetoothPrinter.tryReconnect()
       if (result.success && result.printer) {
         setPrinterStatus(result.printer)
         setMessage({ type: "success", text: `Reconectado a ${result.printer.name || "impresora"}` })
+      } else if (result.needsManualConnect) {
+        // Browser doesn't have the device in memory anymore, need to select it again
+        // This is normal after PWA restart or page refresh
+        if (showErrors) {
+          setMessage({ type: "error", text: result.error || "Selecciona la impresora en la lista" })
+        }
+        // Automatically trigger the device picker for better UX
+        setIsReconnecting(false)
+        await handleConnect()
+        return
+      } else if (showErrors && result.error) {
+        setMessage({ type: "error", text: result.error })
       }
-      // Don't show error on auto-reconnect failure - user can manually connect
     } catch {
       // Silent fail for auto-reconnect
     } finally {
@@ -204,7 +215,7 @@ export function PrinterSettings({ onPrinterStatusChange }: PrinterSettingsProps)
           ) : (
             <>
               {savedPrinter.hasPrinter && (
-                <Button variant="outline" onClick={handleReconnect} disabled={isReconnecting || isConnecting}>
+                <Button variant="outline" onClick={() => handleReconnect(true)} disabled={isReconnecting || isConnecting}>
                   {isReconnecting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
