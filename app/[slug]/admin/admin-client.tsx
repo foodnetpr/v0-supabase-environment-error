@@ -294,6 +294,7 @@ chowly_enabled: false,
 
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([])
   const [selectedMenuItemIds, setSelectedMenuItemIds] = useState<string[]>([])
+  const [menuSearchQuery, setMenuSearchQuery] = useState("")
 
   // Copy menu state
   const [allRestaurantsForCopy, setAllRestaurantsForCopy] = useState<{ id: string; name: string }[]>([])
@@ -2944,6 +2945,16 @@ payment_provider: branchForm.payment_provider || "stripe",
                 </div>
               </CardHeader>
               <CardContent>
+                {/* Search input for menu items */}
+                <div className="relative mb-4">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Buscar items del menu..."
+                    value={menuSearchQuery}
+                    onChange={(e) => setMenuSearchQuery(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
                 {menuItems.length > 0 && (
                   <div className="flex items-center gap-2 mb-3 pb-3 border-b">
                     <Checkbox
@@ -2955,7 +2966,16 @@ payment_provider: branchForm.payment_provider || "stripe",
                 )}
                 <div className="space-y-6">
                   {categories.map((category) => {
-                    const categoryItems = menuItems.filter((item) => item.category_id === category.id)
+                    // Filter items by search query (case-insensitive, matches name or description)
+                    const categoryItems = menuItems.filter((item) => {
+                      if (item.category_id !== category.id) return false
+                      if (!menuSearchQuery.trim()) return true
+                      const query = menuSearchQuery.toLowerCase()
+                      return (
+                        item.name?.toLowerCase().includes(query) ||
+                        item.description?.toLowerCase().includes(query)
+                      )
+                    })
                     if (categoryItems.length === 0) return null
 
                     return (
