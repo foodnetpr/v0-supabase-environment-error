@@ -62,7 +62,16 @@ export function KDSClient({ restaurant, branchId, branchName, initialOrders, acc
   const [autoPrintEnabled, setAutoPrintEnabled] = useState(false)
   const [isOnline, setIsOnline] = useState(true)
   const [isPWA, setIsPWA] = useState(false)
+  const [printAlert, setPrintAlert] = useState<string | null>(null)
+  const printAlertTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+
+  // Show a temporary on-screen banner for print feedback
+  const showPrintAlert = useCallback((message: string) => {
+    if (printAlertTimerRef.current) clearTimeout(printAlertTimerRef.current)
+    setPrintAlert(message)
+    printAlertTimerRef.current = setTimeout(() => setPrintAlert(null), 4000)
+  }, [])
 
   // Detect if running as PWA (standalone mode)
   useEffect(() => {
@@ -186,12 +195,8 @@ export function KDSClient({ restaurant, branchId, branchName, initialOrders, acc
   useEffect(() => {
     const key = getAutoPrintKey(restaurant.id, branchId)
     const saved = localStorage.getItem(key)
-    console.log("[v0] KDSClient - loading auto-print from localStorage key:", key, "value:", saved)
     if (saved === "true") {
       setAutoPrintEnabled(true)
-      console.log("[v0] KDSClient - autoPrintEnabled set to TRUE from localStorage")
-    } else {
-      console.log("[v0] KDSClient - autoPrintEnabled remains FALSE (not set in localStorage)")
     }
   }, [restaurant.id, branchId])
 
@@ -203,29 +208,22 @@ export function KDSClient({ restaurant, branchId, branchName, initialOrders, acc
   }, [restaurant.id, branchId])
 
   const handlePrintOrder = useCallback(async (order: Order) => {
-    console.log("[v0] handlePrintOrder called - order:", order.order_number, "printerStatus.connected:", printerStatus.connected)
     if (!printerStatus.connected) {
-      console.log("[v0] No Bluetooth printer connected - falling back to window.print()")
-      // Try to print via browser if no Bluetooth printer
-      window.print()
+      // No Bluetooth printer — show a brief on-screen alert instead of window.print()
+      // so the user knows auto-print fired but there's no printer connected
+      showPrintAlert("Sin impresora. Conecta una impresora Bluetooth para imprimir.")
       return
     }
 
     try {
-      console.log("[v0] Sending to Bluetooth printer:", printerStatus.name)
-      // Print kitchen ticket with FOODNETPR branding
       const result = await bluetoothPrinter.printKitchenTicket(order, restaurant.name, branchName)
-      console.log("[v0] Bluetooth print result:", result)
       if (!result.success) {
-        console.error("[v0] Print failed:", result.error)
-        // Fallback to browser print
-        window.print()
+        showPrintAlert(`Error al imprimir: ${result.error || "Error desconocido"}`)
       }
-    } catch (error) {
-      console.error("[v0] Print error:", error)
-      window.print()
+    } catch (error: any) {
+      showPrintAlert(`Error al imprimir: ${error?.message || "Error desconocido"}`)
     }
-  }, [printerStatus.connected, restaurant.name, branchName, printerStatus.name])
+  }, [printerStatus.connected, restaurant.name, branchName])
 
   return (
     <div 
@@ -238,6 +236,14 @@ export function KDSClient({ restaurant, branchId, branchName, initialOrders, acc
         <div className="fixed top-0 left-0 right-0 z-50 bg-red-600 text-white py-2 px-4 flex items-center justify-center gap-2 text-sm font-medium">
           <WifiOff className="h-4 w-4" />
           Sin conexión - Los pedidos no se actualizarán hasta que se restaure la conexión
+        </div>
+      )}
+
+      {/* Print feedback banner */}
+      {printAlert && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-gray-900 text-white py-3 px-5 rounded-lg shadow-xl text-sm font-medium flex items-center gap-2 max-w-sm text-center">
+          <Printer className="h-4 w-4 shrink-0" />
+          {printAlert}
         </div>
       )}
       {/* Settings Panel */}
