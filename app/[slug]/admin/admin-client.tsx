@@ -2947,15 +2947,15 @@ payment_provider: branchForm.payment_provider || "stripe",
               <CardContent>
                 {/* Search input for menu items */}
                 <div className="relative mb-4">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Buscar items del menu..."
                     value={menuSearchQuery}
                     onChange={(e) => setMenuSearchQuery(e.target.value)}
-                    className="pl-9"
+                    className="pl-10 h-10"
                   />
                 </div>
-                {menuItems.length > 0 && (
+                {menuItems.length > 0 && !menuSearchQuery.trim() && (
                   <div className="flex items-center gap-2 mb-3 pb-3 border-b">
                     <Checkbox
                       checked={selectedMenuItemIds.length === menuItems.length}
