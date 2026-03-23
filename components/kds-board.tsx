@@ -60,13 +60,15 @@ interface KDSBoardProps {
   branchName?: string | null
   initialOrders: Order[]
   onPrintOrder?: (order: Order) => void
+  autoPrintEnabled?: boolean
+  onAutoPrintChange?: (enabled: boolean) => void
 }
 
-export function KDSBoard({ restaurant, branchId, branchName, initialOrders, onPrintOrder }: KDSBoardProps) {
+export function KDSBoard({ restaurant, branchId, branchName, initialOrders, onPrintOrder, autoPrintEnabled = false, onAutoPrintChange }: KDSBoardProps) {
   const [orders, setOrders] = useState<Order[]>(initialOrders)
   const [soundEnabled, setSoundEnabled] = useState(true)
   const [isFullscreen, setIsFullscreen] = useState(false)
-  const [autoPrint, setAutoPrint] = useState(false)
+  const [autoPrint, setAutoPrint] = useState(autoPrintEnabled)
   const [currentTime, setCurrentTime] = useState(new Date())
   const [activeView, setActiveView] = useState<"current" | "future">("current")
   const [updatingOrders, setUpdatingOrders] = useState<Set<string>>(new Set())
@@ -218,6 +220,11 @@ export function KDSBoard({ restaurant, branchId, branchName, initialOrders, onPr
     return orderDate <= today
   }
 
+  // Sync autoPrint state with prop
+  useEffect(() => {
+    setAutoPrint(autoPrintEnabled)
+  }, [autoPrintEnabled])
+
   // Update time every second for order age display
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000)
@@ -295,11 +302,15 @@ export function KDSBoard({ restaurant, branchId, branchName, initialOrders, onPr
                 console.log("[v0] Playing sound notification")
                 playNotificationSound()
               }
-              // Auto-print if enabled - all devices with auto-print will print
-              // The onPrintOrder callback handles Bluetooth printing via KDSClient
-              if (autoPrint && onPrintOrder) {
+              // Auto-print if enabled and order hasn't been printed yet
+              // Check printed_at to prevent duplicate prints across multiple KDS devices
+              if (autoPrint && onPrintOrder && !newOrder.printed_at) {
                 console.log("[v0] Auto-printing order:", newOrder.order_number)
+                // Mark as printed in database first (race condition prevention)
+                markOrderAsPrinted(newOrder.id)
                 onPrintOrder(newOrder)
+              } else if (autoPrint && newOrder.printed_at) {
+                console.log("[v0] Skipping auto-print - order already printed:", newOrder.order_number)
               }
             }
           } else if (payload.eventType === "UPDATE") {
@@ -327,6 +338,23 @@ export function KDSBoard({ restaurant, branchId, branchName, initialOrders, onPr
     if (audioRef.current) {
       audioRef.current.currentTime = 0
       audioRef.current.play().catch(() => {})
+    }
+  }
+
+  // Mark order as printed in database (for deduplication across devices)
+  const markOrderAsPrinted = async (orderId: string) => {
+    try {
+      const { error } = await supabase
+        .from("orders")
+        .update({ printed_at: new Date().toISOString() })
+        .eq("id", orderId)
+        .is("printed_at", null) // Only update if not already printed
+      
+      if (error) {
+        console.error("[v0] Error marking order as printed:", error)
+      }
+    } catch (error) {
+      console.error("[v0] Error marking order as printed:", error)
     }
   }
 
@@ -553,7 +581,12 @@ export function KDSBoard({ restaurant, branchId, branchName, initialOrders, onPr
             <button
               type="button"
               className="bg-gray-100 hover:bg-gray-200 text-gray-600 p-1.5 rounded transition-colors"
-              onClick={(e) => { e.stopPropagation(); e.preventDefault(); onPrintOrder(order) }}
+              onClick={(e) => { 
+                e.stopPropagation()
+                e.preventDefault()
+                markOrderAsPrinted(order.id)
+                onPrintOrder(order) 
+              }}
               title="Imprimir"
             >
               <Printer className="h-4 w-4" />
@@ -648,7 +681,11 @@ export function KDSBoard({ restaurant, branchId, branchName, initialOrders, onPr
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setAutoPrint(!autoPrint)}
+            onClick={() => {
+              const newValue = !autoPrint
+              setAutoPrint(newValue)
+              onAutoPrintChange?.(newValue)
+            }}
             className={autoPrint ? "text-green-400" : "text-gray-500"}
             title={autoPrint ? "Auto-print ON" : "Auto-print OFF"}
           >
