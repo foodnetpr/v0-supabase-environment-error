@@ -209,9 +209,8 @@ export function KDSClient({ restaurant, branchId, branchName, initialOrders, acc
 
   const handlePrintOrder = useCallback(async (order: Order) => {
     if (!printerStatus.connected) {
-      // No Bluetooth printer — show a brief on-screen alert instead of window.print()
-      // so the user knows auto-print fired but there's no printer connected
-      showPrintAlert("Sin impresora. Conecta una impresora Bluetooth para imprimir.")
+      // No Bluetooth printer connected — fall back to browser print dialog
+      window.print()
       return
     }
 
@@ -219,9 +218,14 @@ export function KDSClient({ restaurant, branchId, branchName, initialOrders, acc
       const result = await bluetoothPrinter.printKitchenTicket(order, restaurant.name, branchName)
       if (!result.success) {
         showPrintAlert(`Error al imprimir: ${result.error || "Error desconocido"}`)
+        // Fallback to browser print on Bluetooth failure
+        window.print()
+      } else {
+        showPrintAlert(`Impreso: Orden #${order.order_number}`)
       }
     } catch (error: any) {
       showPrintAlert(`Error al imprimir: ${error?.message || "Error desconocido"}`)
+      window.print()
     }
   }, [printerStatus.connected, restaurant.name, branchName])
 
