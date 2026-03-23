@@ -1,11 +1,11 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { KDSBoard } from "@/components/kds-board"
 import { PrinterSettings } from "@/components/printer-settings"
 import { bluetoothPrinter, PrinterStatus } from "@/lib/bluetooth-printer"
 import { Button } from "@/components/ui/button"
-import { Settings, X } from "lucide-react"
+import { Settings, X, Printer } from "lucide-react"
 
 type Order = {
   id: string
@@ -42,6 +42,10 @@ interface KDSClientProps {
   initialOrders: Order[]
 }
 
+// LocalStorage key for auto-print setting (per restaurant/branch)
+const getAutoPrintKey = (restaurantId: string, branchId?: string | null) => 
+  `kds_auto_print_${restaurantId}${branchId ? `_${branchId}` : ''}`
+
 export function KDSClient({ restaurant, branchId, branchName, initialOrders }: KDSClientProps) {
   const [showSettings, setShowSettings] = useState(false)
   const [printerStatus, setPrinterStatus] = useState<PrinterStatus>({
@@ -49,6 +53,24 @@ export function KDSClient({ restaurant, branchId, branchName, initialOrders }: K
     name: null,
     id: null,
   })
+  const [autoPrintEnabled, setAutoPrintEnabled] = useState(false)
+
+  // Load auto-print setting from localStorage on mount
+  useEffect(() => {
+    const key = getAutoPrintKey(restaurant.id, branchId)
+    const saved = localStorage.getItem(key)
+    if (saved === "true") {
+      setAutoPrintEnabled(true)
+    }
+  }, [restaurant.id, branchId])
+
+  // Handle auto-print toggle
+  const handleAutoPrintChange = useCallback((enabled: boolean) => {
+    const key = getAutoPrintKey(restaurant.id, branchId)
+    localStorage.setItem(key, enabled ? "true" : "false")
+    setAutoPrintEnabled(enabled)
+    console.log("[v0] Auto-print setting changed:", enabled)
+  }, [restaurant.id, branchId])
 
   const handlePrintOrder = useCallback(async (order: Order) => {
     if (!printerStatus.connected) {
@@ -83,8 +105,48 @@ export function KDSClient({ restaurant, branchId, branchName, initialOrders }: K
                 <X className="h-5 w-5" />
               </Button>
             </div>
-            <div className="p-4">
+            <div className="p-4 space-y-4">
               <PrinterSettings onPrinterStatusChange={setPrinterStatus} />
+              
+              {/* Auto-print section */}
+              <div className="border-t pt-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <Printer className="h-4 w-4 text-gray-500" />
+                      <span className="font-medium">Impresión Automática</span>
+                    </div>
+                    <p className="text-sm text-gray-500">
+                      Imprimir automáticamente cuando lleguen nuevos pedidos
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={autoPrintEnabled}
+                    onClick={() => handleAutoPrintChange(!autoPrintEnabled)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      autoPrintEnabled ? 'bg-green-600' : 'bg-gray-200'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        autoPrintEnabled ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+                {autoPrintEnabled && !printerStatus.connected && (
+                  <p className="mt-2 text-sm text-amber-600 bg-amber-50 p-2 rounded">
+                    Conecta una impresora Bluetooth para habilitar la impresión automática
+                  </p>
+                )}
+                {autoPrintEnabled && printerStatus.connected && (
+                  <p className="mt-2 text-sm text-green-600 bg-green-50 p-2 rounded">
+                    Los nuevos pedidos se imprimirán automáticamente en {printerStatus.name || 'la impresora'}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -99,9 +161,14 @@ export function KDSClient({ restaurant, branchId, branchName, initialOrders }: K
       >
         <Settings className="h-5 w-5 mr-2" />
         Configuración
-        {printerStatus.connected && (
-          <span className="ml-2 w-2 h-2 rounded-full bg-green-500" />
-        )}
+        <div className="flex items-center gap-1 ml-2">
+          {printerStatus.connected && (
+            <span className="w-2 h-2 rounded-full bg-green-500" title="Impresora conectada" />
+          )}
+          {autoPrintEnabled && (
+            <span className="w-2 h-2 rounded-full bg-blue-500" title="Auto-impresión activa" />
+          )}
+        </div>
       </Button>
 
       {/* KDS Board */}
@@ -111,6 +178,8 @@ export function KDSClient({ restaurant, branchId, branchName, initialOrders }: K
         branchName={branchName}
         initialOrders={initialOrders}
         onPrintOrder={handlePrintOrder}
+        autoPrintEnabled={autoPrintEnabled}
+        onAutoPrintChange={handleAutoPrintChange}
       />
     </div>
   )

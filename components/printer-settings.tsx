@@ -4,8 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
+
 import { Bluetooth, BluetoothConnected, BluetoothOff, Printer, AlertCircle, CheckCircle, Loader2 } from "lucide-react"
 import { bluetoothPrinter, PrinterStatus } from "@/lib/bluetooth-printer"
 
@@ -24,7 +23,6 @@ export function PrinterSettings({ onPrinterStatusChange }: PrinterSettingsProps)
   const [isReconnecting, setIsReconnecting] = useState(false)
   const [isTesting, setIsTesting] = useState(false)
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
-  const [autoPrint, setAutoPrint] = useState(false)
   const [savedPrinter, setSavedPrinter] = useState<{ hasPrinter: boolean; name: string | null }>({ hasPrinter: false, name: null })
 
   useEffect(() => {
@@ -38,11 +36,6 @@ export function PrinterSettings({ onPrinterStatusChange }: PrinterSettingsProps)
     // Check for saved printer
     const saved = bluetoothPrinter.hasSavedPrinter()
     setSavedPrinter(saved)
-
-    // Load auto-print preference
-    if (typeof localStorage !== "undefined") {
-      setAutoPrint(localStorage.getItem("kds_auto_print") === "true")
-    }
 
     // Auto-reconnect if there's a saved printer and not currently connected
     if (saved.hasPrinter && !status.connected) {
@@ -114,13 +107,6 @@ export function PrinterSettings({ onPrinterStatusChange }: PrinterSettingsProps)
     }
 
     setIsTesting(false)
-  }
-
-  const handleAutoPrintToggle = (checked: boolean) => {
-    setAutoPrint(checked)
-    if (typeof localStorage !== "undefined") {
-      localStorage.setItem("kds_auto_print", checked ? "true" : "false")
-    }
   }
 
   if (!isSupported) {
@@ -248,23 +234,6 @@ export function PrinterSettings({ onPrinterStatusChange }: PrinterSettingsProps)
             </>
           )}
         </div>
-
-        {/* Auto-print Setting */}
-        {printerStatus.connected && (
-          <div className="flex items-center justify-between pt-4 border-t">
-            <div className="space-y-0.5">
-              <Label htmlFor="auto-print">Impresión Automática</Label>
-              <p className="text-sm text-gray-500">
-                Imprimir automáticamente cuando lleguen nuevos pedidos
-              </p>
-            </div>
-            <Switch
-              id="auto-print"
-              checked={autoPrint}
-              onCheckedChange={handleAutoPrintToggle}
-            />
-          </div>
-        )}
 
         {/* Printer Compatibility Info */}
         <div className="pt-4 border-t">
