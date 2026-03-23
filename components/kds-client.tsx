@@ -203,25 +203,29 @@ export function KDSClient({ restaurant, branchId, branchName, initialOrders, acc
   }, [restaurant.id, branchId])
 
   const handlePrintOrder = useCallback(async (order: Order) => {
+    console.log("[v0] handlePrintOrder called - order:", order.order_number, "printerStatus.connected:", printerStatus.connected)
     if (!printerStatus.connected) {
+      console.log("[v0] No Bluetooth printer connected - falling back to window.print()")
       // Try to print via browser if no Bluetooth printer
       window.print()
       return
     }
 
     try {
+      console.log("[v0] Sending to Bluetooth printer:", printerStatus.name)
       // Print kitchen ticket with FOODNETPR branding
       const result = await bluetoothPrinter.printKitchenTicket(order, restaurant.name, branchName)
+      console.log("[v0] Bluetooth print result:", result)
       if (!result.success) {
-        console.error("Print failed:", result.error)
+        console.error("[v0] Print failed:", result.error)
         // Fallback to browser print
         window.print()
       }
     } catch (error) {
-      console.error("Print error:", error)
+      console.error("[v0] Print error:", error)
       window.print()
     }
-  }, [printerStatus.connected, restaurant.name, branchName])
+  }, [printerStatus.connected, restaurant.name, branchName, printerStatus.name])
 
   return (
     <div 
