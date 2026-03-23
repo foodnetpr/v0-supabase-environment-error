@@ -179,7 +179,9 @@ export function KDSBoard({ restaurant, branchId, branchName, initialOrders, onPr
       }
 
       // Auto-print test order if enabled (same logic as real orders)
+      console.log("[v0] TEST ORDER autoPrint:", autoPrint, "| autoPrintEnabled prop:", autoPrintEnabled, "| onPrintOrder:", !!onPrintOrder)
       if (autoPrint && onPrintOrder) {
+        console.log("[v0] Calling onPrintOrder for test order")
         markOrderAsPrinted(order.id)
         onPrintOrder(completeOrder as Order)
       }
@@ -236,6 +238,7 @@ export function KDSBoard({ restaurant, branchId, branchName, initialOrders, onPr
 
   // Sync autoPrint state with prop
   useEffect(() => {
+    console.log("[v0] autoPrintEnabled prop changed →", autoPrintEnabled, "| syncing local autoPrint")
     setAutoPrint(autoPrintEnabled)
   }, [autoPrintEnabled])
 
