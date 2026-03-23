@@ -89,12 +89,17 @@ export function KDSClient({ restaurant, branchId, branchName, initialOrders, acc
       localStorage.setItem(sessionKey, JSON.stringify(session))
       
       // Save to cookie (read by middleware.ts for PWA launches)
-      // Cookie expires in 1 year, SameSite=Lax for security, path scoped to this restaurant
+      // Cookie settings:
+      // - Secure: only sent over HTTPS (required for production)
+      // - SameSite=Lax: allows cookie on same-site navigations and top-level GET redirects
+      //   (Strict would break the middleware redirect flow)
+      // - path scoped to this restaurant's KDS
+      // - 1 year expiry
       const cookieValue = encodeURIComponent(JSON.stringify(session))
       const maxAge = 365 * 24 * 60 * 60 // 1 year in seconds
-      document.cookie = `${sessionKey}=${cookieValue}; path=/${restaurant.slug}/kds; max-age=${maxAge}; SameSite=Lax`
-      
-      console.log("[KDS] Session saved to localStorage and cookie for PWA")
+      const isSecure = window.location.protocol === 'https:'
+      const securePart = isSecure ? '; Secure' : ''
+      document.cookie = `${sessionKey}=${cookieValue}; path=/${restaurant.slug}/kds; max-age=${maxAge}; SameSite=Lax${securePart}`
     }
     // Note: We no longer need client-side redirect logic here because
     // middleware.ts handles the token restoration BEFORE the page loads
@@ -109,13 +114,17 @@ export function KDSClient({ restaurant, branchId, branchName, initialOrders, acc
       return '¿Seguro que deseas salir del KDS?'
     }
 
-    // Prevent back button / swipe navigation
+    // Prevent back button / swipe navigation on Android
+    // This creates a "trap" in the history that absorbs back gestures
     const handlePopState = (e: PopStateEvent) => {
-      // Push state back to prevent navigation
+      // Push state back to prevent navigation - re-trap the back button
       window.history.pushState(null, '', window.location.href)
     }
 
-    // Push initial state for popstate handling
+    // Push multiple history entries to create a buffer for back gestures
+    // This helps on Android where a single back might not trigger popstate
+    // before the PWA closes
+    window.history.pushState(null, '', window.location.href)
     window.history.pushState(null, '', window.location.href)
     
     window.addEventListener('beforeunload', handleBeforeUnload)

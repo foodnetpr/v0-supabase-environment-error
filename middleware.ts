@@ -52,15 +52,23 @@ export function middleware(request: NextRequest) {
       url.searchParams.set('branch', session.branchId)
     }
 
-    console.log('[KDS Middleware] Restoring session from cookie, redirecting with token')
     return NextResponse.redirect(url)
-  } catch (e) {
-    console.error('[KDS Middleware] Error parsing session cookie:', e)
+  } catch {
+    // Invalid cookie format - let the server handle auth
     return NextResponse.next()
   }
 }
 
 export const config = {
-  // Only run on KDS routes
-  matcher: '/:slug/kds',
+  // Only run on KDS routes - explicitly excludes static files, API routes, and _next
+  matcher: [
+    /*
+     * Match KDS routes only: /:slug/kds
+     * Exclude:
+     * - api routes (/api/...)
+     * - static files (_next/static, _next/image, favicon.ico, etc.)
+     * - public files (icons, manifest, sw, etc.)
+     */
+    '/((?!api|_next/static|_next/image|favicon\\.ico|icons|.*\\.(?:svg|png|jpg|jpeg|gif|webp|js|css|json|woff|woff2)$).*)/kds',
+  ],
 }

@@ -6,7 +6,6 @@
   "scope": "/",
   "id": "kds-app",
   "display": "standalone",
-  "display_override": ["standalone", "fullscreen"],
   "orientation": "landscape",
   "background_color": "#1f2937",
   "theme_color": "#1f2937",
