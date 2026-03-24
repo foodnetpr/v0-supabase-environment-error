@@ -1531,22 +1531,22 @@ cash_payment_enabled: restaurantData.cash_payment_enabled || false,
     try {
       if (editingItem) {
         const isUnitBased = menuItemForm.pricing_unit && menuItemForm.pricing_unit !== "each"
-        const result = await updateMenuItem(editingItem.id, {
-          name: menuItemForm.name,
-          description: menuItemForm.description,
-          base_price: Number.parseFloat(menuItemForm.price),
-          image_url: menuItemForm.image_url || null,
-          category_id: menuItemForm.category_id,
-          pricing_unit: menuItemForm.pricing_unit || null,
-          per_unit_price: isUnitBased && menuItemForm.per_unit_price ? Number.parseFloat(menuItemForm.per_unit_price) : null,
-          min_quantity: menuItemForm.min_quantity ? Number.parseInt(menuItemForm.min_quantity) : null,
+const result = await updateMenuItem(editingItem.id, {
+  name: menuItemForm.name,
+  description: menuItemForm.description,
+  base_price: Number.parseFloat(menuItemForm.price),
+  image_url: menuItemForm.image_url || null,
+  category_id: menuItemForm.category_id,
+  pricing_unit: menuItemForm.pricing_unit || null,
+  per_unit_price: isUnitBased && menuItemForm.per_unit_price ? Number.parseFloat(menuItemForm.per_unit_price) : null,
   serves: menuItemForm.serves ? menuItemForm.serves.trim() : null,
   is_bulk_order: menuItemForm.is_bulk_order,
   minimum_quantity: menuItemForm.is_bulk_order && menuItemForm.minimum_quantity ? Number.parseInt(menuItemForm.minimum_quantity) : null,
-  per_unit_pricing: menuItemForm.is_bulk_order ? menuItemForm.per_unit_pricing : false,
   quantity_unit: menuItemForm.is_bulk_order && menuItemForm.quantity_unit ? menuItemForm.quantity_unit : null,
   is_cart_upsell: menuItemForm.is_cart_upsell,
-  })
+  delivery_lead_time: menuItemForm.lead_time_hours ? Number.parseInt(menuItemForm.lead_time_hours) : null,
+  pickup_lead_time: menuItemForm.lead_time_hours ? Number.parseInt(menuItemForm.lead_time_hours) : null,
+})
 
         if (!result.success) throw new Error(result.error || "Failed to update")
 
@@ -1563,7 +1563,6 @@ cash_payment_enabled: restaurantData.cash_payment_enabled || false,
         setEditingItem(null)
       } else {
         // Create new item
-        console.log("[v0] Creating new menu item, form data:", menuItemForm)
         const isUnitBasedCreate = menuItemForm.pricing_unit && menuItemForm.pricing_unit !== "each"
         const createData = {
           restaurant_id: restaurantId,
@@ -1575,20 +1574,15 @@ cash_payment_enabled: restaurantData.cash_payment_enabled || false,
           is_active: true,
           pricing_unit: menuItemForm.pricing_unit || null,
           per_unit_price: isUnitBasedCreate && menuItemForm.per_unit_price ? Number.parseFloat(menuItemForm.per_unit_price) : null,
-          min_quantity: menuItemForm.min_quantity ? Number.parseInt(menuItemForm.min_quantity) : null,
           serves: menuItemForm.serves ? menuItemForm.serves.trim() : null,
           is_bulk_order: menuItemForm.is_bulk_order,
           minimum_quantity: menuItemForm.is_bulk_order && menuItemForm.minimum_quantity ? Number.parseInt(menuItemForm.minimum_quantity) : null,
-          per_unit_pricing: menuItemForm.is_bulk_order ? menuItemForm.per_unit_pricing : false,
           quantity_unit: menuItemForm.is_bulk_order && menuItemForm.quantity_unit ? menuItemForm.quantity_unit : null,
           is_cart_upsell: menuItemForm.is_cart_upsell,
-          lead_time_hours: menuItemForm.lead_time_hours ? Number.parseInt(menuItemForm.lead_time_hours) : null,
-          container_type: menuItemForm.container_type || "none",
-          containers_per_unit: menuItemForm.containers_per_unit ? Number.parseInt(menuItemForm.containers_per_unit) : 1,
+          delivery_lead_time: menuItemForm.lead_time_hours ? Number.parseInt(menuItemForm.lead_time_hours) : null,
+          pickup_lead_time: menuItemForm.lead_time_hours ? Number.parseInt(menuItemForm.lead_time_hours) : null,
         }
-        console.log("[v0] Calling createMenuItem with:", createData)
         const result = await createMenuItem(createData)
-        console.log("[v0] createMenuItem result:", result)
         
         // Check if createMenuItem returned an error
         if (result && typeof result === 'object' && 'success' in result && !result.success) {

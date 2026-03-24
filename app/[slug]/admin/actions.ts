@@ -313,19 +313,16 @@ export async function createMenuItem(data: {
   display_order?: number
   pricing_unit?: string | null
   per_unit_price?: number | null
-  min_quantity?: number | null
-  serves?: string | null
+  serves?: string | null // Text field for ranges like "Serves 6-8"
   is_bulk_order?: boolean
-  minimum_quantity?: number | null // Fixed: accept number not string
-  per_unit_pricing?: boolean
+  minimum_quantity?: number | null
   quantity_unit?: string | undefined
   is_cart_upsell?: boolean
-  lead_time_hours?: number | null
-  container_type?: string
-  containers_per_unit?: number
+  available_days?: AvailableDays
+  availability_daypart?: AvailabilityDaypart
+  delivery_lead_time?: number | null
+  pickup_lead_time?: number | null
 }) {
-  console.log("[v0] createMenuItem called with data:", JSON.stringify(data))
-  
   const supabase = getAdminClient()
 
   const insertData: any = {
@@ -333,31 +330,32 @@ export async function createMenuItem(data: {
     category_id: data.category_id,
     name: data.name,
     description: data.description,
-    price: data.base_price, // Map to correct column name
+    price: data.base_price,
     image_url: data.image_url,
     is_active: data.is_active ?? true,
     display_order: data.display_order ?? 0,
   }
 
-  // Selling unit fields - map to actual database column names
+  // Map to actual database column names
   if (data.pricing_unit !== undefined) insertData.selling_unit = data.pricing_unit
   if (data.per_unit_price !== undefined) insertData.per_unit_price = data.per_unit_price
-  if (data.serves !== undefined) insertData.serves = data.serves
+  if (data.serves !== undefined && data.serves !== null) insertData.serves = data.serves
   if (data.is_bulk_order !== undefined) insertData.is_bulk_item = data.is_bulk_order
   if (data.minimum_quantity !== undefined && data.minimum_quantity !== null) insertData.bulk_min_quantity = data.minimum_quantity
   if (data.quantity_unit !== undefined) insertData.unit_label = data.quantity_unit
   if (data.is_cart_upsell !== undefined) insertData.is_upsell_item = data.is_cart_upsell
-
-  console.log("[v0] createMenuItem insertData:", JSON.stringify(insertData))
+  if (data.available_days !== undefined) insertData.available_days = data.available_days
+  if (data.availability_daypart !== undefined) insertData.availability_daypart = data.availability_daypart
+  if (data.delivery_lead_time !== undefined) insertData.delivery_lead_time = data.delivery_lead_time
+  if (data.pickup_lead_time !== undefined) insertData.pickup_lead_time = data.pickup_lead_time
 
   const { data: item, error } = await supabase.from("menu_items").insert(insertData).select().single()
 
   if (error) {
-    console.error("[v0] createMenuItem error:", error.message, "code:", error.code, "details:", error.details, "hint:", error.hint)
+    console.error("createMenuItem error:", error.message)
     return { success: false, error: error.message }
   }
   
-  console.log("[v0] createMenuItem success, item created:", item?.id)
   return item
 }
 
@@ -394,18 +392,15 @@ export async function updateMenuItem(
     display_order?: number
     pricing_unit?: string | null
     per_unit_price?: number | null
-    min_quantity?: number | null
-    serves?: string | null
+    serves?: string | null // Text field for ranges like "Serves 6-8"
     is_bulk_order?: boolean
-    minimum_quantity?: string | undefined
-    per_unit_pricing?: boolean
+    minimum_quantity?: number | null
     quantity_unit?: string | undefined
     is_cart_upsell?: boolean
-    lead_time_hours?: number | null
-    container_type?: string
-    containers_per_unit?: number
     available_days?: AvailableDays
     availability_daypart?: AvailabilityDaypart
+    delivery_lead_time?: number | null
+    pickup_lead_time?: number | null
   },
 ) {
   const supabase = getAdminClient()
@@ -414,28 +409,29 @@ export async function updateMenuItem(
   if (data.category_id !== undefined) updateData.category_id = data.category_id
   if (data.name !== undefined) updateData.name = data.name
   if (data.description !== undefined) updateData.description = data.description
-  if (data.base_price !== undefined) updateData.price = data.base_price // Map to correct column
+  if (data.base_price !== undefined) updateData.price = data.base_price
   if (data.image_url !== undefined) updateData.image_url = data.image_url
   if (data.is_active !== undefined) updateData.is_active = data.is_active
   if (data.display_order !== undefined) updateData.display_order = data.display_order
-  if (data.pricing_unit !== undefined) updateData.pricing_unit = data.pricing_unit
+  // Map to actual database column names
+  if (data.pricing_unit !== undefined) updateData.selling_unit = data.pricing_unit
   if (data.per_unit_price !== undefined) updateData.per_unit_price = data.per_unit_price
-  if (data.min_quantity !== undefined) updateData.min_quantity = data.min_quantity
   if (data.serves !== undefined) updateData.serves = data.serves
-  if (data.is_bulk_order !== undefined) updateData.is_bulk_order = data.is_bulk_order
-  if (data.minimum_quantity !== undefined) updateData.minimum_quantity = data.minimum_quantity
-  if (data.per_unit_pricing !== undefined) updateData.per_unit_pricing = data.per_unit_pricing
-  if (data.quantity_unit !== undefined) updateData.quantity_unit = data.quantity_unit
-  if (data.is_cart_upsell !== undefined) updateData.is_cart_upsell = data.is_cart_upsell
-  if (data.lead_time_hours !== undefined) updateData.lead_time_hours = data.lead_time_hours
-  if (data.container_type !== undefined) updateData.container_type = data.container_type
-  if (data.containers_per_unit !== undefined) updateData.containers_per_unit = data.containers_per_unit
+  if (data.is_bulk_order !== undefined) updateData.is_bulk_item = data.is_bulk_order
+  if (data.minimum_quantity !== undefined && data.minimum_quantity !== null) updateData.bulk_min_quantity = data.minimum_quantity
+  if (data.quantity_unit !== undefined) updateData.unit_label = data.quantity_unit
+  if (data.is_cart_upsell !== undefined) updateData.is_upsell_item = data.is_cart_upsell
   if (data.available_days !== undefined) updateData.available_days = data.available_days
   if (data.availability_daypart !== undefined) updateData.availability_daypart = data.availability_daypart
+  if (data.delivery_lead_time !== undefined) updateData.delivery_lead_time = data.delivery_lead_time
+  if (data.pickup_lead_time !== undefined) updateData.pickup_lead_time = data.pickup_lead_time
 
   const { data: item, error } = await supabase.from("menu_items").update(updateData).eq("id", id).select().single()
 
-  if (error) throw new Error(error.message)
+  if (error) {
+    console.error("updateMenuItem error:", error.message)
+    return { success: false, error: error.message }
+  }
   return { success: true, data: item }
 }
 
