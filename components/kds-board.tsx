@@ -454,31 +454,24 @@ export function KDSBoard({ restaurant, branchId, branchName, initialOrders, onPr
         await supabase.from("orders").update({ status }).eq("id", orderId)
       } else {
         // Direct database update for other status changes
-        console.log("[v0] Updating order status:", { orderId, status })
         const { data, error } = await supabase
           .from("orders")
           .update({ status })
           .eq("id", orderId)
           .select()
         
-        console.log("[v0] Update result:", { data, error })
-        
         if (error) {
           // Revert on error
-          console.log("[v0] Error - reverting to pending")
           setOrders(prev => prev.map(order => 
             order.id === orderId ? { ...order, status: "pending" } : order
           ))
           alert("Error actualizando orden: " + error.message)
         } else if (!data || data.length === 0) {
           // No rows updated - likely RLS policy blocking or order not found
-          console.log("[v0] No rows updated - RLS policy may be blocking")
           setOrders(prev => prev.map(order => 
             order.id === orderId ? { ...order, status: "pending" } : order
           ))
           alert("Error: No se pudo actualizar la orden. Verifica los permisos.")
-        } else {
-          console.log("[v0] Update successful:", data[0])
         }
       }
     } catch (error) {
