@@ -403,36 +403,45 @@ export async function updateMenuItem(
     pickup_lead_time?: number | null
   },
 ) {
-  const supabase = getAdminClient()
+  try {
+    const supabase = getAdminClient()
 
-  const updateData: any = {}
-  if (data.category_id !== undefined) updateData.category_id = data.category_id
-  if (data.name !== undefined) updateData.name = data.name
-  if (data.description !== undefined) updateData.description = data.description
-  if (data.base_price !== undefined) updateData.price = data.base_price
-  if (data.image_url !== undefined) updateData.image_url = data.image_url
-  if (data.is_active !== undefined) updateData.is_active = data.is_active
-  if (data.display_order !== undefined) updateData.display_order = data.display_order
-  // Map to actual database column names
-  if (data.pricing_unit !== undefined) updateData.selling_unit = data.pricing_unit
-  if (data.per_unit_price !== undefined) updateData.per_unit_price = data.per_unit_price
-  if (data.serves !== undefined) updateData.serves = data.serves
-  if (data.is_bulk_order !== undefined) updateData.is_bulk_item = data.is_bulk_order
-  if (data.minimum_quantity !== undefined && data.minimum_quantity !== null) updateData.bulk_min_quantity = data.minimum_quantity
-  if (data.quantity_unit !== undefined) updateData.unit_label = data.quantity_unit
-  if (data.is_cart_upsell !== undefined) updateData.is_upsell_item = data.is_cart_upsell
-  if (data.available_days !== undefined) updateData.available_days = data.available_days
-  if (data.availability_daypart !== undefined) updateData.availability_daypart = data.availability_daypart
-  if (data.delivery_lead_time !== undefined) updateData.delivery_lead_time = data.delivery_lead_time
-  if (data.pickup_lead_time !== undefined) updateData.pickup_lead_time = data.pickup_lead_time
+    const updateData: any = {}
+    if (data.category_id !== undefined) updateData.category_id = data.category_id
+    if (data.name !== undefined) updateData.name = data.name
+    if (data.description !== undefined) updateData.description = data.description
+    if (data.base_price !== undefined) updateData.price = data.base_price
+    if (data.image_url !== undefined) updateData.image_url = data.image_url
+    if (data.is_active !== undefined) updateData.is_active = data.is_active
+    if (data.display_order !== undefined) updateData.display_order = data.display_order
+    // Map to actual database column names
+    if (data.pricing_unit !== undefined) updateData.selling_unit = data.pricing_unit
+    if (data.per_unit_price !== undefined) updateData.per_unit_price = data.per_unit_price
+    if (data.serves !== undefined) updateData.serves = data.serves
+    if (data.is_bulk_order !== undefined) updateData.is_bulk_item = data.is_bulk_order
+    if (data.minimum_quantity !== undefined && data.minimum_quantity !== null) updateData.bulk_min_quantity = data.minimum_quantity
+    if (data.quantity_unit !== undefined) updateData.unit_label = data.quantity_unit
+    if (data.is_cart_upsell !== undefined) updateData.is_upsell_item = data.is_cart_upsell
+    if (data.available_days !== undefined) updateData.available_days = data.available_days
+    if (data.availability_daypart !== undefined) updateData.availability_daypart = data.availability_daypart
+    if (data.delivery_lead_time !== undefined) updateData.delivery_lead_time = data.delivery_lead_time
+    if (data.pickup_lead_time !== undefined) updateData.pickup_lead_time = data.pickup_lead_time
 
-  const { data: item, error } = await supabase.from("menu_items").update(updateData).eq("id", id).select().single()
+    console.log("[v0] updateMenuItem - id:", id, "updateData:", JSON.stringify(updateData))
 
-  if (error) {
-    console.error("updateMenuItem error:", error.message)
-    return { success: false, error: error.message }
+    const { data: item, error } = await supabase.from("menu_items").update(updateData).eq("id", id).select().single()
+
+    if (error) {
+      console.error("[v0] updateMenuItem Supabase error:", error.message, error.code, error.details)
+      return { success: false, error: error.message }
+    }
+    
+    console.log("[v0] updateMenuItem success, item:", item?.id)
+    return { success: true, data: item }
+  } catch (err) {
+    console.error("[v0] updateMenuItem caught exception:", err)
+    return { success: false, error: err instanceof Error ? err.message : "Unknown error" }
   }
-  return { success: true, data: item }
 }
 
 export async function deleteMenuItem(id: string) {
