@@ -397,7 +397,7 @@ export async function updateMenuItem(
     min_quantity?: number | null
     serves?: string | null
     is_bulk_order?: boolean
-    minimum_quantity?: string | undefined
+    minimum_quantity?: number | null
     per_unit_pricing?: boolean
     quantity_unit?: string | undefined
     is_cart_upsell?: boolean
@@ -418,15 +418,14 @@ export async function updateMenuItem(
   if (data.image_url !== undefined) updateData.image_url = data.image_url
   if (data.is_active !== undefined) updateData.is_active = data.is_active
   if (data.display_order !== undefined) updateData.display_order = data.display_order
-  if (data.pricing_unit !== undefined) updateData.pricing_unit = data.pricing_unit
+  // Map to actual database column names
+  if (data.pricing_unit !== undefined) updateData.selling_unit = data.pricing_unit
   if (data.per_unit_price !== undefined) updateData.per_unit_price = data.per_unit_price
-  if (data.min_quantity !== undefined) updateData.min_quantity = data.min_quantity
   if (data.serves !== undefined) updateData.serves = data.serves
-  if (data.is_bulk_order !== undefined) updateData.is_bulk_order = data.is_bulk_order
-  if (data.minimum_quantity !== undefined) updateData.minimum_quantity = data.minimum_quantity
-  if (data.per_unit_pricing !== undefined) updateData.per_unit_pricing = data.per_unit_pricing
-  if (data.quantity_unit !== undefined) updateData.quantity_unit = data.quantity_unit
-  if (data.is_cart_upsell !== undefined) updateData.is_cart_upsell = data.is_cart_upsell
+  if (data.is_bulk_order !== undefined) updateData.is_bulk_item = data.is_bulk_order
+  if (data.minimum_quantity !== undefined && data.minimum_quantity !== null) updateData.bulk_min_quantity = data.minimum_quantity
+  if (data.quantity_unit !== undefined) updateData.unit_label = data.quantity_unit
+  if (data.is_cart_upsell !== undefined) updateData.is_upsell_item = data.is_cart_upsell
   if (data.lead_time_hours !== undefined) updateData.lead_time_hours = data.lead_time_hours
   if (data.container_type !== undefined) updateData.container_type = data.container_type
   if (data.containers_per_unit !== undefined) updateData.containers_per_unit = data.containers_per_unit
@@ -435,7 +434,10 @@ export async function updateMenuItem(
 
   const { data: item, error } = await supabase.from("menu_items").update(updateData).eq("id", id).select().single()
 
-  if (error) throw new Error(error.message)
+  if (error) {
+    console.error("[v0] updateMenuItem error:", error.message)
+    return { success: false, error: error.message }
+  }
   return { success: true, data: item }
 }
 
