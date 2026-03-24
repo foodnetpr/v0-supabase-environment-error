@@ -1563,8 +1563,9 @@ cash_payment_enabled: restaurantData.cash_payment_enabled || false,
         setEditingItem(null)
       } else {
         // Create new item
+        console.log("[v0] Creating new menu item, form data:", menuItemForm)
         const isUnitBasedCreate = menuItemForm.pricing_unit && menuItemForm.pricing_unit !== "each"
-        const result = await createMenuItem({
+        const createData = {
           restaurant_id: restaurantId,
           category_id: menuItemForm.category_id,
           name: menuItemForm.name.trim(),
@@ -1584,7 +1585,10 @@ cash_payment_enabled: restaurantData.cash_payment_enabled || false,
           lead_time_hours: menuItemForm.lead_time_hours ? Number.parseInt(menuItemForm.lead_time_hours) : null,
           container_type: menuItemForm.container_type || "none",
           containers_per_unit: menuItemForm.containers_per_unit ? Number.parseInt(menuItemForm.containers_per_unit) : 1,
-        })
+        }
+        console.log("[v0] Calling createMenuItem with:", createData)
+        const result = await createMenuItem(createData)
+        console.log("[v0] createMenuItem result:", result)
         
         // Check if createMenuItem returned an error
         if (result && typeof result === 'object' && 'success' in result && !result.success) {

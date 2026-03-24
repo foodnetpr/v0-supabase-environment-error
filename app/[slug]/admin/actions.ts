@@ -316,7 +316,7 @@ export async function createMenuItem(data: {
   min_quantity?: number | null
   serves?: string | null
   is_bulk_order?: boolean
-  minimum_quantity?: string | undefined
+  minimum_quantity?: number | null // Fixed: accept number not string
   per_unit_pricing?: boolean
   quantity_unit?: string | undefined
   is_cart_upsell?: boolean
@@ -324,6 +324,8 @@ export async function createMenuItem(data: {
   container_type?: string
   containers_per_unit?: number
 }) {
+  console.log("[v0] createMenuItem called with data:", JSON.stringify(data))
+  
   const supabase = getAdminClient()
 
   const insertData: any = {
@@ -342,16 +344,20 @@ export async function createMenuItem(data: {
   if (data.per_unit_price !== undefined) insertData.per_unit_price = data.per_unit_price
   if (data.serves !== undefined) insertData.serves = data.serves
   if (data.is_bulk_order !== undefined) insertData.is_bulk_item = data.is_bulk_order
-  if (data.minimum_quantity !== undefined) insertData.bulk_min_quantity = Number.parseInt(data.minimum_quantity)
+  if (data.minimum_quantity !== undefined && data.minimum_quantity !== null) insertData.bulk_min_quantity = data.minimum_quantity
   if (data.quantity_unit !== undefined) insertData.unit_label = data.quantity_unit
   if (data.is_cart_upsell !== undefined) insertData.is_upsell_item = data.is_cart_upsell
+
+  console.log("[v0] createMenuItem insertData:", JSON.stringify(insertData))
 
   const { data: item, error } = await supabase.from("menu_items").insert(insertData).select().single()
 
   if (error) {
-    console.error("[v0] createMenuItem error:", error.message, "insertData:", JSON.stringify(insertData))
+    console.error("[v0] createMenuItem error:", error.message, "code:", error.code, "details:", error.details, "hint:", error.hint)
     return { success: false, error: error.message }
   }
+  
+  console.log("[v0] createMenuItem success, item created:", item?.id)
   return item
 }
 
