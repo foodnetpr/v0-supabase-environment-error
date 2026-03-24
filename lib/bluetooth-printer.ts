@@ -583,13 +583,20 @@ class BluetoothPrinter {
         await this.printText(leftRightText("Tel:", order.customer_phone) + "\n")
       }
 
-      // --- ITEMS (no blank lines between items) ---
+      // --- ITEMS (single blank line between items for readability) ---
       await this.printText("-".repeat(PAPER_WIDTH) + "\n")
       await this.write(COMMANDS.BOLD_ON)
       await this.printText("ITEMS:\n")
       await this.write(COMMANDS.BOLD_OFF)
 
-      for (const item of order.order_items) {
+      for (let i = 0; i < order.order_items.length; i++) {
+        const item = order.order_items[i]
+        
+        // Thin separator between items (not before first)
+        if (i > 0) {
+          await this.printText("\n") // Single blank line between items
+        }
+
         // Item name + quantity (bold)
         await this.write(COMMANDS.BOLD_ON)
         await this.printText(`${item.quantity}x ${item.item_name.toUpperCase()}\n`)
@@ -605,6 +612,16 @@ class BluetoothPrinter {
               }
             }
           }
+        }
+
+        // Per-item special instructions (bold+underline, with ! prefix)
+        const itemInstructions = (item as any).special_instructions
+        if (itemInstructions) {
+          await this.write(COMMANDS.BOLD_ON)
+          await this.write(COMMANDS.UNDERLINE_ON)
+          await this.printText(`  !${itemInstructions.toUpperCase()}\n`)
+          await this.write(COMMANDS.UNDERLINE_OFF)
+          await this.write(COMMANDS.BOLD_OFF)
         }
       }
 
