@@ -263,7 +263,30 @@ export function KDSBoard({ restaurant, branchId, branchName, initialOrders, onPr
 
       const { data } = await query
       if (data) {
-        setOrders(data)
+        // Merge fetched data with current state to preserve any optimistic updates in progress
+        setOrders(prev => {
+          // Create a map of fetched orders by ID
+          const fetchedMap = new Map(data.map((o: Order) => [o.id, o]))
+          // Create a map of current orders to check which ones are being updated
+          const currentIds = new Set(prev.map(o => o.id))
+          
+          // For orders that exist in both, prefer the fetched version (database is source of truth)
+          // For orders only in current state (new optimistic inserts), keep them
+          // For orders only in fetched data (new from other sources), add them
+          const merged = data.map((fetchedOrder: Order) => {
+            // Always use the fetched order from database - this is the source of truth
+            return fetchedOrder
+          })
+          
+          // Add any orders in current state that aren't in fetched data (shouldn't happen normally)
+          prev.forEach(currentOrder => {
+            if (!fetchedMap.has(currentOrder.id)) {
+              merged.push(currentOrder)
+            }
+          })
+          
+          return merged
+        })
       }
     }
 
@@ -443,6 +466,12 @@ export function KDSBoard({ restaurant, branchId, branchName, initialOrders, onPr
             order.id === orderId ? { ...order, status: "pending" } : order
           ))
           alert("Error actualizando orden: " + error.message)
+        } else if (!data || data.length === 0) {
+          // No rows updated - likely RLS policy blocking or order not found
+          setOrders(prev => prev.map(order => 
+            order.id === orderId ? { ...order, status: "pending" } : order
+          ))
+          alert("Error: No se pudo actualizar la orden. Verifica los permisos.")
         }
       }
     } catch (error) {
